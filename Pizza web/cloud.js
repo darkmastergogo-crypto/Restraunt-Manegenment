@@ -2,8 +2,8 @@
 'use strict';
 const Cloud = (() => {
  const cfg=typeof RESTAURANT_CONFIG==='undefined'?{}:RESTAURANT_CONFIG;
- const url=String(cfg.supabaseUrl||'').replace(/\/$/,'');
- const key=String(cfg.supabaseAnonKey||'');
+ const url=String(cfg.https://srdwtlipvdhwjbxveqtd.supabase.co||'').replace(/\/$/,'');
+ const key=String(cfg.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZHd0bGlwdmRod2pieHZlcXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MjA3NjUsImV4cCI6MjEwNzI5Njc2NX0.jmo7YHweokSG5DYf54lrW3h5udGfOTg_O9hDZk5Tho0||'');
  let publicKey=key.startsWith('sb_publishable_');
  if(key.startsWith('eyJ')){try{publicKey=JSON.parse(atob(key.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).role==='anon';}catch{}}
  const configured=publicKey && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) && key.length>20 && !/YOUR_|PASTE_/i.test(key+url);
