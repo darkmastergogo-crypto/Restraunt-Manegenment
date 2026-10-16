@@ -1,6 +1,6 @@
 /* Separate shop configuration. Public browser-safe values only; never use a service-role key. */
 const RESTAURANT_CONFIG = {
-  publicMenuUrl: "https://pizzawithyaar.vercel.app/",
+  publicMenuUrl: "https://pizzawithyaar-db1e25nqg-aryan-ddf1.vercel.app/",
   restaurantName: "",
   tagline: "Freshly made, served with love",
   currency: "₹",
