@@ -59,3 +59,4 @@ const Cloud = (() => {
   playedSongs:()=>request('/rest/v1/song_requests?select=id,queue_no,created_at,finished_at,table_number,title,artist,status&status=eq.Played&order=finished_at.desc&limit=20',{staff:true})
  };
 })();
+​
