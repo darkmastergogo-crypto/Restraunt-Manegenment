@@ -1,7 +1,0 @@
-/* The server flag is both visibility and waiter billing authorization. */
-'use strict';
-window.YummyWaiterBilling=(()=>{let allowed=false,loaded=false,busy=false;const el=id=>document.getElementById(id);
- function paint(){const b=el('toggleWaiterBilling');if(!b)return;b.disabled=!loaded||busy;b.textContent=allowed?'Hide waiter Billing':'Show waiter Billing';b.setAttribute('aria-pressed',String(!allowed));if(loaded)el('waiterBillingVisibilityStatus').textContent=allowed?'Waiter Billing is visible and permitted.':'Waiter Billing is hidden and blocked. Admin / manager Billing stays available.';}
- async function sync(){if(typeof staffRole==='undefined'||staffRole!=='admin'||busy)return;busy=true;try{const s=await Cloud.rpc('restaurant_waiter_billing',{},true);if(typeof s.enabled!=='boolean')throw Error('Run SUPABASE/YUMMY-MOMO-37.sql first.');allowed=s.enabled;loaded=true;}catch(e){el('waiterBillingVisibilityStatus').textContent='Could not load waiter Billing: '+e.message;}finally{busy=false;paint();}}
- async function toggle(){if(busy||!loaded||staffRole!=='admin')return;busy=true;paint();try{const s=await Cloud.rpc('restaurant_waiter_billing',{p_enabled:!allowed},true);allowed=s.enabled;}catch(e){el('waiterBillingVisibilityStatus').textContent='Not saved: '+e.message;busy=false;const b=el('toggleWaiterBilling');if(b)b.disabled=false;return;}finally{busy=false;}paint();}
- return {sync,toggle};})();
