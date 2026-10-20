@@ -1,0 +1,123 @@
+/* Release36 · Midnight Indigo #282B4A + Vanilla #EEEBDA.
+   Presentation only: existing navigation, button order and grid positions retained. */
+:root{--indigo:#282b4a;--vanilla:#eeebda;--surface:#303351;--raised:#3b3f60;--muted:#d3d5e5;--edge:#969bbd}
+body.dark-site{--ink:#eeebda;--text-main:#eeebda;--text-muted:#d3d5e5;--bg:#282b4a;--card-bg:#303351;--card-border:#969bbd;--primary:#eeebda;background:#282b4a!important;color:#eeebda!important;color-scheme:dark}
+body.dark-site header,body.dark-site .nav-tabs,body.dark-site .waiter-header{background:#282b4a!important;border-color:#969bbd!important}
+body.dark-site :is(h1,h2,h3,h4,strong,b,.item-title,.item-price,.table-title,.val){color:#eeebda!important}
+body.dark-site :is(.panel,.menu-row,.item-card,.stat-card,.device-card,.table-management-card,.stock-card,.access-panel,.staff-menu-filters,.request-card,.order-card,.menu-order-panel,.browse-menu,dialog,.cart-drawer,.drawer-body,.account-menu,.tracking-card,.tracking-modal,.customer-order-history,.customer-review,.review-card,.stock-notice,.manual-summary,.request-filters){background:#303351!important;border-color:#969bbd!important;color:#eeebda!important}
+body.dark-site :is(button,.secondary-btn,.nav-tab-btn,.cat-btn,.waiter-button,.pizza-size-button){background:#3b3f60!important;color:#eeebda!important;border-color:#969bbd!important}
+body.dark-site :is(.primary-btn,.place-order-btn,.btn-place-order,.nav-tab-btn.active,.cat-btn.active,.request-filter.selected,.pizza-size-button.selected,.floating-cart-bar,button[aria-pressed=true]){background:#eeebda!important;color:#282b4a!important;border-color:#eeebda!important}
+body.dark-site :is(.primary-btn,.place-order-btn,.btn-place-order,.nav-tab-btn.active,.cat-btn.active,.pizza-size-button.selected,.floating-cart-bar,button[aria-pressed=true]) :is(span,small,strong,b,.ui-icon){color:#282b4a!important}
+body.dark-site .danger-btn{background:#552b40!important;color:#ffe0e4!important;border-color:#efabb9!important}
+body.dark-site :is(input:not([type=checkbox]):not([type=range]),select,textarea){background:#282b4a!important;color:#eeebda!important;border-color:#969bbd!important}
+body.dark-site input::placeholder,body.dark-site textarea::placeholder{color:#c9cce0!important;opacity:1}
+body.dark-site input[type=checkbox],body.dark-site input[type=range]{accent-color:#eeebda}
+body.dark-site :is(.hint,.muted,.order-time,.cust-info,.item-desc,.photo-status,.report-basis,.staff-availability,.stock-updated,.note-hint,.empty,.order-line,.order-line span,.staff-dish-description,.hero-description,.hero-eyebrow,.brand-caption,.system-footer,.sidebar-order-line span,.empty-order p,.account-menu small){color:#d3d5e5!important;opacity:1}
+body.dark-site :is(.hero-copy,.hero-photo){background:transparent!important}
+body.dark-site .menu-hero{background:#282b4a!important}
+body.dark-site :is(.brand-box h1,.brand-box p,.hero-copy h2){color:#eeebda!important}
+body.dark-site :is(.status-pill,.status,.request-state,.menu-label,.stock-badge,.size-price-chip,.connection,.table-badge){background:#3b3f60!important;color:#eeebda!important;border-color:#969bbd!important}
+body.dark-site :is(.badge-live,.connection.live,.on-way-state){color:#c3f1d4!important;background:#243d3c!important;border-color:#7ebd9a!important}
+body.dark-site :is(.reserved-staff-alert,.reserved-waiter-alert,.kitchen-notes-box){background:#46415c!important;color:#fff2c9!important;border-color:#e1c98e!important}
+body.dark-site :is(.status-pill.cancelled,.status-pill.rejected){background:#552b40!important;color:#ffe0e4!important}
+body.dark-site :is(th,.dish-sales-table th,.record-table th){background:#3b3f60!important;color:#eeebda!important}
+body.dark-site :is(td,.order-header,.order-footer,.item-purchase-row,.staff-item-settings,.bill-row,.drawer-header,.drawer-footer){border-color:#969bbd!important}
+body.dark-site :is(#historyTableBody tr,#dishSalesBody tr){background:#303351!important}
+body.dark-site :is(.qty-counter,.item-qty,.qty-btn,.note-chips button){background:#3b3f60!important;color:#eeebda!important}
+body.dark-site :is(#cloudMessage,#pendingRetry,#callWaiterStatus,#waiterError,#loginStatus){color:#eeebda!important}
+body.dark-site a{color:#eeebda}body.dark-site .toast{background:#eeebda!important;color:#282b4a!important}
+body.dark-site .toast :is(b,strong,span){color:#282b4a!important}
+body.dark-site button:disabled{opacity:.65;cursor:not-allowed}body.dark-site button:hover:not(:disabled){filter:brightness(1.08)}
+body.dark-site :focus-visible{outline:3px solid #eeebda!important;outline-offset:3px}
+body.dark-site :is(.hint,.muted,.item-desc,.staff-availability,.staff-dish-description,.note-hint,.photo-status){font-size:14px;line-height:1.55}
+body.dark-site .item-title,body.dark-site .menu-copy h4,body.dark-site .staff-brand-copy{overflow-wrap:anywhere}
+body.dark-site :is(.pizza-size-button span,.pizza-size-button small){font-size:12px;white-space:normal;overflow-wrap:anywhere}
+body.dark-site .item-size-options{grid-template-columns:repeat(auto-fit,minmax(74px,1fr))}
+.staff-brand-copy{display:block}.staff-brand-copy strong{display:block}.staff-brand-copy small{display:block;font-size:12px;line-height:1.5;color:#d3d5e5;margin-top:4px;font-weight:400}
+#menuPricingModal{width:640px;max-width:calc(100vw - 24px);max-height:90dvh;overflow:auto;box-sizing:border-box;padding:24px}
+#menuPricingModal .modal-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}
+#menuPricingModal h3{margin:0;font-size:22px}#menuPricingModal p{line-height:1.6;margin:12px 0 20px}
+#menuPricingModal fieldset{border:1px solid #969bbd;border-radius:10px;padding:16px;margin:16px 0 24px;min-width:0}
+#menuPricingModal legend{padding:0 8px}#menuPricingModal label:not(.pricing-mode){display:block;font-size:14px}
+#menuPricingModal :is(input:not([type=checkbox]),textarea,select){display:block;width:100%;box-sizing:border-box;min-height:44px;margin:8px 0 16px;padding:10px 12px;font:inherit;border:1px solid #969bbd;border-radius:8px}
+#menuPricingModal .pricing-mode{display:flex;align-items:center;gap:12px;margin:16px 0;font-size:16px}
+#menuPricingModal input[type=checkbox]{width:22px;height:22px;min-height:22px;flex-shrink:0}
+#menuPricingModal .custom-size-row{display:grid;grid-template-columns:minmax(0,1fr) 132px auto;align-items:center;gap:12px;border-bottom:1px solid #969bbd;padding:12px 0}
+#menuPricingModal .custom-size-row button{margin-top:6px;min-height:44px;padding:10px}
+#menuPricingModal .toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}#menuPricingModal button{min-height:44px}
+#menuPricingModal .custom-size-row input{margin-bottom:8px}#pricingStatus:empty{display:none}
+#menuPricingModal [hidden]{display:none!important}
+@media(max-width:550px){#menuPricingModal{padding:16px}#menuPricingModal .custom-size-row{grid-template-columns:minmax(0,1fr) 110px}#menuPricingModal .custom-size-row button{grid-column:1/-1;justify-self:start;margin:0 0 8px}.staff-brand-copy small{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* Keep thermal receipts ink-friendly and independent of the screen palette. */
+@media print{html,body,body.dark-site{background:white!important;color:black!important}}
+
+/* Vanilla mode retains the same controls and layout. */
+body:not(.dark-site){--ink:#282b4a;--text-main:#282b4a;--text-muted:#45496a;--bg:#eeebda;--card-bg:#f8f6ed;--card-border:#737b9e;--primary:#282b4a;background:#eeebda!important;color:#282b4a!important;color-scheme:dark}
+body:not(.dark-site) header,body:not(.dark-site) .nav-tabs,body:not(.dark-site) .waiter-header{background:#eeebda!important;border-color:#737b9e!important}
+body:not(.dark-site) :is(h1,h2,h3,h4,strong,b,.item-title,.item-price,.table-title,.val){color:#282b4a!important}
+body:not(.dark-site) :is(.panel,.menu-row,.item-card,.stat-card,.device-card,.table-management-card,.stock-card,.access-panel,.staff-menu-filters,.request-card,.order-card,.menu-order-panel,.browse-menu,dialog,.cart-drawer,.drawer-body,.account-menu,.tracking-card,.tracking-modal,.customer-order-history,.customer-review,.review-card,.stock-notice,.manual-summary,.request-filters){background:#f8f6ed!important;border-color:#737b9e!important;color:#282b4a!important}
+body:not(.dark-site) :is(button,.secondary-btn,.nav-tab-btn,.cat-btn,.waiter-button,.pizza-size-button){background:#e3e1d3!important;color:#282b4a!important;border-color:#737b9e!important}
+body:not(.dark-site) :is(.primary-btn,.place-order-btn,.btn-place-order,.nav-tab-btn.active,.cat-btn.active,.request-filter.selected,.pizza-size-button.selected,.floating-cart-bar,button[aria-pressed=true]){background:#282b4a!important;color:#eeebda!important;border-color:#282b4a!important}
+body:not(.dark-site) :is(.primary-btn,.place-order-btn,.btn-place-order,.nav-tab-btn.active,.cat-btn.active,.pizza-size-button.selected,.floating-cart-bar,button[aria-pressed=true]) :is(span,small,strong,b,.ui-icon){color:#eeebda!important}
+body:not(.dark-site) .danger-btn{background:#f7e2e7!important;color:#782b44!important;border-color:#a24562!important}
+body:not(.dark-site) :is(input:not([type=checkbox]):not([type=range]),select,textarea){background:#eeebda!important;color:#282b4a!important;border-color:#737b9e!important}
+body:not(.dark-site) input::placeholder,body:not(.dark-site) textarea::placeholder{color:#535878!important;opacity:1}
+body:not(.dark-site) input[type=checkbox],body:not(.dark-site) input[type=range]{accent-color:#282b4a}
+body:not(.dark-site) :is(.hint,.muted,.order-time,.cust-info,.item-desc,.photo-status,.report-basis,.staff-availability,.stock-updated,.note-hint,.empty,.order-line,.order-line span,.staff-dish-description,.hero-description,.hero-eyebrow,.brand-caption,.system-footer,.sidebar-order-line span,.empty-order p,.account-menu small){color:#45496a!important;opacity:1}
+body:not(.dark-site) :is(.hero-copy,.hero-photo){background:transparent!important}
+body:not(.dark-site) .menu-hero{background:#eeebda!important}
+body:not(.dark-site) :is(.brand-box h1,.brand-box p,.hero-copy h2){color:#282b4a!important}
+body:not(.dark-site) :is(.status-pill,.status,.request-state,.menu-label,.stock-badge,.size-price-chip,.connection,.table-badge){background:#e3e1d3!important;color:#282b4a!important;border-color:#737b9e!important}
+body:not(.dark-site) :is(.badge-live,.connection.live,.on-way-state){color:#245239!important;background:#deeee4!important;border-color:#478362!important}
+body:not(.dark-site) :is(.reserved-staff-alert,.reserved-waiter-alert,.kitchen-notes-box){background:#f3e9cc!important;color:#59451a!important;border-color:#97762c!important}
+body:not(.dark-site) :is(.status-pill.cancelled,.status-pill.rejected){background:#f7e2e7!important;color:#782b44!important}
+body:not(.dark-site) :is(th,.dish-sales-table th,.record-table th){background:#e3e1d3!important;color:#282b4a!important}
+body:not(.dark-site) :is(td,.order-header,.order-footer,.item-purchase-row,.staff-item-settings,.bill-row,.drawer-header,.drawer-footer){border-color:#737b9e!important}
+body:not(.dark-site) :is(#historyTableBody tr,#dishSalesBody tr){background:#f8f6ed!important}
+body:not(.dark-site) :is(.qty-counter,.item-qty,.qty-btn,.note-chips button){background:#e3e1d3!important;color:#282b4a!important}
+body:not(.dark-site) :is(#cloudMessage,#pendingRetry,#callWaiterStatus,#waiterError,#loginStatus){color:#282b4a!important}
+body:not(.dark-site) a{color:#282b4a}body:not(.dark-site) .toast{background:#282b4a!important;color:#eeebda!important}
+body:not(.dark-site) .toast :is(b,strong,span){color:#eeebda!important}
+body:not(.dark-site) button:disabled{opacity:.65;cursor:not-allowed}body:not(.dark-site) button:hover:not(:disabled){filter:brightness(1.08)}
+body:not(.dark-site) :focus-visible{outline:3px solid #282b4a!important;outline-offset:3px}
+body:not(.dark-site) :is(.hint,.muted,.item-desc,.staff-availability,.staff-dish-description,.note-hint,.photo-status){font-size:14px;line-height:1.55}
+body:not(.dark-site) .item-title,body:not(.dark-site) .menu-copy h4,body:not(.dark-site) .staff-brand-copy{overflow-wrap:anywhere}
+body.customer-site.dark-site #categoriesBar .cat-btn.active{background:#eeebda!important;color:#282b4a!important}
+body.customer-site.dark-site #categoriesBar .cat-btn.active *{color:#282b4a!important}
+body.customer-site:not(.dark-site) #categoriesBar .cat-btn.active{background:#282b4a!important;color:#eeebda!important}
+body.customer-site:not(.dark-site) #categoriesBar .cat-btn.active *{color:#eeebda!important}
+body:not(.dark-site) .staff-brand-copy small{color:#45496a}
+body.dark-site .category-count{color:inherit!important;border-color:currentColor!important}
+body.dark-site .brand-logo,body:not(.dark-site) .brand-logo{background:#eeebda}
+/* Contrast repairs found in visual QA: secondary disclosures and receipts. */
+html body.dark-site :is(summary,.request-empty,.staff-size-summary,.item-price>span){color:#d3d5e5!important;opacity:1}
+html body:not(.dark-site) :is(summary,.request-empty,.staff-size-summary,.item-price>span){color:#45496a!important;opacity:1}
+html body:not(.dark-site) .header-left{background:#eeebda!important}
+html body :is(.menu-copy h4,.staff-dish-header h4){background:transparent!important}
+html body.dark-site .waiter-button,html body.dark-site [data-waiter-order]{background:#eeebda!important;color:#282b4a!important}
+html body:not(.dark-site) .waiter-button,html body:not(.dark-site) [data-waiter-order]{background:#282b4a!important;color:#eeebda!important}
+html body.dark-site .receipt.yummy-receipt,html body:not(.dark-site) .receipt.yummy-receipt{background:#fff!important;color:#111!important;color-scheme:light}
+html body.dark-site .receipt.yummy-receipt *,html body:not(.dark-site) .receipt.yummy-receipt *{color:#111!important;background:transparent!important;border-color:#aaa!important;opacity:1!important}
+/* Solid action fills use the exact supplied brand pair, not legacy gradients. */
+html body.dark-site #btnPlaceOrder,html body.dark-site .waiter-order-footer [data-waiter-order],html body.dark-site .request-filters .request-filter.selected{background:#eeebda!important;background-image:none!important;color:#282b4a!important}
+html body.dark-site #btnPlaceOrder *,html body.dark-site .waiter-order-footer [data-waiter-order] *,html body.dark-site .request-filters .request-filter.selected *{color:#282b4a!important}
+html body:not(.dark-site) #btnPlaceOrder,html body:not(.dark-site) .waiter-order-footer [data-waiter-order],html body:not(.dark-site) .request-filters .request-filter.selected{background:#282b4a!important;background-image:none!important;color:#eeebda!important}
+html body:not(.dark-site) #btnPlaceOrder *,html body:not(.dark-site) .waiter-order-footer [data-waiter-order] *,html body:not(.dark-site) .request-filters .request-filter.selected *{color:#eeebda!important}
+html body:not(.dark-site) #managerNav .nav-tab-btn{background:#e3e1d3!important;color:#282b4a!important}
+html body:not(.dark-site) #managerNav .nav-tab-btn *{color:#282b4a!important}
+html body:not(.dark-site) #managerNav .nav-tab-btn.active{background:#282b4a!important;color:#eeebda!important}
+html body:not(.dark-site) #managerNav .nav-tab-btn.active *{color:#eeebda!important}
+html body.dark-site .requests-board .request-empty{background:#303351!important;color:#d3d5e5!important;border-color:#969bbd!important}
+html body:not(.dark-site) .requests-board .request-empty{background:#f8f6ed!important;color:#45496a!important;border-color:#737b9e!important}
+html body.dark-site .menu-emoji{background:#3b3f60!important;color:#eeebda!important}
+html body.dark-site :is(#pendingRetry,#trackingItemsList){background:#303351!important;color:#eeebda!important;border-color:#969bbd!important}
+html body:not(.dark-site) :is(#pendingRetry,#trackingItemsList){background:#f8f6ed!important;color:#282b4a!important;border-color:#737b9e!important}
+html body.dark-site :is(.request-error,.cart-order-error,[data-error=true]){color:#ffc3ce!important}
+html body:not(.dark-site) :is(.request-error,.cart-order-error,[data-error=true]){color:#8a243f!important}
+html body.dark-site.dark-site .waiter-order-footer .waiter-button[data-waiter-order]{background:#eeebda!important;background-image:none!important;color:#282b4a!important}
+html body:not(.dark-site) .waiter-order-footer .waiter-button[data-waiter-order]{background:#282b4a!important;background-image:none!important;color:#eeebda!important}
+html body.staff-site:not(.dark-site) #managerNav .nav-tab-btn:not(.active){background:#e3e1d3!important;background-image:none!important;color:#282b4a!important}
+html body.staff-site:not(.dark-site) #managerNav .nav-tab-btn:not(.active) *{color:#282b4a!important;background:transparent!important}
+/* Keep theme switches readable: foreground/background colors change together. */
+html body :is(button,button *,input,select,textarea){transition-property:transform,opacity!important}
