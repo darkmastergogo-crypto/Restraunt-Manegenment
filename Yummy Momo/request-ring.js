@@ -13,7 +13,7 @@ const RequestRing=(()=>{
   function silence(snooze){active.forEach(id=>state[id]={dismissed:!snooze,until:snooze?Date.now()+120000:0,changed:Date.now()});save();stop();if(dialog.open)dialog.close();active=[];}
   dialog.querySelector('[data-ring-dismiss]').addEventListener('click',()=>silence(false));dialog.querySelector('[data-ring-snooze]').addEventListener('click',()=>silence(true));dialog.addEventListener('cancel',e=>{e.preventDefault();silence(false);});
   function play(){
-   if(!enabled||context?.state!=='running'||document.hidden)return;stop();const custom=window.RestaurantAlerts?.play(kind==='order'?'orders':'waiter',context);if(custom){nodes.push(...custom);const eligible=rows.filter(r=>active.includes(r.id));if(eligible.length){const row=eligible[voiceCursor++%eligible.length];nodes.push(...(window.RestaurantAlerts?.announce(kind==='order'?'orders':'waiter',context,row)||[]));}return;}const now=context.currentTime;
+   if(!enabled||context?.state!=='running'||document.hidden)return;stop();if(!window.RestaurantAlerts)window.WaiterVoice?.announce(kind,rows.find(r=>active.includes(r.id)));const custom=window.RestaurantAlerts?.play(kind==='order'?'orders':'waiter',context);if(custom){nodes.push(...custom);const eligible=rows.filter(r=>active.includes(r.id));if(eligible.length){const row=eligible[voiceCursor++%eligible.length];nodes.push(...(window.RestaurantAlerts?.announce(kind==='order'?'orders':'waiter',context,row)||[]));}return;}const now=context.currentTime;
    if(kind==='order'){
     // Bright rising three-note melody; unlike the lower two-note call doorbell.
     for(let repeat=0;repeat<2;repeat++)for(const [i,hz] of [783.99,987.77,1318.51].entries()){
@@ -30,14 +30,14 @@ const RequestRing=(()=>{
   }
   function tick(){
    const eligible=rows.filter(r=>r.status==='Pending'&&!r.on_the_way_at&&!state[r.id]?.dismissed&&Number(state[r.id]?.until||0)<=Date.now());
-   if(!enabled||document.hidden||window.RestaurantAlerts?.testing||suppressed()||!eligible.length){stop();if(dialog.open)dialog.close();active=[];return;}
+   if(!enabled||document.hidden||window.YummyAndroid?.active()||window.RestaurantAlerts?.testing||suppressed()||!eligible.length){stop();if(dialog.open)dialog.close();active=[];return;}
    const old=new Set(active);active=eligible.map(r=>r.id);dialog.querySelector('.ring-locations').textContent=eligible.map(r=>kind==='order'?Cloud.orderLabel(r)+' · Table '+r.table_number:r.request_kind==='Reception'?'Reception':'Table '+r.table_number+(r.request_kind==='ReservedScan'?' · reserved table QR opened':'')).join(' • ');
    if(!dialog.open){onActive();dialog.showModal();}if(Date.now()-lastRing>=2000||active.some(id=>!old.has(id))){lastRing=Date.now();play();}
   }
   function update(next,allowed=true){rows=allowed?next:[];if(!allowed)disable();tick();}
   function disable(){enabled=false;stop();if(dialog.open)dialog.close();active=[];paint();}
   function paint(){button.textContent=enabled?(kind==='order'?'Order sound on · mute':'Call sound on · mute'):(kind==='order'?'Enable order sound':'Enable call sound');button.setAttribute('aria-pressed',String(enabled));}
-  async function toggle(){if(enabled){disable();return;}try{context ||= new (window.AudioContext||window.webkitAudioContext)();await context.resume();if(context.state!=='running')throw Error('Tap again to allow sound.');if(window.RestaurantAlerts)await RestaurantAlerts.prepareAudio(context);enabled=true;paint();lastRing=0;tick();}catch(e){button.textContent='Sound unavailable · tap to retry';}}
+  async function toggle(){if(window.YummyAndroid?.active()){window.YummyAndroid.settings();return;}if(enabled){disable();return;}try{context ||= new (window.AudioContext||window.webkitAudioContext)();await context.resume();if(context.state!=='running')throw Error('Tap again to allow sound.');if(window.RestaurantAlerts)await RestaurantAlerts.prepareAudio(context);enabled=true;paint();lastRing=0;tick();}catch(e){button.textContent='Sound unavailable · tap to retry';}}
   setInterval(tick,100);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&enabled&&context?.state==='suspended')context.resume().catch(()=>{});tick();});
   paint();return {update,toggle,disable,pause(){stop();if(dialog.open)dialog.close();active=[];},get enabled(){return enabled;},dialog};
  }

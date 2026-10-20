@@ -9,7 +9,7 @@ const BackgroundAlerts=(()=>{
  const rpc=(action,subscription)=>Cloud.rpc('restaurant_push_device',{p_kind:role,p_key:role==='waiter'?key:null,p_action:action,p_subscription:subscription},role==='kitchen');
  function decode(v){const raw=atob(v.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0));}
  async function existing(){const reg=await navigator.serviceWorker.getRegistration(new URL('./',location.href));return reg?await reg.pushManager.getSubscription():null;}
- async function check(){
+ async function check(){if(window.YummyAndroid?.available()){button.disabled=false;text('Android app alerts are managed using App alerts.');button.textContent='App alerts';return;}
   if(!supported()){text('Notifications need HTTPS and a supported browser.',true);button.disabled=true;return;}
   if(!/^[A-Za-z0-9_-]{87}=?$/.test(publicKey())){text('Configure push-config.js and the Supabase sender first.',true);return;}
   if(Notification.permission==='denied'){text('Notifications are blocked. Allow notifications in this site’s browser settings.',true);return;}
@@ -19,7 +19,7 @@ const BackgroundAlerts=(()=>{
   }catch{text('Could not check alert settings. Reconnect and try again.',true);}
   paint();
  }
- async function toggle(){
+ async function toggle(){if(window.YummyAndroid?.available()){window.YummyAndroid.settings();return;}
   if(busy||!supported())return;busy=true;paint();
   try{
    if(enabled){const sub=await existing();if(sub)await rpc('disable',sub.toJSON());enabled=false;text('Background alerts are off for this dashboard on this device. In-page sound is controlled separately.');}
@@ -38,7 +38,7 @@ const BackgroundAlerts=(()=>{
   }catch(e){text('Background alerts: '+e.message,true);}
   finally{busy=false;paint();}
  }
- async function disableForSignOut(){
+ async function disableForSignOut(){if(window.YummyAndroid?.available())return;
   if(!supported())return;const sub=await existing();if(sub)await rpc('disable',sub.toJSON());enabled=false;paint();
  }
  function init(kind,privateKey=''){
@@ -47,6 +47,6 @@ const BackgroundAlerts=(()=>{
   document.getElementById('backgroundAlertPanel').hidden=false;
   button.addEventListener('click',toggle);check();
  }
- async function test(){const target=document.getElementById('notificationTestStatus');const note=m=>{if(target)target.textContent=role==='waiter'&&m.startsWith('Test notification requested.')?'Notification test requested.':m;};try{if(!supported()||Notification.permission!=='granted')throw Error('Enable Request/Call alerts and allow notifications first.');const reg=await navigator.serviceWorker.getRegistration(new URL('./',location.href));if(!reg)throw Error('Enable alerts first to install notifications.');await reg.showNotification('Test request alert',{body:'Local sound/display test. Background delivery still depends on your phone and sender.',tag:'restaurant-local-test',renotify:true,silent:false,requireInteraction:true,vibrate:[500,150,500,150,500],data:{kind:role,url:new URL(role==='waiter'?'waiter.html':'kitchen.html#requests',location.href).href}});note('Test notification requested. If silent, check phone notification sound/volume and Do Not Disturb. This does not test server delivery.');}catch(e){note(e.message);}}
+ async function test(){if(window.YummyAndroid?.available()){window.YummyAndroid.test();return;}const target=document.getElementById('notificationTestStatus');const note=m=>{if(target)target.textContent=role==='waiter'&&m.startsWith('Test notification requested.')?'Notification test requested.':m;};try{if(!supported()||Notification.permission!=='granted')throw Error('Enable Request/Call alerts and allow notifications first.');const reg=await navigator.serviceWorker.getRegistration(new URL('./',location.href));if(!reg)throw Error('Enable alerts first to install notifications.');await reg.showNotification('Test request alert',{body:'Local sound/display test. Background delivery still depends on your phone and sender.',tag:'restaurant-local-test',renotify:true,silent:false,requireInteraction:true,vibrate:[500,150,500,150,500],data:{kind:role,url:new URL(role==='waiter'?'waiter.html':'kitchen.html#requests',location.href).href}});note('Test notification requested. If silent, check phone notification sound/volume and Do Not Disturb. This does not test server delivery.');}catch(e){note(e.message);}}
  return {init,disableForSignOut,test};
 })();

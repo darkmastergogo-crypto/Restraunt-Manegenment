@@ -5,30 +5,30 @@ let waiterView='requests',waiterViewChosen=false;
 const wEl=id=>document.getElementById(id),wEsc=Cloud.esc;
 const scannedWaiterKey=new URLSearchParams(location.hash.slice(1)).get('key');
 let waiterKey=scannedWaiterKey||Cloud.read('RESTAURANT_WAITER_DEVICE_KEY_v1','');
-const waiterRing=RequestRing.mount({scope:'waiter',button:wEl('waiterSoundButton')});
-function setWaiterView(view){if(!['orders','requests'].includes(view))return;const can=view==='orders'?waiterPermissions.view_orders:waiterPermissions.view_requests;if(!waiterPermissions.enabled||!can)return;waiterView=view;waiterViewChosen=true;paintWaiterNavigation();}
+const waiterRing=RequestRing.mount({scope:'waiter',button:wEl('waiterSoundButton')});const waiterOrderRing=RequestRing.mount({scope:'waiter-orders',kind:'order',button:wEl('waiterForegroundSound'),suppressed:()=>waiterRing.enabled&&waiterRing.dialog.open});async function toggleWaiterForegroundSound(){if(window.YummyAndroid?.active()){YummyAndroid.settings();return;}if(waiterPermissions.view_orders&&!waiterOrderRing.enabled)await waiterOrderRing.toggle();else if(waiterOrderRing.enabled)waiterOrderRing.disable();if(waiterPermissions.view_requests&&!waiterRing.enabled)await waiterRing.toggle();else if(waiterRing.enabled)waiterRing.disable();window.WaiterVoice?.paint();}
+function setWaiterView(view){if(!['orders','requests'].includes(view))return;const can=view==='orders'?waiterPermissions.view_orders:waiterPermissions.view_requests;if(!waiterPermissions.enabled||!can)return;YummyBilling.closeWaiter();waiterView=view;waiterViewChosen=true;paintWaiterNavigation();if(matchMedia('(min-width:768px)').matches)requestAnimationFrame(()=>wEl(view==='orders'?'waiterOrdersSection':'waiterCallPanel').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'start'}));}
 function paintWaiterNavigation(){
  if(!wEl('waiterMobileNav'))return;
- const requests=waiterPermissions.enabled&&waiterPermissions.view_requests,orders=waiterPermissions.enabled&&waiterPermissions.view_orders;
- wEl('waiterMobileNav').hidden=!requests&&!orders;wEl('waiterRequestsView').hidden=!requests;wEl('waiterOrdersView').hidden=!orders;
+ const requests=waiterPermissions.enabled&&waiterPermissions.view_requests,orders=waiterPermissions.enabled&&waiterPermissions.view_orders,billing=waiterPermissions.enabled&&waiterPermissions.manual_billing,inBilling=document.body.classList.contains('waiter-manual-mode');
+ wEl('waiterMobileNav').hidden=!requests&&!orders&&!billing;wEl('waiterMobileNav').classList.toggle('has-billing',!!billing);document.body.classList.toggle('waiter-single-panel',!(requests&&orders));wEl('waiterRequestsView').hidden=!requests;wEl('waiterOrdersView').hidden=!orders;
  if(!waiterViewChosen){waiterView=requests&&waiterCalls.length?'requests':orders?'orders':'requests';if(requests||orders)waiterViewChosen=true;}
  if(waiterView==='requests'&&!requests&&orders)waiterView='orders';if(waiterView==='orders'&&!orders&&requests)waiterView='requests';
  document.body.classList.toggle('waiter-view-orders',waiterView==='orders');document.body.classList.toggle('waiter-view-requests',waiterView==='requests');
- wEl('waiterRequestsView').setAttribute('aria-pressed',String(waiterView==='requests'));wEl('waiterOrdersView').setAttribute('aria-pressed',String(waiterView==='orders'));
+ wEl('waiterRequestsView').setAttribute('aria-pressed',String(!inBilling&&waiterView==='requests'));wEl('waiterOrdersView').setAttribute('aria-pressed',String(!inBilling&&waiterView==='orders'));
  wEl('waiterRequestsViewCount').textContent=waiterCalls.length;wEl('waiterOrdersViewCount').textContent=waiterOrders.length;
 }
 function moneyWaiter(v){return (Cloud.cfg.currency||'₹')+Number(v||0).toFixed(2);}
 function renderWaiterOrders(){
- wEl('waiterCount').textContent=String(waiterOrders.length);paintWaiterNavigation();
+ waiterOrderRing.update(waiterOrders.filter(o=>o.status==='Pending'),!!(waiterPermissions.enabled&&waiterPermissions.view_orders&&waiterPermissions.alerts));window.YummyAndroid?.pending('order',waiterOrders.filter(o=>o.status==='Pending').map(o=>o.id));wEl('waiterCount').textContent=String(waiterOrders.length);paintWaiterNavigation();
  wEl('waiterOrders').innerHTML=waiterOrders.length?waiterOrders.map(o=>`<article class="order-card"><div class="card-heading"><h3>Table ${wEsc(o.table_number)}</h3><span class="status">${wEsc(o.status)}</span></div><p class="muted order-time">${wEsc(Cloud.orderLabel(o))} · ${new Date(o.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</p><ul class="items">${o.items.map(i=>`<li><span><b>${Number(i.qty)}×</b> ${wEsc(i.name)}</span><b>${moneyWaiter(i.subtotal)}</b></li>`).join('')}</ul><div class="waiter-order-footer"><p><b>Total: ${moneyWaiter(o.total)}</b></p>${(o.status==='Pending'&&waiterPermissions.accept_orders||['Cooking','Ready'].includes(o.status)&&waiterPermissions.serve_orders)?`<button class="waiter-button" data-waiter-order="${wEsc(o.id)}" data-next="${o.status==='Pending'?'Cooking':'Served'}">${o.status==='Pending'?'Accept order':'Mark served'}</button>`:''}</div></article>`).join(''):'<p class="empty">No active orders right now.</p>';
 }
-function renderWaiterCalls(){
+function renderWaiterCalls(){window.YummyAndroid?.pending('request',waiterCalls.filter(c=>c.status==='Pending'&&!c.on_the_way_at).map(c=>c.id));
  const reserved=waiterCalls.filter(c=>c.request_kind==='ReservedScan');wEl('reservedWaiterAlert').hidden=!reserved.length;wEl('reservedWaiterAlert').textContent=reserved.map(c=>'Reserved table QR opened · Table '+c.table_number+' — please check seating.').join(' ');wEl('waiterCallCount').textContent=waiterCalls.length;paintWaiterNavigation();
  document.title=waiterCalls.length?'('+waiterCalls.length+') Waiter requested':'Waiter orders & calls';
  waiterRing.update(waiterCalls,waiterPermissions.enabled&&waiterPermissions.view_requests&&waiterPermissions.alerts);
 }
-function applyWaiterPermissions(s){
- waiterPermissions=s;YummyBilling.waiterAccess(s.enabled===true&&s.manual_billing===true);const enabled=s.enabled===true;if(!enabled||!s.handle_requests)wEl('waiterCalls').querySelectorAll('[data-request-handle]').forEach(b=>b.remove());
+function applyWaiterPermissions(s,verified=true){
+ waiterPermissions=s;window.WaiterVoice?.permissions(s);if(verified)window.YummyAndroid?.connect('waiter',waiterKey,s);YummyBilling.waiterAccess(s.enabled===true&&s.manual_billing===true);const enabled=s.enabled===true;if(!enabled||!s.handle_requests)wEl('waiterCalls').querySelectorAll('[data-request-handle]').forEach(b=>b.remove());
  wEl('waiterOrdersSection').hidden=!enabled||!s.view_orders;
  wEl('waiterCallPanel').hidden=!enabled||!s.view_requests;
  wEl('waiterSoundButton').hidden=!enabled||!s.view_requests||!s.alerts;
@@ -49,9 +49,9 @@ async function loadWaiterOrders(){
   }
   wEl('waiterConnection').textContent=waiterPermissions.enabled?'Live':'Disabled';wEl('waiterConnection').classList.toggle('live',waiterPermissions.enabled);wEl('waiterError').textContent=waiterPermissions.enabled?'':'Waiter access is turned off by the admin.';renderWaiterOrders();renderWaiterCalls();
  }catch(e){
-  waiterConnected=false;waiterRing.disable();wEl('waiterConnection').textContent='Offline';wEl('waiterConnection').classList.remove('live');
+  waiterConnected=false;waiterRing.disable();waiterOrderRing.disable();wEl('waiterConnection').textContent='Offline';wEl('waiterConnection').classList.remove('live');
   // Fail closed: do not keep operational sections visible when access cannot be verified.
-  applyWaiterPermissions({enabled:false});waiterOrders=[];waiterCalls=[];wEl('waiterOrders').innerHTML='';wEl('waiterCalls').innerHTML='';renderWaiterCalls();
+  applyWaiterPermissions({enabled:false},false);waiterOrders=[];waiterCalls=[];wEl('waiterOrders').innerHTML='';wEl('waiterCalls').innerHTML='';renderWaiterCalls();
   wEl('waiterError').textContent='Waiter access could not update: '+e.message;
  }finally{waiterBusy=false;}
 }

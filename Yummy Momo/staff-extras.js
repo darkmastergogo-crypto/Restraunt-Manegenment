@@ -35,7 +35,7 @@ window.RestaurantAlerts=(()=>{
  const el=id=>document.getElementById(id);
  const audioContexts=new Set();
  const presets={chime:[784,988,1319],doorbell:[659,523],bell:[880,1175,880]};
- function paint(){const b=el('voiceAlertsButton');if(b){b.hidden=!settings?.voice_enabled;b.textContent=voiceArmed?'Voice alerts on · mute':'Enable voice alerts';b.setAttribute('aria-pressed',String(voiceArmed));}const n=el('notificationSoundButton');if(n){n.textContent=notificationArmed?'Notification sound on · mute':'Enable notification sound';n.setAttribute('aria-pressed',String(notificationArmed));}}
+ function paint(){for(const id of ['voiceAlertsButton','requestVoiceAlertsButton']){const b=el(id);if(b){b.hidden=false;const native=window.YummyAndroid?.available(),armed=native?window.YummyAndroid.state()?.voice:voiceArmed;b.textContent=!settings?'Voice alerts · loading':!settings.voice_enabled?'Voice disabled by admin':armed?'Voice alerts on · mute':'Enable voice alerts';b.setAttribute('aria-pressed',String(!!armed&&!!settings?.voice_enabled));b.title=settings?.voice_enabled?'Enable or mute voice on this device':'Tap for admin setup instructions';}}const n=el('notificationSoundButton');if(n){n.textContent=notificationArmed?'Notification sound on · mute':'Enable notification sound';n.setAttribute('aria-pressed',String(notificationArmed));}}
  async function sync(fillForm=false){
   if(fillForm)fillRequested=true;if(settingsBusy||!['admin','manager'].includes(staffRole))return;fillForm=fillRequested;fillRequested=false;settingsBusy=true;if(el('alertSettingsSave'))el('alertSettingsSave').disabled=true;
   try{settings=await Cloud.rpc('restaurant_alert_settings',{},true);if(!settings.voice_enabled){voiceArmed=false;window.speechSynthesis?.cancel();}paint();if(fillForm&&staffRole==='admin'){formRevision=settings.revision;el('voiceAlertEnabled').checked=settings.voice_enabled;for(const key of ['orders','waiter','notification'])el(key+'SoundPreset').value=settings[key+'_sound'];el('alertSettingsStatus').textContent='';AlertAudio.fill();}}
@@ -59,7 +59,7 @@ window.RestaurantAlerts=(()=>{
  async function toggleNotifications(){notificationArmed=!notificationArmed;if(notificationArmed)try{await unlock();play('notification',ctx);}catch(e){notificationArmed=false;showToast(e.message);}paint();}
  function announce(kind,context,row){if(!settings?.voice_enabled||!voiceArmed||document.hidden||diagnosticRunning)return [];return AlertAudio.announce(kind,context,row);}
  async function testVoice(kind){try{await unlock();AlertAudio.announce(kind,ctx,{table_number:'T1'});el('alertSettingsStatus').textContent='Voice preview: '+el(kind+'Voice').selectedOptions[0].textContent;}catch(e){el('alertSettingsStatus').textContent=e.message;}}
- async function toggleVoice(){if(!settings?.voice_enabled)return;if(voiceArmed){voiceArmed=false;if(typeof requestRing!=='undefined')requestRing.pause();if(typeof orderRing!=='undefined')orderRing.pause();paint();return;}try{await unlock();voiceArmed=true;AlertAudio.announce('orders',ctx,{table_number:'T1'});}catch(e){voiceArmed=false;showToast('Voice unavailable: '+e.message);}paint();}
+ async function toggleVoice(kind='both'){if(!settings)await sync();if(!settings?.voice_enabled){showToast('Voice is off. Admin: Management > Voice & alarm sounds > enable voice, then Save alert preferences.');return;}if(window.YummyAndroid?.available()){window.YummyAndroid.toggleVoice();setTimeout(paint,100);return;}if(voiceArmed){voiceArmed=false;if(typeof requestRing!=='undefined')requestRing.pause();if(typeof orderRing!=='undefined')orderRing.pause();paint();return;}try{await unlock();voiceArmed=true;if((kind==='orders'||kind==='both')&&!orderRing.enabled)await orderRing.toggle();if((kind==='waiter'||kind==='both')&&!requestRing.enabled)await requestRing.toggle();AlertAudio.announce(kind==='waiter'?'waiter':'orders',ctx,{table_number:'T1'});}catch(e){voiceArmed=false;showToast('Voice unavailable: '+e.message);}paint();}
  function observeOrders(rows){/* Repeating speech follows RequestRing's pending/silenced eligibility. */}
  function observeNotifications(rows){const fresh=rows.some(n=>!n.read_at&&!seenNotifications.has(n.id));rows.forEach(n=>seenNotifications.add(n.id));if(seenNotifications.size>2000)seenNotifications=new Set(rows.map(n=>n.id));if(notificationInitialized&&fresh&&notificationArmed)play('notification',ctx);notificationInitialized=true;}
  function stop(){voiceArmed=false;notificationArmed=false;window.speechSynthesis?.cancel();paint();}
@@ -81,7 +81,7 @@ window.RestaurantAlerts=(()=>{
   else onStep('Alarm test complete. System notification skipped: enable Staff alerts and notification permission to test it.');
  }finally{diagnosticRunning=false;diagnosticNodes=[];}
  }
- return {sync,save,test,testVoice,play,announce,prepareAudio,reloadAudio,toggleVoice,toggleNotifications,observeOrders,observeNotifications,stop,volumeTest,stopVolumeTest,get testing(){return diagnosticRunning;}};
+ document.addEventListener('yummy-native-state',paint);return {sync,save,test,testVoice,play,announce,prepareAudio,reloadAudio,toggleVoice,toggleNotifications,observeOrders,observeNotifications,stop,volumeTest,stopVolumeTest,get testing(){return diagnosticRunning;}};
 })();
 
 let stockNotificationsData=null,stockNotificationsBusy=false,stockNotificationsOffset=0,stockKnownIds=null;
