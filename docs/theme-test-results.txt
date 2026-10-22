@@ -1,0 +1,2 @@
+PASS admin selected accent, header surface and font override the reference theme
+PASS menu selected accent, header surface and font override the reference theme
