@@ -2,5 +2,5 @@
 window.PLATFORM_CONFIG = {
   endpoint: "https://fra.cloud.appwrite.io/v1",
   projectId: "6ad97acd003c74f33ec9",
-  functionId: "restaurant-api",
+  functionId: "6ada03310bb54fbd57cc",
 };
