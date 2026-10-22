@@ -1,0 +1,4 @@
+PASS mocked UI sequence: existing-totp-main; logout clears list
+PASS mocked UI sequence: session-then-challenge-main; logout clears list
+PASS mocked UI sequence: restaurant-redirect; logout clears list
+Uses mocked authentication responses; real passwords, TOTP, cookies, hosted JWT and ACLs NOT tested.
