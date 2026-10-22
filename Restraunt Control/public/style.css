@@ -732,3 +732,17 @@ dialog form {
 .light .receipt {
   color: #111;
 }
+
+/* Visual portion-size editor: IDs remain internal. */
+.portion-editor { display:grid; gap:16px; }
+.portion-editor p { margin:0; line-height:1.65; }
+.portion-toggle { display:flex; align-items:center; gap:14px; font-size:1.15rem; }
+.portion-toggle input { width:28px; height:28px; margin:0; flex:0 0 auto; accent-color:var(--accent); }
+.portion-size-row { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto; gap:12px; align-items:end; margin-bottom:16px; }
+.portion-size-row label { min-width:0; }
+.portion-size-row input { width:100%; min-width:0; }
+.portion-help { margin-top:16px !important; }
+.portion-modal-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.portion-modal-heading h2 { margin:0; }
+.portion-modal-heading + p { margin:20px 0; }
+@media(max-width:520px) { .portion-size-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } .portion-size-row button { grid-column:1 / -1; justify-self:start; } }

@@ -1,3 +1,4 @@
+import { portionEditorHTML, mountPortionEditor } from "./portion-editor.mjs";
 import { installOriginalAppearance } from "./original-appearance.mjs";
 import {
   FEATURES,
@@ -528,7 +529,7 @@ function menuEditorHTML() {
   return `<div class="toolbar">${role !== "manager" ? B("editItem", "menu.add", "Add dish", "", true) : ""}${on("arrangement") ? B("categories", "menu.arrange", "Categories & arrangement") : ""}</div>${filters()}<div class="grid">${filteredItems()
     .map(
       (i) =>
-        `<article class="card"><h3>${esc(i.name)}</h3><p class="muted">${esc(i.category)} · ${money(i.price)}</p><p>${esc(i.description)}</p><span class="badge">${L(i.available ? "menu.available" : "menu.unavailable", i.available ? "Available" : "Unavailable")}</span><div class="toolbar">${B("editItem", "menu.edit", "Edit / prices / sizes", `data-id="${i.id}"`)}${role !== "manager" ? B("deleteItem", "menu.delete", "Delete dish", `data-id="${i.id}"`) : ""}</div></article>`,
+        `<article class="card"><h3>${esc(i.name)}</h3><p class="muted">${esc(i.category)} · ${money(i.price)}</p><p>${esc(i.description)}</p><span class="badge">${L(i.available ? "menu.available" : "menu.unavailable", i.available ? "Available" : "Unavailable")}</span><div class="toolbar">${B("editItem", "menu.edit", "Edit / prices / sizes", `data-id="${i.id}"`)}${on("portions") ? `<button type="button" data-action="customizePortions" data-id="${esc(i.id)}">Customize portions</button>` : ""}${role !== "manager" ? B("deleteItem", "menu.delete", "Delete dish", `data-id="${i.id}"`) : ""}</div></article>`,
     )
     .join("")}</div>`;
 }
@@ -1033,8 +1034,20 @@ function itemForm(id) {
   formModal(
     "itemForm",
     T("menu.edit", "Edit / prices / sizes"),
-    `<input name="id" type="hidden" value="${esc(i.id || "")}"><input name="version" type="hidden" value="${i.updated || 0}">${input("name", T("item.name", "Dish name"), i.name, "text", "required")}${input("description", T("item.description", "Description"), i.description)}${input("category", T("item.category", "Category"), i.category)}${input("price", T("item.price", "Base price"), i.price, "number", 'min="0" step="0.01" required')}${input("position", T("item.position", "Sort position"), i.position || 0, "number")}${input("image", T("item.image", "Image HTTPS URL"), i.image)}${check("veg", T("diet.veg", "Vegetarian"), i.veg)}${check("available", T("menu.available", "Available"), i.available)}${check("recommended", T("menu.recommended", "Recommended"), i.recommended)}${check("bestSeller", T("menu.bestSeller", "Best seller"), i.bestSeller)}<label>${L("item.sizes", "Portions JSON: keep IDs when changing prices; use an empty array for one price.")}<textarea name="sizes" rows="6">${esc(JSON.stringify(i.sizes, null, 2))}</textarea></label>`,
+    `<input name="id" type="hidden" value="${esc(i.id || "")}"><input name="version" type="hidden" value="${i.updated || 0}">${input("name", T("item.name", "Dish name"), i.name, "text", "required")}${input("description", T("item.description", "Description"), i.description)}${input("category", T("item.category", "Category"), i.category)}${input("price", T("item.price", "Base price"), i.price, "number", 'min="0" step="0.01" required')}${input("position", T("item.position", "Sort position"), i.position || 0, "number")}${input("image", T("item.image", "Image HTTPS URL"), i.image)}${check("veg", T("diet.veg", "Vegetarian"), i.veg)}${check("available", T("menu.available", "Available"), i.available)}${check("recommended", T("menu.recommended", "Recommended"), i.recommended)}${check("bestSeller", T("menu.bestSeller", "Best seller"), i.bestSeller)}${portionEditorHTML()}`,
   );
+  $("#itemForm").portionEditor = mountPortionEditor($("#itemForm"), i.sizes);
+}
+function customizePortions(id) {
+  const item = data.items.find(i => i.id === id);
+  if (!item) throw Error("Dish not found. Refresh the menu.");
+  modal(`<div class="portion-modal-heading"><h2>Customize menu item</h2><button type="button" data-portion-cancel aria-label="Close customization">×</button></div><p class="muted">${esc(item.name)}</p><form id="portionForm"><input type="hidden" name="id" value="${esc(item.id)}">${portionEditorHTML()}<div class="toolbar"><button class="primary primary-btn" type="submit">Save changes</button><button type="button" data-portion-cancel>Cancel</button></div></form>`);
+  $("#modalClose").hidden = true;
+  $("#modal").addEventListener("close", () => {$("#modalClose").hidden = false;}, {once:true});
+  const form = $("#portionForm");
+  form.portionEditor = mountPortionEditor(form, item.sizes);
+  form.originalItem = clone(item);
+  document.querySelectorAll("[data-portion-cancel]").forEach(b => b.onclick = () => $("#modal").close());
 }
 async function customerHistory() {
   let result = await api("customerOrders", device);
@@ -1275,6 +1288,9 @@ document.addEventListener("click", async (e) => {
         draft = clone(config);
         dirty = false;
         render();
+        break;
+      case "customizePortions":
+        customizePortions(b.dataset.id);
         break;
       case "editItem":
         itemForm(b.dataset.id);
@@ -1622,7 +1638,7 @@ document.addEventListener("submit", async (e) => {
     x = Object.fromEntries(fd);
   try {
     busy = true;
-    switch (f.id) {
+    switch (f.getAttribute("id")) {
       case "loginForm":
         try {
           await account.createEmailPasswordSession({
@@ -1648,6 +1664,14 @@ document.addEventListener("submit", async (e) => {
         $("#modal").close();
         toast(T("request.sent", "Request sent to the kitchen."));
         break;
+      case "portionForm": {
+        const item = e.target.originalItem;
+        await api("item", {version:item.updated, item:{...item, sizes:e.target.portionEditor.read()}});
+        $("#modal").close();
+        await refresh(true);
+        toast("Portion sizes saved.");
+        break;
+      }
       case "itemForm": {
         let old = data.items.find((i) => i.id === x.id);
         await api("item", {
@@ -1655,7 +1679,7 @@ document.addEventListener("submit", async (e) => {
           item: {
             ...x,
             id: x.id || undefined,
-            sizes: JSON.parse(x.sizes),
+            sizes: e.target.portionEditor.read(),
             veg: fd.has("veg"),
             available: fd.has("available"),
             recommended: fd.has("recommended"),
