@@ -1,0 +1,9 @@
+{
+  "name": "restaurant-api",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/main.mjs",
+  "dependencies": {
+    "node-appwrite": "31.0.0"
+  }
+}

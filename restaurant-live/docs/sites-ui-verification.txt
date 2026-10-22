@@ -1,0 +1,7 @@
+Local Chromium checks: PASS
+Name-only Create; pending links withheld; Creating -> Deploying -> Ready; three copyable client links; permanent UUID display; dashboard customization; same dish not present in another restaurant; mobile overflow check; no page errors.
+Per-Site routing checks: PASS
+Restaurant binding overrides forged tenant pathname; kitchen resolves staff interface; restaurant root opens its menu, not the owner workspace.
+Production-style static builds: PASS
+Owner/restaurant public configuration generated; injected test server API key not included in dist.
+External Appwrite services mocked. NO live cloud provisioning, Git build, TLS or hosted authentication was tested. See staging acceptance checklist.

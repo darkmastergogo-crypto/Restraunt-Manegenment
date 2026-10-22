@@ -1,0 +1,44 @@
+{
+  "menu": [
+    "menu-base.css",
+    "menu-theme.css",
+    "order-celebration.css",
+    "yaar-theme.css",
+    "dark-theme.css",
+    "device-layouts.css",
+    "yummy-momo.css",
+    "menu-customization.css",
+    "release42.css",
+    "release43.css"
+  ],
+  "admin": [
+    "admin-base.css",
+    "call-requests.css",
+    "tables.css",
+    "request-ring.css",
+    "yaar-theme.css",
+    "dark-theme.css",
+    "device-layouts.css",
+    "analytics.css",
+    "yummy-momo.css",
+    "menu-customization.css",
+    "release38.css",
+    "release39.css",
+    "release42.css",
+    "release43.css"
+  ],
+  "waiter": [
+    "waiter-base.css",
+    "waiter.css",
+    "call-requests.css",
+    "request-ring.css",
+    "yaar-theme.css",
+    "dark-theme.css",
+    "device-layouts.css",
+    "yummy-momo.css",
+    "menu-customization.css",
+    "release38.css",
+    "release39.css",
+    "release43.css"
+  ]
+}

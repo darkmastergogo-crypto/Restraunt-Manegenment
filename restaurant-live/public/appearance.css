@@ -1,0 +1,1151 @@
+/* Bridge to the supplied Release 44 CSS. Original styles remain the layout authority. */
+#app {
+  width: 100%;
+  min-width: 0;
+}
+body.staff-site,
+body.waiter-site {
+  display: block;
+}
+#app > header {
+  box-sizing: border-box;
+}
+.ui-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+header .brand-mark {
+  flex: none;
+}
+.staff-site .staff-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.staff-site .header-left {
+  flex-wrap: wrap;
+}
+.staff-site .header-left h1 {
+  margin: 0;
+}
+.staff-site .badge-live {
+  white-space: normal;
+}
+.connection-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9cdbb1;
+  flex: none;
+}
+.staff-site #managerNav .nav-tab-btn {
+  margin: 0;
+}
+.staff-site #managerNav .nav-tab-btn span {
+  min-width: 0;
+}
+.staff-site #staffMain {
+  display: block !important;
+}
+.staff-site #staffMain > section {
+  display: block !important;
+}
+.staff-site .page-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.staff-site .page-tools > h2 {
+  margin: 0;
+}
+.staff-site .page-tools > .toolbar {
+  margin: 0;
+}
+.staff-site .account-menu .toolbar {
+  display: grid;
+}
+.staff-site .account-menu button {
+  width: 100%;
+  justify-content: flex-start;
+}
+.staff-site.signed-out #app > header {
+  margin-left: 0 !important;
+  width: 100% !important;
+}
+.staff-site.signed-out .customer {
+  max-width: none;
+  padding: 0;
+}
+.staff-site.signed-out .access-panel {
+  max-width: 520px;
+  margin: 40px auto;
+}
+.staff-site.signed-out main {
+  margin: 0;
+  width: 100%;
+}
+.staff-site .grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+.staff-site .metrics {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.staff-site .request-cards {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+.staff-site .request-empty {
+  padding: 22px;
+  min-height: 64px;
+}
+.staff-site .request-pagination {
+  margin-top: 20px;
+}
+.staff-site .history-container {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.staff-site .table-scroll {
+  min-width: 0;
+}
+.staff-site .record-subtabs {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+.staff-site .savebar {
+  position: static;
+  margin-bottom: 20px;
+}
+.staff-site .tabs {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.staff-site .settings-grid {
+  align-items: start;
+}
+.staff-site .settings-grid > label {
+  align-content: start;
+}
+.staff-site #managementSection > .page-tools {
+  margin-bottom: 24px;
+}
+.staff-site .settings-grid,
+.staff-site .text-field {
+  min-width: 0;
+}
+.staff-site .text-field {
+  overflow-wrap: anywhere;
+}
+.staff-site .orders-grid,
+.waiter-site .orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 20px;
+}
+.staff-site #liveSection .grid {
+  display: grid;
+}
+.staff-site .empty-orders {
+  min-height: 220px;
+}
+.staff-site .empty-orders img {
+  display: block;
+  margin: 0 auto 12px;
+}
+.staff-site .order-card {
+  padding: 0;
+}
+.staff-site .order-card h3 {
+  margin: 0;
+}
+.staff-site .order-card .toolbar {
+  margin: 0;
+}
+.staff-site .order-card .item-entry {
+  gap: 12px;
+}
+.staff-site .order-card .order-footer {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.staff-site .order-card .order-footer .toolbar {
+  margin-left: auto;
+}
+.customer-site #app > header {
+  position: relative;
+  top: auto;
+}
+.customer-site .brand-box {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+.customer-site .brand-box h1,
+.customer-site .brand-box p {
+  margin: 0;
+}
+.customer-site .header-top {
+  align-items: center;
+}
+.customer-site .header-actions {
+  align-items: center;
+}
+.customer-site .menu-hero {
+  width: 100%;
+}
+.customer-site .hero-copy h2 {
+  font-family: Georgia, "Times New Roman", serif;
+}
+.customer-site .customer-tools {
+  margin: 16px 0 0;
+  padding: 0;
+}
+.customer-site .song-request-button {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+.customer-site .menu-container {
+  display: grid;
+}
+.customer-site .item-card:not(:has(.item-img-container)) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.customer-site .item-info .menu-label {
+  display: inline-block;
+}
+.customer-site .item-size-options button {
+  display: grid;
+  gap: 2px;
+}
+.customer-site .item-purchase-row {
+  grid-column: 1/-1;
+}
+.customer-site .qty-counter button {
+  min-width: 36px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.customer-site .qty-counter {
+  color: #fff8eb;
+  gap: 8px;
+}
+.customer-site .menu-main > main {
+  flex: none;
+}
+.customer-site .floating-cart-bar {
+  text-align: left;
+  justify-content: space-between;
+  border: 1px solid #655039;
+  z-index: 50;
+}
+.customer-site .cart-summary-text {
+  display: grid;
+  gap: 2px;
+}
+.customer-site .scan-hint {
+  padding: 8px 0 14px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.customer-site .system-footer {
+  display: block;
+  padding: 20px 16px 0;
+  text-align: center;
+}
+.customer-site #modal.rp-checkout {
+  position: fixed;
+  inset: auto 0 0;
+  transform: none;
+  width: 100%;
+  max-width: 680px;
+  max-height: 92dvh;
+  padding: 0;
+  border: 1px solid #655039;
+  border-radius: 20px 20px 0 0;
+  margin: 0 auto;
+  overflow: auto;
+  z-index: 2000;
+}
+.customer-site #modal.rp-checkout #modalBody {
+  display: flex;
+  flex-direction: column;
+}
+.customer-site #modal.rp-checkout #modalClose {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  font-size: 0;
+  border-radius: 50%;
+  z-index: 2;
+}
+.customer-site #modal.rp-checkout #modalClose:after {
+  content: "×";
+  font-size: 25px;
+}
+.customer-site #modal.rp-checkout .drawer-header {
+  padding-right: 76px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: block;
+}
+.customer-site #modal.rp-checkout .drawer-body {
+  overflow: visible;
+}
+.customer-site #modal.rp-checkout .drawer-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+.customer-site #modal.rp-checkout .btn-place-order {
+  width: 100%;
+  justify-content: space-between;
+}
+.customer-site #modal.rp-checkout .cart-item-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.customer-site #modal.rp-checkout .bill-row {
+  display: flex;
+  justify-content: space-between;
+}
+.customer-site #modal.rp-checkout .cart-item-row {
+  gap: 12px;
+}
+.customer-site #modal.rp-checkout .cart-item-row > div:first-child {
+  flex: 1;
+}
+.customer-site .note-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.customer-site .note-chips button {
+  min-height: 40px;
+}
+.customer-site .rp-dialog {
+  padding: 24px;
+  max-width: min(680px, calc(100vw - 24px));
+  max-height: 90dvh;
+}
+.customer-site .rp-dialog form {
+  display: grid;
+  gap: 16px;
+}
+.customer-site .rp-dialog form > label {
+  display: grid;
+  gap: 8px;
+}
+.customer-site .rp-dialog h2 {
+  margin-bottom: 20px;
+}
+.rp-dialog #modalClose {
+  margin-top: 20px;
+}
+#banner {
+  position: relative;
+  z-index: 60;
+  font:
+    13px/1.4 system-ui,
+    sans-serif;
+}
+#toast {
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+  z-index: 4000;
+}
+.visibility-row {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+}
+.receipt {
+  background: #fff !important;
+  color: #111 !important;
+}
+.receipt * {
+  color: #111 !important;
+}
+#printArea {
+  display: none;
+}
+[hidden] {
+  display: none !important;
+}
+.waiter-site .waiter-header-brand {
+  flex-wrap: wrap;
+}
+.waiter-site .waiter-header-brand .staff-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.waiter-site .waiter-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 24px;
+}
+.waiter-site .waiter-mobile-nav {
+  display: none;
+}
+.waiter-site .request-pagination {
+  display: none;
+}
+.waiter-site .waiter-pane {
+  min-width: 0;
+}
+.waiter-site .request-filters {
+  gap: 6px;
+}
+.waiter-site .request-filters button {
+  font-size: 12px;
+  padding: 8px;
+}
+.waiter-site .orders-grid {
+  grid-template-columns: 1fr;
+}
+.waiter-site .account-menu {
+  min-width: 220px;
+}
+/* Tenant-selected colors/fonts override the reference theme only when customized. */
+html body#restaurant-platform.rp-custom-palette {
+  background: var(--background) !important;
+  color: var(--text) !important;
+}
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) header,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) #managerNav,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) .browse-menu {
+  background: var(--surface) !important;
+}
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) .panel,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) .card,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) .item-card,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) .order-card,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) dialog,
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  .request-card {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) h1,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) h2,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) h3,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) h4,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) strong,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) b {
+  color: var(--text) !important;
+}
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) button {
+  background: var(--raised) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  button.primary-btn,
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  .nav-tab-btn.active,
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  .cat-btn.active,
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  .btn-place-order {
+  background: var(--accent) !important;
+  color: var(--accentText) !important;
+}
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) input,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) select,
+html body#restaurant-platform.rp-custom-palette :is(#app, #modal) textarea {
+  background: var(--background) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+html body#restaurant-platform.rp-custom-font :is(#app, #modal) * {
+  font-family: var(--font), sans-serif !important;
+}
+.rp-custom-font .receipt * {
+  font-family: monospace !important;
+}
+@media (max-width: 1099px) {
+  .staff-site #app > header {
+    width: 100%;
+    margin: 0;
+  }
+  .staff-site .header-left {
+    width: 100%;
+    padding: 12px !important;
+  }
+  .staff-site .staff-header-actions {
+    padding: 0 12px 12px;
+    justify-content: flex-end;
+    width: 100%;
+  }
+  .staff-site #managerNav {
+    position: relative !important;
+    inset: auto !important;
+    height: auto !important;
+    width: 100% !important;
+    display: flex;
+    flex-direction: row !important;
+    overflow: auto;
+    gap: 8px;
+    padding: 12px !important;
+  }
+  .staff-site main {
+    width: 100%;
+    margin: 0;
+    padding: 20px !important;
+  }
+  .staff-site .page-tools {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .staff-site .page-tools .toolbar {
+    margin: 0;
+  }
+  .staff-site .header-left h1 {
+    border: 0;
+    padding: 0 !important;
+  }
+  .staff-site .staff-brand {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 760px) {
+  .customer-site .header-top {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .customer-site .header-actions {
+    width: 100%;
+  }
+  .customer-site .brand-box {
+    gap: 12px;
+  }
+  .customer-site .menu-workspace {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .customer-site .hero-copy {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .staff-site .page-tools > .toolbar {
+    width: 100%;
+  }
+  .staff-site .page-tools > .toolbar button {
+    flex: 0 1 auto;
+  }
+  .staff-site .savebar {
+    gap: 12px;
+  }
+  .staff-site .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .staff-site .account-menu {
+    right: 0 !important;
+    left: auto !important;
+  }
+  .waiter-site .waiter-workspace {
+    display: block;
+  }
+  .waiter-site .waiter-mobile-nav {
+    display: flex;
+    gap: 8px;
+  }
+  .waiter-site .waiter-pane:not(.rp-active) {
+    display: none;
+  }
+  .customer-site #modal.rp-checkout {
+    max-height: 94dvh;
+  }
+  .customer-site #modal.rp-checkout .cart-item-row {
+    flex-wrap: wrap;
+  }
+  .customer-site .header-actions .table-badge {
+    font-size: 11px !important;
+  }
+  #banner:not(:empty) {
+    padding: 8px 14px;
+  }
+}
+@media print {
+  body > * {
+    display: none !important;
+  }
+  #printArea {
+    display: block !important;
+  }
+  .receipt,
+  .receipt * {
+    background: #fff !important;
+    color: #111 !important;
+  }
+}
+/* Text customization wrappers must not inherit ornamental span styling. */
+.customer-site .hero-eyebrow > span[data-i18n] {
+  width: auto;
+  height: auto;
+  background: transparent;
+  position: static;
+  flex: 1;
+}
+.customer-site .hero-eyebrow > span[data-i18n]:after {
+  display: none;
+}
+.staff-site .badge-live #syncBadge span[data-i18n] {
+  background: transparent !important;
+}
+.staff-site .request-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.staff-site .request-card-heading h3 {
+  font-size: 16px !important;
+}
+.staff-site .request-card-heading .request-state {
+  margin: 0;
+}
+@media (min-width: 1100px) {
+  body.staff-site:has(#banner:not(:empty)) #managerNav {
+    top: 43px !important;
+    height: calc(100dvh - 43px) !important;
+  }
+}
+.customer-site #modal.rp-checkout #modalBody {
+  max-height: 90dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.customer-site #modal.rp-checkout .drawer-body {
+  overflow-y: auto !important;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.customer-site #modal.rp-checkout .drawer-header,
+.customer-site #modal.rp-checkout .drawer-footer {
+  flex: 0 0 auto;
+}
+.waiter-site .rp-orders > .grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+.waiter-site .order-card .order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #453728;
+  background: #9e7a4b16;
+}
+.waiter-site .order-card .order-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.waiter-site .order-card .order-body {
+  padding: 16px;
+}
+.waiter-site .order-card .order-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #453728;
+  background: #9e7a4b16;
+}
+.waiter-site .order-card .order-footer .toolbar {
+  margin: 0;
+}
+.waiter-site .order-card .order-footer .toolbar button {
+  font-size: 13px;
+}
+.waiter-site .request-filters button {
+  flex: 0 0 auto;
+}
+.waiter-site .request-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.waiter-site .request-card-heading h3 {
+  font-size: 16px !important;
+}
+.waiter-site .request-card-heading .request-state {
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .customer-site #modal.rp-checkout #modalBody {
+    max-height: 94dvh;
+  }
+}
+@media (max-width: 1099px) {
+  .staff-site #managerNav .nav-tab-btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    white-space: nowrap;
+  }
+}
+.waiter-site .waiter-mobile-nav button > [data-i18n] {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+  color: inherit !important;
+  font: inherit !important;
+}
+.staff-account summary > span:last-child {
+  font-family: Arial, sans-serif !important;
+}
+.staff-account summary > .account-chevron {
+  width: 7px;
+  height: 7px;
+  display: block;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  flex: none;
+  margin: 0 3px 4px;
+}
+/* Legacy .open rules must never override native dialog dismissal. */
+#modal:not([open]) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Keep tenant theme overrides above the reference cascade, including dialogs. */
+html body#restaurant-platform.rp-custom-palette #modal {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  :is(
+    .hero-copy,
+    .drawer-body,
+    .drawer-header,
+    .drawer-footer,
+    .order-header,
+    .order-body,
+    .order-footer,
+    .request-filters,
+    .bill-summary,
+    .order-form-section,
+    .header-left,
+    .staff-header-actions
+  ) {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  :is(p, label, small, span) {
+  color: inherit !important;
+}
+html
+  body#restaurant-platform.rp-custom-palette
+  :is(#app, #modal)
+  :is(.primary-btn, .cat-btn.active, .nav-tab-btn.active, .btn-place-order)
+  * {
+  color: var(--accentText) !important;
+}
+html body#restaurant-platform.rp-custom-palette #modal .receipt,
+html body#restaurant-platform.rp-custom-palette #modal .receipt * {
+  background: #fff !important;
+  color: #111 !important;
+}
+html body#restaurant-platform.rp-custom-font #modal .receipt * {
+  font-family: monospace !important;
+}
+/* Dedicated platform-owner workspace; never inherits a restaurant rail. */
+body.owner-console #app > header.owner-header {
+  margin: 0 !important;
+  width: 100% !important;
+  padding: 22px 32px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #453728 !important;
+  min-height: 96px;
+}
+body.owner-console .owner-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+.owner-brand > span:last-child {
+  display: grid;
+  gap: 4px;
+}
+.owner-brand strong {
+  font-size: 20px;
+}
+.owner-brand small {
+  font-size: 13px;
+  color: #b8aa97;
+}
+.owner-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #655039;
+  border-radius: 12px;
+  color: #d6b184;
+  flex: none;
+}
+.owner-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.owner-role {
+  font-size: 13px;
+  color: #b8aa97;
+}
+body.owner-console #app > main.owner-main {
+  display: block !important;
+  width: 100% !important;
+  max-width: 1280px !important;
+  margin: 0 auto !important;
+  padding: 36px 32px 48px !important;
+}
+.owner-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 28px;
+}
+.owner-page-heading h1 {
+  font-size: 32px !important;
+  letter-spacing: -1px;
+  margin: 0 0 8px;
+}
+.owner-page-heading p {
+  max-width: 680px;
+  margin: 0;
+  color: #b8aa97;
+}
+.owner-eyebrow {
+  font-size: 11px !important;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: #d6b184 !important;
+  margin: 0 0 10px !important;
+}
+.owner-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.owner-summary {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 22px 24px;
+  border: 1px solid #453728;
+  border-radius: 16px;
+  background: #191511;
+  margin-bottom: 28px;
+}
+.owner-summary > div {
+  display: grid;
+  gap: 6px;
+  min-width: 150px;
+}
+.owner-summary strong {
+  font-size: 30px;
+  line-height: 1;
+}
+.owner-summary span,
+.owner-summary p {
+  font-size: 14px;
+  color: #b8aa97;
+}
+.owner-summary p {
+  margin: 0;
+}
+.owner-list-tools {
+  max-width: 580px;
+  margin-bottom: 20px;
+}
+.owner-list-tools label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.owner-list-tools input {
+  width: 100%;
+  min-height: 46px;
+}
+.owner-list-count {
+  font-size: 13px;
+  color: #b8aa97;
+  margin-bottom: 14px;
+}
+.owner-restaurants {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.owner-restaurant {
+  min-width: 0;
+  padding: 24px;
+  background: #191511;
+  border: 1px solid #655039;
+  border-radius: 18px;
+}
+.owner-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.owner-card-heading h2 {
+  font-size: 22px !important;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.owner-slug {
+  font-size: 13px;
+  color: #b8aa97;
+  margin: 0;
+}
+.owner-card-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.owner-card-actions .button {
+  font-size: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+.owner-url-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+.owner-url-row label {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+.owner-url-row input {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  min-height: 44px;
+  padding: 10px;
+}
+.owner-url-row button {
+  font-size: 12px;
+  flex: none;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+.owner-menu-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  color: #d6b184;
+}
+.owner-url-note {
+  margin-top: 30px;
+  border-top: 1px solid #453728;
+  padding-top: 24px;
+}
+.owner-url-note h2 {
+  font-size: 17px !important;
+  margin-bottom: 10px;
+}
+.owner-url-note p {
+  font-size: 13px;
+  color: #b8aa97;
+  max-width: 900px;
+  line-height: 1.7;
+}
+.owner-empty {
+  grid-column: 1/-1;
+  padding: 32px !important;
+}
+.owner-empty h2 {
+  font-size: 22px !important;
+}
+.owner-empty p {
+  color: #b8aa97;
+}
+.owner-login-main {
+  min-height: calc(100dvh - 150px);
+}
+.owner-login {
+  max-width: 520px;
+  margin: 30px auto;
+  padding: 30px !important;
+}
+.owner-login h1 {
+  font-size: 28px !important;
+  line-height: 1.2;
+  margin: 0 0 14px;
+}
+.owner-login > p {
+  font-size: 14px;
+  color: #b8aa97;
+  line-height: 1.7;
+}
+.owner-login form {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+.owner-login form label {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.owner-login form input {
+  width: 100%;
+  min-height: 46px;
+}
+.owner-mfa-note {
+  font-size: 12px !important;
+  margin-top: 20px;
+}
+.owner-console #modal.rp-dialog {
+  max-width: min(620px, calc(100vw - 24px));
+  max-height: 90dvh;
+  overflow: auto;
+  padding: 24px;
+}
+.owner-console #modal label {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+.owner-console #modal input {
+  width: 100%;
+  min-width: 0;
+}
+.owner-console #modal form {
+  display: grid;
+  gap: 8px;
+}
+.owner-console #modal h2 {
+  font-size: 23px;
+  margin: 0 0 16px;
+}
+.owner-console .owner-empty .panel {
+  margin: 0;
+}
+@media (max-width: 850px) {
+  .owner-restaurants {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .owner-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .owner-heading-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  body.owner-console #app > header.owner-header {
+    padding: 18px 16px !important;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .owner-header-tools {
+    margin-left: auto;
+  }
+  .owner-brand strong {
+    font-size: 18px;
+  }
+  .owner-role {
+    font-size: 12px;
+  }
+  body.owner-console #app > main.owner-main {
+    padding: 24px 16px 40px !important;
+  }
+  .owner-page-heading h1 {
+    font-size: 28px !important;
+  }
+  .owner-summary {
+    padding: 18px;
+    gap: 16px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .owner-restaurant {
+    padding: 18px;
+  }
+  .owner-url-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .owner-url-row button {
+    align-self: flex-start;
+  }
+  .owner-login {
+    margin: 12px 0;
+    padding: 24px !important;
+  }
+  .owner-login h1 {
+    font-size: 25px !important;
+  }
+  .owner-card-actions .button {
+    flex: 1 1 auto;
+  }
+  .owner-console #modal.rp-dialog {
+    padding: 20px;
+  }
+}
