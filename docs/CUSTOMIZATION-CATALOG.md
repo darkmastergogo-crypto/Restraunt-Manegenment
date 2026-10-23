@@ -115,7 +115,7 @@ Main admin (/admin) lists restaurants, provisions a restaurant URL/name and gene
 
 ## Registered interface text
 
-This registry contains 491 entries, including generated field/feature labels. Dynamic dish/category/portion content is edited in its own menu editor. The registry does not imply every key can be hidden in every context.
+This registry contains 497 entries, including generated field/feature labels. Dynamic dish/category/portion content is edited in its own menu editor. The registry does not imply every key can be hidden in every context.
 
 | Key | Default plain text |
 |---|---|
@@ -288,7 +288,9 @@ This registry contains 491 entries, including generated field/feature labels. Dy
 | `filter.Music` | Music |
 | `filter.Pending` | Pending |
 | `footer.link` | Click here |
+| `history.all` | All recent orders |
 | `history.empty` | No recent orders on this browser. |
+| `history.past` | Order history |
 | `image.limit` | Image must be PNG/JPEG/WebP under 180 KB. |
 | `item.category` | Category |
 | `item.description` | Description |
@@ -348,6 +350,7 @@ This registry contains 491 entries, including generated field/feature labels. Dy
 | `order.bill` | Bill |
 | `order.cancel` | Cancel order |
 | `order.empty` | No orders in this view. |
+| `order.more` | Add more items / order again |
 | `order.number` | Order no. |
 | `order.reason` | Reason for rejection |
 | `order.reject` | Reject / unavailable |
@@ -355,6 +358,7 @@ This registry contains 491 entries, including generated field/feature labels. Dy
 | `order.saved` | Order saved |
 | `order.serve` | Mark served |
 | `order.table` | Table |
+| `order.track` | Track my order |
 | `order.uncertain` | Previous submission needs confirmation. |
 | `order.undo` | Undo |
 | `owner.adminURL` | Restaurant admin URL |
@@ -410,6 +414,7 @@ This registry contains 491 entries, including generated field/feature labels. Dy
 | `platform.save` | Save supplied features |
 | `platform.saveAccess` | Save customization access |
 | `platform.saved` | Owner permissions saved. |
+| `push.phone` | Phone notifications |
 | `qr.copyFallback` | Copy the link instead. |
 | `qr.required` | Scan your table QR before ordering. |
 | `receipt.preview` | Receipt preview |
@@ -442,6 +447,7 @@ This registry contains 491 entries, including generated field/feature labels. Dy
 | `request.Rejected` | Rejected |
 | `request.assistance` | Waiter requested |
 | `request.count` | requests |
+| `request.counter` | Counter needs a waiter |
 | `request.empty` | No requests. |
 | `request.music` | Music request |
 | `request.onWay` | Waiter is on the way |
@@ -598,11 +604,11 @@ This registry contains 491 entries, including generated field/feature labels. Dy
 | `table.confirm` | This invalidates table access. Continue? |
 | `table.copy` | Copy link |
 | `table.download` | Download QR |
-| `table.prompt` | Table number, for example T1 |
 | `table.remove` | Remove table |
 | `table.reserved` | Reserved |
 | `table.rotate` | Revoke QR |
 | `table.scan` | Scan table QR |
+| `table.share` | Share link |
 | `table.toggle` | Available / reserved |
 | `tools.explain` | Export settings before major edits. Reporting resets archive earlier reporting data; they do not physically delete records. |
 | `waiter.confirm` | Revoke the previous waiter link and generate a new one? |
