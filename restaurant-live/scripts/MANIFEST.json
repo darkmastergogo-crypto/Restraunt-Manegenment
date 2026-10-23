@@ -1,0 +1,670 @@
+{
+  "package": "Restaurant platform \u2014 Appwrite Sites and Android Web Push update",
+  "deployed": false,
+  "serviceTestsPassed": 72,
+  "hostedAndroidDeliveryTested": false,
+  "browserPushAPIsMocked": true,
+  "builtAt": "2026-10-23T02:35:45.283885+00:00",
+  "files": [
+    {
+      "file": ".env.example",
+      "bytes": 313,
+      "sha256": "409fad46fbf7116ce5469ce0b699869f3c61a84b910f4a0bc8106382ac9217fe"
+    },
+    {
+      "file": ".env.sites.example",
+      "bytes": 864,
+      "sha256": "a1e9e383d71f453195399177e3d9f111bfc0b028f3a813c9efb281635568663e"
+    },
+    {
+      "file": ".gitignore",
+      "bytes": 79,
+      "sha256": "94f7223fa9facc90d7ab985d6530757acba723346fe715147354f45b3cd63554"
+    },
+    {
+      "file": "README.md",
+      "bytes": 19045,
+      "sha256": "ccea12032792c7d7375bf898205553dc5f5a7a9d97d3171781e3c4059dcc0489"
+    },
+    {
+      "file": "START-HERE.md",
+      "bytes": 2824,
+      "sha256": "44628ea9d87968b62f691e1bf63cd26042132bcc7c138e759a64e2f46bdf8de7"
+    },
+    {
+      "file": "build/restaurant-function.tar.gz",
+      "bytes": 22154,
+      "sha256": "d87f36c7e3745f26729499dc89799f7e4474a81302be609652d216b181ea3f46"
+    },
+    {
+      "file": "docs/ANDROID-PUSH-SETUP.md",
+      "bytes": 10324,
+      "sha256": "a9b2898edfe7a9e66af9d07f088fd9b1105abcdd50becf7365be9cced73e63ed"
+    },
+    {
+      "file": "docs/ANDROID-PUSH-VALIDATION.md",
+      "bytes": 1017,
+      "sha256": "ebd3b55e575e5107c73144656626f129f8e1adf486b77909acbc405e0778786f"
+    },
+    {
+      "file": "docs/APPEARANCE-RESTORATION.md",
+      "bytes": 4862,
+      "sha256": "39b7a7d958a083c711327ac78e8b988ca31c7dbb0adef142c6be235977cd9d57"
+    },
+    {
+      "file": "docs/APPWRITE-SITES-SETUP.md",
+      "bytes": 13250,
+      "sha256": "71c44da7a3318460d4dadfcacd94eaddbb8a0b45d9adb9cdb94c8ceb239cb7da"
+    },
+    {
+      "file": "docs/CUSTOMIZATION-CATALOG.md",
+      "bytes": 29089,
+      "sha256": "f40416576899be21663d1e12baa31fe7a45b0abc0335d3028b2dd2ad39e0fb43"
+    },
+    {
+      "file": "docs/FEATURE-PARITY.md",
+      "bytes": 13543,
+      "sha256": "7630abaa9c9dbc5757faa492ad495fc1c7653341c00622975acb041bcc0f0a78"
+    },
+    {
+      "file": "docs/HOSTED-ACCEPTANCE.md",
+      "bytes": 6847,
+      "sha256": "20a78004e847d12fdd996d6c625eec1d495f54786a0fbfc13bfdace3e7ef5cf9"
+    },
+    {
+      "file": "docs/IMPLEMENTATION-STATUS.md",
+      "bytes": 3649,
+      "sha256": "177c848c05ee8f48e1985bf43592b99033b29f71f2d4ea212be9b436f0046242"
+    },
+    {
+      "file": "docs/ORIGINAL-RELEASE44-AUDIT.md",
+      "bytes": 69148,
+      "sha256": "d76013455b8d1263898e464a5cd73b69a87785a2d155b555c72624197a8246a0"
+    },
+    {
+      "file": "docs/Plus-Jakarta-Sans-OFL.txt",
+      "bytes": 4402,
+      "sha256": "995c7199cab65954f545996326755daee7b63cc6b42b06c13da1f9502ab08a99"
+    },
+    {
+      "file": "docs/SECURITY-DESIGN.md",
+      "bytes": 7176,
+      "sha256": "4e3a1034f9ee789f0ea7337c5b4d82237e3170883b19f0265ef9ead52103b71a"
+    },
+    {
+      "file": "docs/THIRD-PARTY-NOTICES.md",
+      "bytes": 1105,
+      "sha256": "3992093bcfe24c839f617e64e498c184bce3717a90d372972283c5f8a151c52f"
+    },
+    {
+      "file": "docs/admin-customize.png",
+      "bytes": 291902,
+      "sha256": "210fcd6d1aa262dd4e7a91a0dc32f8ba1d14715dba5a94d16de3770e7a7a87bd"
+    },
+    {
+      "file": "docs/admin-desktop.png",
+      "bytes": 293047,
+      "sha256": "d165fb59c34e83a8f244edefef8fb7d7ccb3603d0fcefc77f33396cb1b5034ca"
+    },
+    {
+      "file": "docs/admin-mobile.png",
+      "bytes": 219898,
+      "sha256": "c37edc2c6c7682857fe5d9ce9ecaa3f9f481891da0d4dd302635ef2acac4330e"
+    },
+    {
+      "file": "docs/appearance-checkout-mobile.png",
+      "bytes": 190665,
+      "sha256": "4147dbf249ab27cb81c37a4ac74905b25f238f021f7447dfd30ba0c34e0d40af"
+    },
+    {
+      "file": "docs/appearance-menu-mobile.png",
+      "bytes": 240348,
+      "sha256": "7e4d08c043b07bec392f6fe427d785542eddf88ab89d22e4e6adde7b9481d34e"
+    },
+    {
+      "file": "docs/appearance-menu.png",
+      "bytes": 494135,
+      "sha256": "f99062456c54efa3725f4cfbd3f10721c0e689a922c6d9652f12cddf0311a46a"
+    },
+    {
+      "file": "docs/appearance-requests.png",
+      "bytes": 306343,
+      "sha256": "f067de1188b9657d5cfd73b9c8a265e18e9b08375ca52bc8489ce2c7a156e8e4"
+    },
+    {
+      "file": "docs/appearance-waiter-mobile.png",
+      "bytes": 95320,
+      "sha256": "ca699825aad45b128981ef41d6e507013a2ec3240934e9d3c423a978163f27ec"
+    },
+    {
+      "file": "docs/appearance-waiter.png",
+      "bytes": 277656,
+      "sha256": "ac261e1717361dbff175044437e2720b331855a4e3eefcbe451d0804a8bedfbe"
+    },
+    {
+      "file": "docs/appwrite-LICENSE.txt",
+      "bytes": 1540,
+      "sha256": "303c6843e7266554669df90c09cdddb644c71c4dd0cf20489d1ed1ee8107bbed"
+    },
+    {
+      "file": "docs/checkout-1440-multiple-items.png",
+      "bytes": 118820,
+      "sha256": "582cee42d0c17cf0e91272e358e600cf2a6f0b2a14cecb28f7e66df2696f0977"
+    },
+    {
+      "file": "docs/checkout-390-multiple-items.png",
+      "bytes": 54584,
+      "sha256": "dc66d6fd7da9a970d3823f36c714b718daf6375852b5975500483a4ccfc322b0"
+    },
+    {
+      "file": "docs/checkout-desktop.png",
+      "bytes": 374416,
+      "sha256": "8f7c4f7e9f03bda260c4ca1aa6ab08c566b190aa0786997da8995f2bc14302e8"
+    },
+    {
+      "file": "docs/custom-theme-admin.png",
+      "bytes": 81266,
+      "sha256": "a368eec53b36b842d635b25c1ad0c0fc9938f0617221545191323a2a57e5f0f6"
+    },
+    {
+      "file": "docs/custom-theme-menu.png",
+      "bytes": 84131,
+      "sha256": "cf64fee32ab2b4369075eb94896823c7c4a21ae55fc925e3009984830726d687"
+    },
+    {
+      "file": "docs/customer-desktop.png",
+      "bytes": 494135,
+      "sha256": "f99062456c54efa3725f4cfbd3f10721c0e689a922c6d9652f12cddf0311a46a"
+    },
+    {
+      "file": "docs/customer-mobile.png",
+      "bytes": 240348,
+      "sha256": "7e4d08c043b07bec392f6fe427d785542eddf88ab89d22e4e6adde7b9481d34e"
+    },
+    {
+      "file": "docs/layout-test-results.txt",
+      "bytes": 282,
+      "sha256": "93feefda506e90f12a902bde8d1d493809596519058dc1510924fe0e25b23072"
+    },
+    {
+      "file": "docs/main-admin-auth-ui-results.txt",
+      "bytes": 303,
+      "sha256": "f2f8eae3659d95e6d71b3f150482415a35f8e47bb9ad11479d3413d60487d4d1"
+    },
+    {
+      "file": "docs/main-admin-create-mobile.png",
+      "bytes": 49522,
+      "sha256": "884fa6f62b5141418728f255042cf911d368f506c2d04fb1bf764c6bfc809ac2"
+    },
+    {
+      "file": "docs/main-admin-create.png",
+      "bytes": 238780,
+      "sha256": "c7734ddfd8b81680984577745194fa4f9dd1ec500499342dfe797effc565ad23"
+    },
+    {
+      "file": "docs/main-admin-created-urls-mobile.png",
+      "bytes": 71607,
+      "sha256": "dcf9235c42f682ca79e4ef0d84a040203c975dd37a1683e45bf76bdb22a72e1d"
+    },
+    {
+      "file": "docs/main-admin-created-urls.png",
+      "bytes": 426262,
+      "sha256": "99d0e4eceec5e1dd2c7c58e1ff7385b151e7dbfbaa1bf4f9a91ef1cc0d680a10"
+    },
+    {
+      "file": "docs/main-admin-desktop.png",
+      "bytes": 300115,
+      "sha256": "c39cfc9e18a9f3e048baadee7a189f8c61e7f2e9315bf4d15c8985997e3b1da1"
+    },
+    {
+      "file": "docs/main-admin-empty.png",
+      "bytes": 290296,
+      "sha256": "2b1f35929b2a2c58953491b8a23e8c2a6ceb23af2e0f417e2f6c093581e9af29"
+    },
+    {
+      "file": "docs/main-admin-login-desktop.png",
+      "bytes": 245211,
+      "sha256": "ad76a9a6f1165dc9d30ad728bbf69a8a8a38bd2d7a3d6384aac4d09d6bb789bd"
+    },
+    {
+      "file": "docs/main-admin-login-mobile.png",
+      "bytes": 89518,
+      "sha256": "4e13c2b7ed5c3ae34bf61b74077d1d41c5b178b959992afa936810f9eb185557"
+    },
+    {
+      "file": "docs/main-admin-mobile.png",
+      "bytes": 273414,
+      "sha256": "dab8e295e6b8cce3030946188e2b8772733426a36485a76f413654572b4376c4"
+    },
+    {
+      "file": "docs/main-admin-ui-results.txt",
+      "bytes": 525,
+      "sha256": "488fa8f49c878493c94158c2753863385c48e9729f9102e963059b998613530f"
+    },
+    {
+      "file": "docs/music-requests.png",
+      "bytes": 307838,
+      "sha256": "9d6940fe96f98a52185d5b18f8091ec97e430e80427266c16f9b25497088270d"
+    },
+    {
+      "file": "docs/node-appwrite-LICENSE.txt",
+      "bytes": 1540,
+      "sha256": "303c6843e7266554669df90c09cdddb644c71c4dd0cf20489d1ed1ee8107bbed"
+    },
+    {
+      "file": "docs/test-results.txt",
+      "bytes": 3348,
+      "sha256": "ee13ff94c91c5bfdc301e4e502a18db78c7886f118cc057b3183060678483eff"
+    },
+    {
+      "file": "docs/theme-test-results.txt",
+      "bytes": 161,
+      "sha256": "ca704874d2322806ed8466cb33e6a60c340b0d6e6da53a1da24c5dd538e4971c"
+    },
+    {
+      "file": "docs/ui-test-results.txt",
+      "bytes": 661,
+      "sha256": "f20ae9ac866e4946dec24b17ba8cba5dca7481bf02fbc020efedd9604d1da4df"
+    },
+    {
+      "file": "functions/restaurant-api/package-lock.json",
+      "bytes": 8348,
+      "sha256": "4928caeed7cdc7714e9fb5bac1533d0f40dd2db4323035ac7f790a680f51f050"
+    },
+    {
+      "file": "functions/restaurant-api/package.json",
+      "bytes": 179,
+      "sha256": "b029c9df4757317963db7320a1b1e192358bcc05fc115f49ee6b31d477337af6"
+    },
+    {
+      "file": "functions/restaurant-api/src/domain.mjs",
+      "bytes": 12606,
+      "sha256": "81be6aa1304bdd2b85dd0cac78ab063c0ad6ad5f0e0e87d09d107b5a70fc8786"
+    },
+    {
+      "file": "functions/restaurant-api/src/main.mjs",
+      "bytes": 3400,
+      "sha256": "51e5d6c4971a2190832c1394afcbf787a04817e4d0d15d6511e62ea8537e6dea"
+    },
+    {
+      "file": "functions/restaurant-api/src/maintenance-main.mjs",
+      "bytes": 761,
+      "sha256": "10b421974828b6e60709d34128be2cb6ec7e8c1130ac5f0b562afdf941fff8ef"
+    },
+    {
+      "file": "functions/restaurant-api/src/maintenance.mjs",
+      "bytes": 1810,
+      "sha256": "3794462e50bcc5926df3aedf8f954ad0d1ca125cae61bb1d97bdfeeb4a5f6ce1"
+    },
+    {
+      "file": "functions/restaurant-api/src/push.mjs",
+      "bytes": 7633,
+      "sha256": "8a68ea42a6cc4d0cfe03add54c94e4de1b717f573f6dc62ffeafbda443fd4ec4"
+    },
+    {
+      "file": "functions/restaurant-api/src/schema.mjs",
+      "bytes": 6773,
+      "sha256": "216fcabc4d1d66358be05cc7ffd269a154bccd4c0198a32408d534c53ef7ae79"
+    },
+    {
+      "file": "functions/restaurant-api/src/service.mjs",
+      "bytes": 29117,
+      "sha256": "831be2abfb0b01bc1bd95fa131a5bd302e086d0010d2001c839d0537ffb6aaa5"
+    },
+    {
+      "file": "functions/restaurant-api/src/sites-worker-main.mjs",
+      "bytes": 1537,
+      "sha256": "d1780e64ce405d30ea275190b80a7884ed14a5f7d0725fb105e2fad38592dafc"
+    },
+    {
+      "file": "functions/restaurant-api/src/sites.mjs",
+      "bytes": 8723,
+      "sha256": "cb64e9f126b2e8f8fb09ca0dd4de88f998f17ff750b12399fd5734c7dfa6a8bc"
+    },
+    {
+      "file": "functions/restaurant-api/src/store.mjs",
+      "bytes": 4656,
+      "sha256": "a00a495f3366a8c7a0ac428fbd5ea4c4f430364ff7ce760ece4b3b8fcb4ba798"
+    },
+    {
+      "file": "package-lock.json",
+      "bytes": 50523,
+      "sha256": "278dc55d3c1d61bda5aaaaec850ce4332e64427475a07a321a8492cba0519af5"
+    },
+    {
+      "file": "package.json",
+      "bytes": 434,
+      "sha256": "804d37a053fd6e8e7b1cc2e0a640d5d981f4ff43020fc5df39e58ef7cd4c25c4"
+    },
+    {
+      "file": "public/app.mjs",
+      "bytes": 101585,
+      "sha256": "a8482abf435e7967d9c74c3d3a542bb1db43931a6778fe90e12bc76ef410a54d"
+    },
+    {
+      "file": "public/appearance.css",
+      "bytes": 24323,
+      "sha256": "391afad239f41227c2f80aed8ad27ff064cea346ed7a79e4958cfc883d6370c6"
+    },
+    {
+      "file": "public/assets/icons.svg",
+      "bytes": 4318,
+      "sha256": "94edd9026603082670d6244930a944e65849137c2620003ad3ad77790ccc104f"
+    },
+    {
+      "file": "public/assets/jakarta-0.ttf",
+      "bytes": 63336,
+      "sha256": "076831b98043f50f829b6c91db3be4a844641f1c95bccff5c886ed87c661a852"
+    },
+    {
+      "file": "public/assets/jakarta-1.ttf",
+      "bytes": 63404,
+      "sha256": "b4fc14ec283d54236fd302cdb92546f98ae0ff061ca5ee23453a02bdf4628791"
+    },
+    {
+      "file": "public/assets/jakarta-2.ttf",
+      "bytes": 63412,
+      "sha256": "50357df108c5d297ec4ece76aeddf49561f3794f67af077cfc2c711b7a75b439"
+    },
+    {
+      "file": "public/assets/jakarta-3.ttf",
+      "bytes": 63336,
+      "sha256": "32971ad7976930539a11c79ce91ce84092df7f25c5be716b594601842f10a7ae"
+    },
+    {
+      "file": "public/assets/jakarta-4.ttf",
+      "bytes": 63372,
+      "sha256": "d9e0ddb4a15a0054ad84b4ded3b4b9f354a0b7df426e21a1363d6933728da9d5"
+    },
+    {
+      "file": "public/assets/order-empty-dark.svg",
+      "bytes": 395,
+      "sha256": "438d063c1f08f216dbe7f055a8fcbe6b29b5ac14d0f6f6067c0efe5df945ffd5"
+    },
+    {
+      "file": "public/assets/order-empty.svg",
+      "bytes": 395,
+      "sha256": "438d063c1f08f216dbe7f055a8fcbe6b29b5ac14d0f6f6067c0efe5df945ffd5"
+    },
+    {
+      "file": "public/assets/yummy-momo-logo.webp",
+      "bytes": 99612,
+      "sha256": "07acdfcfdb45a4c8f305505384cfb2a3a46917f117b3e70818a9308a2df988bf"
+    },
+    {
+      "file": "public/config.js",
+      "bytes": 329,
+      "sha256": "a5744e04fd4e617bcb08b5f27f4e69a7b257acd7e68ea697958e6c1d5232ec27"
+    },
+    {
+      "file": "public/index.html",
+      "bytes": 930,
+      "sha256": "6af5559a0ba76d3e11894fd1243e812c31d35868cde3ef471bbfa67a52b34bef"
+    },
+    {
+      "file": "public/manifest.webmanifest",
+      "bytes": 308,
+      "sha256": "de0358764d624c2bab159adc44d327f2fc0a390b562c0089204bbc57c320bbe6"
+    },
+    {
+      "file": "public/original/admin-base.css",
+      "bytes": 21674,
+      "sha256": "69913bafdffe1d6c028bdc948c1a439474c7e7a12c7590e08c409f5ba8cb72c6"
+    },
+    {
+      "file": "public/original/analytics.css",
+      "bytes": 5320,
+      "sha256": "1f9a2738bb856572f084d35f3eeb6b346fa1933ad62264fe3b72e45d0fb2d846"
+    },
+    {
+      "file": "public/original/call-requests.css",
+      "bytes": 2314,
+      "sha256": "51d1e5c61af0c33e760068d6d0d32175b77f8b5dc4754ea71ef2dceeed2d6d26"
+    },
+    {
+      "file": "public/original/dark-theme.css",
+      "bytes": 41454,
+      "sha256": "0f8e3f2aabf1ee160925e71fe092769fdd6a9e78ad3104a7e42c35c3e38bd511"
+    },
+    {
+      "file": "public/original/device-layouts.css",
+      "bytes": 18369,
+      "sha256": "c3425956b71579994a0456d4f6e0d5c4a83c111f8f1e9396270f887c70085a97"
+    },
+    {
+      "file": "public/original/fonts.css",
+      "bytes": 845,
+      "sha256": "27ad1795fd9ef56a7286e909e119db6adb589311d183e51811662c05bc30ef37"
+    },
+    {
+      "file": "public/original/manifest.json",
+      "bytes": 880,
+      "sha256": "28d1e1e7f80926fcf0fb237b149e7c140cf405affc4b29e8fe5a1009733167cb"
+    },
+    {
+      "file": "public/original/menu-base.css",
+      "bytes": 18758,
+      "sha256": "37f80b24a6e77ca241224cafc8d39c71453271d4ac17cfe554acfa0cba8f7d76"
+    },
+    {
+      "file": "public/original/menu-customization.css",
+      "bytes": 2221,
+      "sha256": "d984a11daac8a1dc17fef83cef12542d769d0afa2fe15334af36c96d5973a382"
+    },
+    {
+      "file": "public/original/menu-theme.css",
+      "bytes": 21820,
+      "sha256": "d2cc87a8ee263418dcea279aa674c6a940a4b4073daded2d42d101b65c21489e"
+    },
+    {
+      "file": "public/original/order-celebration.css",
+      "bytes": 2952,
+      "sha256": "bae92dc8eacd5410bf69bb03e300a5f0a73f465fc93692aad768f4e89c511d58"
+    },
+    {
+      "file": "public/original/release38.css",
+      "bytes": 1774,
+      "sha256": "50a8a94878b782937b7a0e60d2fe7047e72b154373a49a7f2f5f7842edab10b8"
+    },
+    {
+      "file": "public/original/release39.css",
+      "bytes": 1191,
+      "sha256": "7faaf075d89e18fa79ef43f885d6129030143a9f467443beb7948daf3caf303a"
+    },
+    {
+      "file": "public/original/release42.css",
+      "bytes": 7381,
+      "sha256": "c983b612218b0339b42c00452ebd2681c9585ae32b2ce218b6f3df12a0122103"
+    },
+    {
+      "file": "public/original/release43.css",
+      "bytes": 4638,
+      "sha256": "e285ea8dfa62e14c28e28b174c8bd176fe36bf53eb355cc6c23cd560e93a79fc"
+    },
+    {
+      "file": "public/original/request-ring.css",
+      "bytes": 1054,
+      "sha256": "ee924443b8a86da807029e2a592f48748da20ffde4465a5d389fa5cfe661f087"
+    },
+    {
+      "file": "public/original/tables.css",
+      "bytes": 703,
+      "sha256": "4e04e214899c31ee6824c5482b1a398f71f0bc1a926e1d6455ed175556bddc2f"
+    },
+    {
+      "file": "public/original/waiter-base.css",
+      "bytes": 259,
+      "sha256": "ddc1423ea68f57f26448a1e26a94ea215d2bc70351c215ad54afd18a1597b726"
+    },
+    {
+      "file": "public/original/waiter.css",
+      "bytes": 4555,
+      "sha256": "d7acc51ddf4115c19adfc88ef3fd7093d2ab8bf70d9952774651d775678050e2"
+    },
+    {
+      "file": "public/original/yaar-theme.css",
+      "bytes": 40926,
+      "sha256": "a456c552d4f77d04d0a017a004b40d66e3038a26ae811fd637b2b5317af39d3c"
+    },
+    {
+      "file": "public/original/yummy-momo.css",
+      "bytes": 8842,
+      "sha256": "294245bd58a2f11cea9e400e3e0643764e32d4acad2f7206f63d6de3cdee364d"
+    },
+    {
+      "file": "public/original-appearance.mjs",
+      "bytes": 1318,
+      "sha256": "51420ed228cb666143dfa851efc8ef96f326574d543b0c568a435e1ad5042611"
+    },
+    {
+      "file": "public/portion-editor.mjs",
+      "bytes": 3737,
+      "sha256": "1c89a18c5f5a18c806793f1e5c5cc8bf8d3e546598338dbe34a8c20c798e9b3f"
+    },
+    {
+      "file": "public/push-client.mjs",
+      "bytes": 4235,
+      "sha256": "c9dbe7d01bee2d9729104d1a69df2ddf6d115d4ef20f608306f8cc8518600322"
+    },
+    {
+      "file": "public/push-icon-192.png",
+      "bytes": 1009,
+      "sha256": "aa05a44f92163811e2d6e3757cbcc99b326ac94ac038f3834843436bcdcec74e"
+    },
+    {
+      "file": "public/push-icon-512.png",
+      "bytes": 2903,
+      "sha256": "e2da159a842fb885ed3ced306dec0fdcf69a739efdf2cde5f472d4e14c9fbe25"
+    },
+    {
+      "file": "public/push-sw.js",
+      "bytes": 1305,
+      "sha256": "e1c5bcd7684cd4afad94335fdad5217b4b07f9cc81edeac43e21619c58ef71e8"
+    },
+    {
+      "file": "public/schema.mjs",
+      "bytes": 6773,
+      "sha256": "216fcabc4d1d66358be05cc7ffd269a154bccd4c0198a32408d534c53ef7ae79"
+    },
+    {
+      "file": "public/style.css",
+      "bytes": 13110,
+      "sha256": "88f2d3441b609cbfa8f7ce31c5ee89c1c9f22d2eb3c4d9e955e438063f9431cd"
+    },
+    {
+      "file": "public/texts.mjs",
+      "bytes": 20992,
+      "sha256": "2e592c93422b80207f84fdacf61ee4d8816d5cb8c20ce7a93ba93c7a0e2a2570"
+    },
+    {
+      "file": "public/vendor/appwrite.js",
+      "bytes": 670855,
+      "sha256": "e772ba1bafe4da8767bb7cd2cd6ffafc5aeb7fcab1dd2b5d17dd3b05a39b6419"
+    },
+    {
+      "file": "public/vendor/qr.js",
+      "bytes": 56696,
+      "sha256": "5acc9afb7b602986a62f79e46956cde71716d019816f44b7b3f93039c8b6b345"
+    },
+    {
+      "file": "scripts/build-site.mjs",
+      "bytes": 1593,
+      "sha256": "357fd48bf6af44d5d531fa9b8d8f5ff13b2d72649bbf825e0561073af284366e"
+    },
+    {
+      "file": "scripts/build.mjs",
+      "bytes": 875,
+      "sha256": "8d660135b5ad766c139b668090b6d8db7d6066e2b1528add09a5d13865547f96"
+    },
+    {
+      "file": "scripts/capture-appearance.mjs",
+      "bytes": 2174,
+      "sha256": "a38bcfeae8796faf0335f84c30e56d15a6f8b949f3a55f0cbe83130f55d13f73"
+    },
+    {
+      "file": "scripts/catalog.mjs",
+      "bytes": 15751,
+      "sha256": "f24e3719e888836fd2e5ee8268045a265a7c973585bbf740c3797ea26a66ceef"
+    },
+    {
+      "file": "scripts/check.mjs",
+      "bytes": 830,
+      "sha256": "2cb0a3a9dcc9c7a0abeddb82b2578e883a03e10bd1c5c4c34a78287b1e09268b"
+    },
+    {
+      "file": "scripts/dev.mjs",
+      "bytes": 4843,
+      "sha256": "724c3e702de885d077a22ff3a5c78334c5c17b6ac328907f19c6f63f66910265"
+    },
+    {
+      "file": "scripts/generate-push-keys.mjs",
+      "bytes": 603,
+      "sha256": "07d46393d4d6ffb71268d1dcd077dad1687b95431e33126e17f05f12a13f8db9"
+    },
+    {
+      "file": "scripts/layout-audit.mjs",
+      "bytes": 2910,
+      "sha256": "a225f58bd1983c40c969318a49d54361369856e27d5aa1df8e468c2944301529"
+    },
+    {
+      "file": "scripts/memory-store.mjs",
+      "bytes": 1393,
+      "sha256": "7ed3a4a0771f1325c0c05c4c4b6ada310ce5da87203e38ef39ecc4663b191734"
+    },
+    {
+      "file": "scripts/owner-auth-ui-smoke.mjs",
+      "bytes": 4090,
+      "sha256": "59906e070ca1e8a4916f196dc64f08c620597c8a1ae8b87fddaa5a3f50da3a94"
+    },
+    {
+      "file": "scripts/owner-ui-smoke.mjs",
+      "bytes": 5928,
+      "sha256": "c7261b8adf8056d52d60f8a29a88613665efb886336ba00026501c3753e077f1"
+    },
+    {
+      "file": "scripts/setup-appwrite.mjs",
+      "bytes": 6703,
+      "sha256": "2d42294d6176b2a5b27b93dce0c8a7e067dcab166e3aa1b96917658367620597"
+    },
+    {
+      "file": "scripts/texts.mjs",
+      "bytes": 3681,
+      "sha256": "ab30994b64c6634e01765f055360612ba836c48670d0fa3d095c6850b5b4065d"
+    },
+    {
+      "file": "scripts/theme-audit.mjs",
+      "bytes": 2118,
+      "sha256": "25826a5b7781513bbc6a11dbb0eec232389d56e6e9ebb58aca1f84f93a1e221d"
+    },
+    {
+      "file": "scripts/ui-smoke.mjs",
+      "bytes": 6208,
+      "sha256": "f47ec998a90bff6cfac9a6220b81998c283ab0f3373b453dc769fda83f71a3d8"
+    },
+    {
+      "file": "shared/schema.mjs",
+      "bytes": 6773,
+      "sha256": "216fcabc4d1d66358be05cc7ffd269a154bccd4c0198a32408d534c53ef7ae79"
+    },
+    {
+      "file": "tests/platform.test.mjs",
+      "bytes": 21285,
+      "sha256": "2182f6e3f35d57dde9cec7e3f1bb9920211f18efb9f04fdbfab9909ee031d3fd"
+    },
+    {
+      "file": "tests/push.test.mjs",
+      "bytes": 11598,
+      "sha256": "bd214f1b8d3c129750226556cef7f1f5d2929b4cec1ac8d1450efcb2fdf81d70"
+    },
+    {
+      "file": "tests/sites.test.mjs",
+      "bytes": 12748,
+      "sha256": "15a1c144b6ea7a7c9063afcd6bda1fcbe6c79079be6cfb323afdb03bcc3193e2"
+    },
+    {
+      "file": "vercel.json",
+      "bytes": 918,
+      "sha256": "a0cffd825ef353158a53aadf29abb72abf31e093fc9a60f41a6c744c3bb8aeb9"
+    }
+  ]
+}
