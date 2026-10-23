@@ -1,0 +1,10 @@
+{
+  "routes": [
+    { "path": "/", "title": "Restaurant Platform" },
+    { "path": "/admin", "title": "Platform Admin" },
+    { "path": "/r/:restaurant/menu", "title": "Restaurant Menu" },
+    { "path": "/r/:restaurant/admin", "title": "Restaurant Admin" },
+    { "path": "/r/:restaurant/kitchen", "title": "Kitchen Display" },
+    { "path": "/r/:restaurant/waiter", "title": "Waiter Workspace" }
+  ]
+}
