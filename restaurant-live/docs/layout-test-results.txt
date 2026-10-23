@@ -1,4 +1,0 @@
-PASS Desktop navigation is left of main content and clear of the demo banner
-PASS Desktop customer menu retains the original compact width
-PASS Long checkout stays scrollable with visible submit/close at 1440px
-PASS Long checkout stays scrollable with visible submit/close at 390px
