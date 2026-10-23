@@ -115,7 +115,7 @@ Main admin (/admin) lists restaurants, provisions a restaurant URL/name and gene
 
 ## Registered interface text
 
-This registry contains 491 entries, including generated field/feature labels. Dynamic dish/category/portion content is edited in its own menu editor. The registry does not imply every key can be hidden in every context.
+This registry contains 492 entries, including generated field/feature labels. Dynamic dish/category/portion content is edited in its own menu editor. The registry does not imply every key can be hidden in every context.
 
 | Key | Default plain text |
 |---|---|
@@ -410,6 +410,7 @@ This registry contains 491 entries, including generated field/feature labels. Dy
 | `platform.save` | Save supplied features |
 | `platform.saveAccess` | Save customization access |
 | `platform.saved` | Owner permissions saved. |
+| `push.phone` | Phone notifications |
 | `qr.copyFallback` | Copy the link instead. |
 | `qr.required` | Scan your table QR before ordering. |
 | `receipt.preview` | Receipt preview |

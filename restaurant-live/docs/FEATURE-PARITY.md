@@ -6,7 +6,7 @@ This is a **new migration beta**, not full Release 44 parity. “Implemented” 
 
 - Main visual structure now reuses the supplied Release 44 CSS; see APPEARANCE-RESTORATION.md. This is not complete pixel parity of every view.
 
-- No automatic Supabase data migration, push sender/service worker or recorded/custom JSON voice-pack migration.
+- No automatic Supabase data migration or recorded/custom JSON voice-pack migration. Optional Android push is implemented; server keys and hosted device acceptance are required.
 - No literal arbitrary-layout/theme-builder or custom code execution. Registered text and safe schema values are editable, not every browser-native string, error or pixel.
 - Simplified reports (tables instead of original charts), editors, CSV and retention/reset semantics. No SaaS subscriptions, verified online payments, custom domains, automated account invitations or tenant-deletion workflow.
 - Appwrite setup, end-user session/MFA, live ACL isolation, hosted transaction contention and actual printer output remain unverified. Use HOSTED-ACCEPTANCE.md.
@@ -67,7 +67,7 @@ This is a **new migration beta**, not full Release 44 parity. “Implemented” 
 | `qr` | Table QR codes | Implemented in source | Copyable URL, downloadable SVG QR, table link rotation. |
 | `devices` | Customer devices | Partial / changed | Saved-browser profiles, last seen, order count and basic list; no original advanced filtering/paging. |
 | `blocking` | Device blocking | Implemented in source | Saved-browser block/unblock, not a permanent person/device ban. |
-| `securityAlerts` | Blocked-browser alerts | Implemented in source | Deduplicated blocked-scan notices; no push delivery. |
+| `securityAlerts` | Blocked-browser alerts | Implemented in source | Deduplicated blocked-scan notices; optional private Android push. |
 | `loyalty` | Monthly regular badges | Partial / changed | Current-month distinct ordering-day badge from currently retained epoch data; no CRM or lifetime program. |
 | `stocks` | Stock tracking | Partial / changed | Tracked/untracked counts, per-portion reservations/restores and selling-price valuation; no original filter/sort/export suite. |
 | `stockSummary` | Stock summary | Implemented in source | Remaining-unit count and value at selling price. |
@@ -84,7 +84,7 @@ This is a **new migration beta**, not full Release 44 parity. “Implemented” 
 | `alarms` | Foreground alarms | Partial / changed | Open-tab oscillator presets; enable by gesture. Poll-based detection. |
 | `voice` | Voice announcements | Partial / changed | System speech synthesis, not the original four bundled recorded voices/table announcements. |
 | `customAudio` | Local custom audio | Partial / changed | One uploaded local tone for this tab session; not persisted IndexedDB, no separate per-category uploads or custom voice-pack JSON. |
-| `push` | Background push | Not migrated | NOT MIGRATED. Owner cannot activate it. |
+| `push` | Background push | Implemented in source | Encrypted Web Push for Android Chrome/Firefox. Requires VAPID keys, owner entitlement, opt-in and a private scheduled worker. See ANDROID-PUSH-SETUP.md; real device delivery unverified. |
 | `themeSwitch` | Theme switch | Partial / changed | Local fixed alternate light preset; main saved theme tokens configurable. Does not persist across reload. |
 | `wakeLock` | Keep screen awake | Partial / changed | Explicit browser Wake Lock request, support/permission dependent; no automatic re-acquire persistence. |
 | `resets` | Reporting resets | Partial / changed | Analytics/dish baseline resets and reporting-epoch archival. NOT original permanent records/device deletion. |
@@ -107,7 +107,7 @@ Membership rows replace one-Team-per-restaurant. Owners configure features and s
 
 ### Original UI details not faithfully reproduced
 
-Multi-dialog item sizing UI; original exact sortable/filterable device/stock/report lists; per-device IndexedDB alarms and four voice packs; custom voice-pack upload/download; foreground browser Notification API and push infrastructure; receipt verification service; rich date comparisons/charts; category reassignment workflow; hard-deletion resets; connectivity/chime diagnostics; detailed original custom-note/customer-help wording. Their original definitions remain in the supplied audit for later migration work.
+Multi-dialog item sizing UI; original exact sortable/filterable device/stock/report lists; per-device IndexedDB alarms and four voice packs; custom voice-pack upload/download; original foreground browser Notification API; receipt verification service; rich date comparisons/charts; category reassignment workflow; hard-deletion resets; connectivity/chime diagnostics; detailed original custom-note/customer-help wording. Their original definitions remain in the supplied audit for later migration work.
 
 ### Dependencies and safe controls
 

@@ -1,3 +1,4 @@
+import { pushConfiguration, dispatchTenantPush } from "./push.mjs";
 import { Client, Account } from "node-appwrite";
 import { AppwriteStore, authenticatedUser } from "./store.mjs";
 import { service } from "./service.mjs";
@@ -41,6 +42,7 @@ export default async ({ req, res, error }) => {
       database: process.env.DATABASE_ID || "restaurant_platform",
       table: "entities",
     });
+    const push=pushConfiguration();
     const data = await service(
       store,
       body,
@@ -50,6 +52,7 @@ export default async ({ req, res, error }) => {
         .map((s) => s.trim())
         .filter(Boolean),
       {
+        push,
         requireMfa: true,
         mfaVerified: verified,
         hosting:new AppwriteSites({endpoint,project,key,
@@ -58,6 +61,11 @@ export default async ({ req, res, error }) => {
           templateId:process.env.SITES_TEMPLATE_ID, ownerURL:process.env.SITES_OWNER_URL}),
       },
     );
+    if(push && ['place','request','counterCall','openVisit','manual','status','undo','handle','cancel'].includes(body.action)) {
+      try {const registry=await store.get('_platform','registry',String(body.restaurant||''));
+        if(registry)await dispatchTenantPush(store,registry.id,push,(process.env.PLATFORM_OWNER_IDS||'').split(',').map(x=>x.trim()),{limit:2});
+      } catch {error('Push delivery deferred to private worker.');}
+    }
     return res.json({ ok: true, data }, 200, { "Cache-Control": "no-store" });
   } catch (e) {
     if (!e.status && !e.code)

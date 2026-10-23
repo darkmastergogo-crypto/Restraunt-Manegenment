@@ -1,3 +1,4 @@
+import {pushConfiguration,dispatchPushBatch} from './push.mjs';
 import { AppwriteStore } from './store.mjs';
 import { AppwriteSites, advanceHostingBatch } from './sites.mjs';
 // Deploy as a separate scheduled function, execute permissions [], schedule every minute.
@@ -10,8 +11,10 @@ export default async ({req,res,error})=>{
     if(!key) throw Error('Scheduled worker key missing.');
     const hosting=new AppwriteSites({endpoint,project,key,functionId:process.env.SITES_PUBLIC_FUNCTION_ID,
       restaurantBranch:process.env.SITES_RESTAURANT_BRANCH,templateId:process.env.SITES_TEMPLATE_ID,ownerURL:process.env.SITES_OWNER_URL});
-    await hosting.preflight();
+
     const store=new AppwriteStore({endpoint,project,key,database:process.env.DATABASE_ID || 'restaurant_platform',table:'entities'});
-    return res.json({ok:true,...await advanceHostingBatch(store,hosting)});
+    const push=await dispatchPushBatch(store,pushConfiguration(),(process.env.PLATFORM_OWNER_IDS||'').split(',').map(x=>x.trim()));
+    await hosting.preflight();
+    return res.json({ok:true,push,...await advanceHostingBatch(store,hosting)});
   } catch { error('Site worker could not advance provisioning. Check server configuration and scopes.'); return res.json({ok:false},500); }
 };

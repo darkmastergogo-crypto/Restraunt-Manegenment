@@ -1,3 +1,4 @@
+import { eventStore, pushID, validateSubscription } from "./push.mjs";
 import { randomUUID } from "node:crypto";
 import { FEATURES, DEFAULTS, mergeConfig, clone, enabled } from "./schema.mjs";
 import { hash } from "./store.mjs";
@@ -29,7 +30,7 @@ export async function service(
   input,
   user,
   owners = [],
-  { requireMfa = true, mfaVerified = false, hosting = null } = {},
+  { requireMfa = true, mfaVerified = false, hosting = null, push = null } = {},
 ) {
   const action = String(input.action || "public"),
     slug = String(input.restaurant || "");
@@ -357,6 +358,26 @@ export async function service(
     }
     let a = await actor(s, t);
     const staff = ["owner", "admin", "manager"];
+    if (["pushInfo","pushSubscribe","pushUnsubscribe"].includes(action)) {
+      requireRole(a,staff);
+      if(!user || input.waiterKey) fail("Staff account required.",403);
+      if(action==="pushInfo")return {configured:!!push,enabled:enabled(t,'push'),publicKey:push?.publicKey||null};
+      if(action==="pushUnsubscribe"){
+        const id=pushID(String(input.endpoint||''));const old=await s.get(t.id,'push-subscription',id);
+        if(old?.userId===user.$id)await s.remove(t.id,'push-subscription',id);
+        return {saved:true};
+      }
+      feature(t,'push');
+      if(!push)fail("Push server keys are not configured.",503);
+      const subscription=validateSubscription(input.subscription),id=pushID(subscription.endpoint);
+      const existing=await s.get(t.id,'push-subscription',id);
+      const mine=(await s.all(t.id,'push-subscription')).filter(x=>x.userId===user.$id);
+      if(!existing && (mine.length>=5 || (await s.all(t.id,'push-subscription')).length>=100))fail("Device limit reached. Remove an old subscription first.",409);
+      const categories=['orders','requests','alerts'].filter(k=>input.categories?.includes(k));
+      if(!categories.length)fail("Select at least one notification type.");
+      await s.put(t.id,'push-subscription',id,{id,userId:user.$id,subscription,categories,created:now,updated:now});
+      return {saved:true};
+    }
     if (action === "staff" || action === "waiter") {
       if (a.role === "waiter" && action !== "waiter")
         fail("Waiter access only.", 403);
@@ -471,7 +492,7 @@ export async function service(
     }
     if (action === "entitlements") {
       requireRole(a, ["owner"]);
-      if (input.features?.push) fail("Background push has not been migrated.");
+
       for (let [k, v] of Object.entries(input.features || {})) {
         if (!(k in FEATURES) || typeof v !== "boolean")
           fail("Invalid feature control.");
@@ -773,6 +794,6 @@ export async function service(
   if (READS.has(action)) return run(root, tenant);
   return root.transaction(tenant.id, async (s) => {
     let fresh = await s.get(tenant.id, "tenant", "meta");
-    return run(s, fresh);
+    return run(eventStore(s,fresh), fresh);
   });
 }
