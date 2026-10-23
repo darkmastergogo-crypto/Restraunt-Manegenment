@@ -1,3 +1,4 @@
+import {phonePushPanel,disablePhonePush} from "./push-client.mjs";
 import { portionEditorHTML, mountPortionEditor } from "./portion-editor.mjs";
 import { installOriginalAppearance } from "./original-appearance.mjs";
 import {
@@ -273,7 +274,7 @@ function brand() {
 function header() {
   if (screen === "menu")
     return `<header><div class="header-top"><a class="brand-box" href="#home">${config.brand.logo ? `<img class="brand-logo" src="${esc(config.brand.logo)}" alt="${esc(config.brand.name)}">` : ""}<div><h1>${esc(config.brand.name)}</h1><p class="brand-caption">${esc(config.brand.tagline)}</p></div></a><div class="header-actions"><span class="table-badge"><span class="dot"></span>${esc(visit?.table || T("table.scan", "Scan table QR"))}</span>${on("callWaiter") && on("waiterCalls") && on("requests") ? `<div class="waiter-call-action">${appearanceButton("call", "customer.call", "Call waiter", "bell", "call-waiter-button")}</div>` : ""}${on("tracking") || on("history") ? appearanceButton("history", "customer.status", "Order status", "plate", "header-cart") : ""}</div></div></header>`;
-  const tools = `<details class="staff-account"><summary><span class="account-avatar"><svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3Z"/></svg></span><span><strong>${esc(role === "owner" ? T("role.owner", "Platform owner") : role === "admin" ? T("role.admin", "Admin") : role === "waiter" ? T("role.waiter", "Waiter") : T("role.manager", "Manager"))}</strong><small>${L("auth.signedIn", "Signed in")}</small></span><span class="account-chevron" aria-hidden="true"></span></summary><div class="account-menu">${role === "owner" ? `<a class="button" href="${esc(mainAdminURL())}">${L("owner.back", "Main admin · all restaurants")}</a>` : ""}${on("themeSwitch") ? B("theme", "common.theme", "Use light theme") : ""}${on("contact") ? B("contact", "contact.open", "Contact us") : ""}${B("logout", "auth.signOut", "Sign out")}<div class="toolbar">${B("refresh", "common.refresh", "Refresh")}${B("testAudio", "audio.test", "Volume test")}${on("wakeLock") ? B("wake", "device.awake", "Keep screen awake") : ""}</div></div></details>`;
+  const tools = `<details class="staff-account"><summary><span class="account-avatar"><svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3Z"/></svg></span><span><strong>${esc(role === "owner" ? T("role.owner", "Platform owner") : role === "admin" ? T("role.admin", "Admin") : role === "waiter" ? T("role.waiter", "Waiter") : T("role.manager", "Manager"))}</strong><small>${L("auth.signedIn", "Signed in")}</small></span><span class="account-chevron" aria-hidden="true"></span></summary><div class="account-menu">${role === "owner" ? `<a class="button" href="${esc(mainAdminURL())}">${L("owner.back", "Main admin · all restaurants")}</a>` : ""}${on("themeSwitch") ? B("theme", "common.theme", "Use light theme") : ""}${on("contact") ? B("contact", "contact.open", "Contact us") : ""}${["owner","admin","manager"].includes(role) ? B("phonePush", "push.phone", "Phone notifications") : ""}${B("logout", "auth.signOut", "Sign out")}<div class="toolbar">${B("refresh", "common.refresh", "Refresh")}${B("testAudio", "audio.test", "Volume test")}${on("wakeLock") ? B("wake", "device.awake", "Keep screen awake") : ""}</div></div></details>`;
   if (screen === "waiter")
     return `<header class="waiter-header"><div class="waiter-header-brand">${brand()}<h1>${L("waiter.heading", "Waiter Display & Requests")}</h1><span class="connection">${L("connection.live", "Live")}</span></div>${tools}</header>`;
   return `<header><div class="header-left">${brand()}<h1>${L("staff.heading", "Kitchen Display & Orders")}</h1><div class="badge-live"><span class="connection-dot"></span><span id="syncBadge">${L("connection.live", "Live")} · ${L("connection.sync", "Last successful sync")} ${esc(time(Date.now()))}</span></div></div><div class="staff-header-actions">${role && on("callWaiter") ? appearanceButton("counter", "staff.call", "Call waiter", "bell", "secondary-btn") : ""}${role ? tools : ""}</div>${role ? originalNavigation() : ""}</header>`;
@@ -832,7 +833,7 @@ function platformHTML() {
   )
     .map(
       ([k, v]) =>
-        `<label class="visibility-row"><span>${esc(v)}${k === "push" ? " (not migrated)" : ""}</span><input name="${k}" type="checkbox" ${data.entitlements?.[k] !== false ? "checked" : ""} ${k === "push" ? "disabled" : ""}></label>`,
+        `<label class="visibility-row"><span>${esc(v)}</span><input name="${k}" type="checkbox" ${data.entitlements?.[k] !== false ? "checked" : ""} ></label>`,
     )
     .join(
       "",
@@ -1517,7 +1518,11 @@ document.addEventListener("click", async (e) => {
         wake = await navigator.wakeLock.request("screen");
         toast(T("device.awakeEnabled", "Screen wake lock requested."));
         break;
+      case "phonePush":
+        await phonePushPanel(api,modal);
+        break;
       case "logout":
+        await disablePhonePush(api);
         if (account) {
           try {
             await account.deleteSession({ sessionId: "current" });
@@ -1743,7 +1748,7 @@ document.addEventListener("submit", async (e) => {
           features: Object.fromEntries(
             Object.keys(FEATURES).map((k) => [
               k,
-              k === "push" ? false : fd.has(k),
+              fd.has(k),
             ]),
           ),
         });
@@ -1784,7 +1789,13 @@ async function mfaChallenge() {
 }
 async function mfaOptions() {
   if (!account) throw Error("Connect Appwrite before configuring MFA.");
-  let user = await account.get();
+  let user;
+  try { user = await account.get(); }
+  catch (err) {
+    if (err.type === "user_more_factors_required") return mfaChallenge();
+    if (err.code === 401) throw Error("Sign in with your email and password before configuring the authenticator.");
+    throw err;
+  }
   if (user.mfa) return mfaChallenge();
   let a = await account.createMfaAuthenticator({ type: "totp" });
   formModal(
@@ -2148,6 +2159,13 @@ function showRestaurantURLs(r) {
   );
 }
 async function afterSignIn() {
-  await refresh(true);
+  try { await refresh(true); }
+  catch (err) {
+    if (err.type === "user_more_factors_required" || /more factors are required|authenticator verification required/i.test(err.message || "")) {
+      await mfaOptions();
+      return;
+    }
+    throw err;
+  }
   // Stay on the restaurant dashboard after signing in; owner console has its own link.
 }
