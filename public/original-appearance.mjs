@@ -10,6 +10,7 @@ const sheets = {
     "menu-customization.css",
     "release42.css",
     "release43.css",
+    "table-names.css",
   ],
   admin: [
     "admin-base.css",
@@ -26,6 +27,7 @@ const sheets = {
     "release39.css",
     "release42.css",
     "release43.css",
+    "table-names.css",
   ],
   waiter: [
     "waiter-base.css",
@@ -40,6 +42,7 @@ const sheets = {
     "release38.css",
     "release39.css",
     "release43.css",
+    "table-names.css",
   ],
 };
 export function installOriginalAppearance(screen) {
