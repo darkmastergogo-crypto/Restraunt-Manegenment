@@ -50,7 +50,7 @@ export class AppwriteSites {
     }
     if (job.stage === 'configure') {
       const vars = {
-        SITE_MODE:'restaurant', RESTAURANT_SLUG:restaurant.slug, RESTAURANT_ID:restaurant.id,
+        SITE_MODE:'restaurant', RESTAURANT_SLUG:restaurant.slug, RESTAURANT_ID:restaurant.id, RESTAURANT_NAME:restaurant.name || restaurant.config?.brand?.name || restaurant.slug,
         PUBLIC_APPWRITE_ENDPOINT:this.config.endpoint, PUBLIC_APPWRITE_PROJECT_ID:this.config.project,
         PUBLIC_APPWRITE_FUNCTION_ID:this.config.functionId, OWNER_APP_URL:safeOrigin(this.config.ownerURL),
       };

@@ -232,6 +232,7 @@ export async function service(
         expires: v.expires,
         reserved: table.reserved,
         table: input.table,
+        tableName: table.displayName || table.number,
       };
     }
     if (action === "place") {
@@ -294,7 +295,7 @@ export async function service(
       if (replay) {
         if (replay.device !== v.device.id || replay.type !== kind)
           fail("Request identity mismatch.", 409);
-        return { saved: true };
+        return { saved: true, id: replay.id, status: replay.status };
       }
       let previous = (
         await s.all(t.id, "request", { device: v.device.id })
@@ -347,6 +348,7 @@ export async function service(
         type: kind,
         status: "Pending",
         table: v.table.number,
+        tableName: v.table.displayName || v.table.number,
         device: v.device.id,
         title,
         artist: clean(input.artist, 120),
@@ -354,7 +356,7 @@ export async function service(
       };
       if (await s.get(t.id, "request", r.id)) return { saved: true };
       await s.put(t.id, "request", r.id, r);
-      return { saved: true };
+      return { saved: true, id: r.id, status: r.status };
     }
     let a = await actor(s, t);
     const staff = ["owner", "admin", "manager"];
@@ -396,8 +398,7 @@ export async function service(
           ? (await s.all(t.id, "request"))
               .filter(
                 (r) =>
-                  r.created > now - b.requestMinutes * 60000 &&
-                  !(a.role !== "waiter" && r.type === "counter"),
+                  r.created > now - b.requestMinutes * 60000,
               )
               .map((r) => ({
                 ...r,
@@ -560,10 +561,18 @@ export async function service(
       let old = await s.get(t.id, "table", input.number);
       if (a.role === "manager" && (!old || input.rotate || input.remove))
         fail("Admin required.", 403);
+      let displayName = input.displayName === undefined
+        ? old?.displayName || input.number : (typeof input.displayName === "string" ? input.displayName.trim() : "");
+      if (!displayName || (input.displayName !== undefined &&
+          (typeof input.displayName !== "string" || [...input.displayName.trim()].length > 60)))
+        fail("Enter a table name of 1–60 characters.");
+      if (a.role === "manager" && input.displayName !== undefined && displayName !== (old?.displayName || old?.number))
+        fail("Admin required to rename tables.", 403);
       let qr = !old || input.rotate ? token() : old.qr;
       let row = {
         ...old,
         number: input.number,
+        displayName,
         id: input.number,
         active: !input.remove,
         reserved:
@@ -721,6 +730,8 @@ export async function service(
     }
     if (action === "counterCall") {
       feature(t, "callWaiter");
+      feature(t, "requests");
+      feature(t, "waiterCalls");
       requireRole(a, staff);
       let id = "counter|" + Math.floor(now / (b.callCooldown * 1000));
       await s.put(t.id, "request", id, {

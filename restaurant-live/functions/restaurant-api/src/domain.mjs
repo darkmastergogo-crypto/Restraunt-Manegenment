@@ -237,7 +237,7 @@ export async function composeOrder(s, t, input, actor) {
     let pending = (
       await s.all(t.id, "order", { device: v.device.id, status: "Pending" })
     ).filter((o) => o.epoch === t.epoch);
-    if (pending.length >= b.pendingCap)
+    if (pending.length >= Math.min(2, b.pendingCap))
       fail("Pending order limit reached. Wait for acceptance.");
   }
   let lines = [],
@@ -306,6 +306,7 @@ export async function composeOrder(s, t, input, actor) {
     epoch: t.epoch,
     device: v?.device.id || "",
     table: v?.table.number || "Counter",
+    tableName: v ? v.table.displayName || v.table.number : "Counter",
     name: enabled(t, "customerName")
       ? clean(input.name, 80) || "Guest"
       : "Guest",
