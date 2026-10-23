@@ -1149,3 +1149,64 @@ body.owner-console #app > main.owner-main {
     padding: 20px;
   }
 }
+
+/* Release 46 additive responsive refinements. Existing theme/customization stays authoritative. */
+#restaurant-platform *,#restaurant-platform *::before,#restaurant-platform *::after {box-sizing:border-box}
+#app img {max-width:100%}
+#app .table-management-card {min-width:0; align-self:start}
+#app .table-management-card h3,#app .order-card h3,#app .request-card h3 {overflow-wrap:anywhere;min-width:0}
+#app .table-name-form {display:grid;gap:10px;margin:18px 0}
+#app .table-name-form label {display:grid;gap:8px}
+#app .table-name-form button {justify-self:start}
+#app .table-qr {background:white;border-radius:14px;padding:12px;max-width:280px;margin:18px auto}
+#app .table-qr svg {display:block;width:100%;height:auto}
+#app .table-management-card input {width:100%;min-width:0}
+#app .table-management-card .toolbar {flex-wrap:wrap}
+#app .install-app-button {font-size:14px;min-height:44px}
+#modal {max-height:calc(100dvh - 24px);overflow:auto}
+#modal .rp-tracking-banner {padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--raised);margin:16px 0}
+#modal .rp-timeline {list-style:none;padding:16px;margin:16px 0;border:1px solid var(--border);border-radius:var(--radius)}
+#modal .rp-timeline li {padding:14px 10px;border-left:3px solid var(--border);margin-left:14px}
+#modal .rp-timeline li.complete {border-left-color:var(--accent);color:var(--text)}
+#modal .rp-tracking-items .line {gap:12px;align-items:flex-start}
+#modal .rp-tracking-items .line span {overflow-wrap:anywhere}
+#modal .rp-confirmation {text-align:center;padding:28px 12px}
+#modal .rp-confirmation .rp-check {width:64px;height:64px;display:grid;place-items:center;background:#1d3d2c;color:#b6edc5;border-radius:50%;margin:0 auto 18px;font-size:36px}
+#app .cat-btn .category-count {font-size:12px;border:1px solid var(--border);border-radius:20px;padding:2px 7px;margin-left:8px}
+@media (min-width:1100px) {
+ body.staff-site:not(.owner-console) #app #staffMain .grid {grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+ body.staff-site:not(.owner-console) #app #staffMain .table-management-grid {grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+}
+@media (max-width:1000px) {
+ #app .page-tools {flex-wrap:wrap;gap:14px;align-items:flex-start}
+ #app .metrics {grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
+ #app .toolbar {flex-wrap:wrap}
+}
+@media (max-width:760px) {
+ body.staff-site:not(.owner-console) #app > header {position:relative!important;top:auto!important;height:auto!important;min-height:0!important;padding:16px!important}
+ #app .header-left,#app .staff-header-actions {width:100%;gap:12px;flex-wrap:wrap}
+ #app .staff-brand strong {font-size:24px;overflow-wrap:anywhere}
+ #app .header-left h1 {font-size:18px}
+ #app .badge-live {font-size:12px;max-width:100%}
+ #app #managerNav {position:relative!important;top:auto!important;height:auto!important;max-height:none!important;display:flex!important;width:100%!important;overflow-x:auto!important;flex-wrap:nowrap!important;gap:8px;padding:10px 0!important;margin:0!important}
+ #app #managerNav .nav-tab-btn {flex:0 0 auto;min-height:48px}
+ body.staff-site:not(.owner-console) #app #staffMain {margin:0!important;width:100%!important;padding:18px 14px 36px!important}
+ #app .grid,#app .request-cards {grid-template-columns:minmax(0,1fr)!important}
+ #app button,#app .button,#modal button {min-height:44px;touch-action:manipulation}
+ #app input,#app select,#app textarea,#modal input,#modal textarea,#modal select {font-size:16px;min-width:0}
+ #app .order-card .toolbar>button,#app .request-card .toolbar>button {flex:1 1 auto}
+ #app .history-container {overflow-x:auto;max-width:100%}
+ #app .page-tools h2 {font-size:26px}
+ body.customer-site #app .header-actions {flex-wrap:wrap!important;gap:8px;width:100%}
+ body.customer-site #app .header-actions .table-badge {white-space:normal;overflow-wrap:anywhere;max-width:100%}
+ body.customer-site #app .menu-hero {padding:22px 16px!important}
+ body.customer-site #app .menu-workspace {padding-left:12px!important;padding-right:12px!important}
+ body.customer-site #app .item-card {min-width:0;overflow:hidden}
+ body.customer-site #app .item-title {overflow-wrap:anywhere}
+ body.customer-site #app .floating-cart-bar {left:12px!important;right:12px!important;width:calc(100% - 24px)!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;transform:none!important}
+ body.customer-site #app {padding-bottom:110px}
+ body.waiter-site #app .waiter-workspace {display:block!important}
+ body.waiter-site #app .waiter-mobile-nav {display:flex!important;gap:8px;overflow-x:auto}
+ body.waiter-site #app .waiter-pane:not(.rp-active) {display:none!important}
+ #modal {width:calc(100% - 20px)!important;max-width:calc(100% - 20px)!important;padding:18px!important;margin:auto!important}
+}

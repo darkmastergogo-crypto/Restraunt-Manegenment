@@ -1,3 +1,4 @@
+import { setupInstall, installApp, installButton } from "./install-app.mjs";
 import {phonePushPanel,disablePhonePush} from "./push-client.mjs";
 import { portionEditorHTML, mountPortionEditor } from "./portion-editor.mjs";
 import { installOriginalAppearance } from "./original-appearance.mjs";
@@ -268,16 +269,20 @@ function applyTheme() {
     fav.href = config.brand.favicon;
   }
 }
+function tableLabel(value, snapshot = "") {
+  return snapshot || (data.tables || []).find(t => t.number === value)?.displayName ||
+    (visit?.table === value ? visit.tableName : "") || value;
+}
 function brand() {
   return `<div class="staff-brand">${config.brand.logo ? `<img class="brand-logo" src="${esc(config.brand.logo)}" alt="${esc(config.brand.name)}">` : `<span class="brand-mark">${esc(config.brand.name.slice(0, 1))}</span>`}<strong>${esc(config.brand.name)}</strong></div>`;
 }
 function header() {
   if (screen === "menu")
-    return `<header><div class="header-top"><a class="brand-box" href="#home">${config.brand.logo ? `<img class="brand-logo" src="${esc(config.brand.logo)}" alt="${esc(config.brand.name)}">` : ""}<div><h1>${esc(config.brand.name)}</h1><p class="brand-caption">${esc(config.brand.tagline)}</p></div></a><div class="header-actions"><span class="table-badge"><span class="dot"></span>${esc(visit?.table || T("table.scan", "Scan table QR"))}</span>${on("callWaiter") && on("waiterCalls") && on("requests") ? `<div class="waiter-call-action">${appearanceButton("call", "customer.call", "Call waiter", "bell", "call-waiter-button")}</div>` : ""}${on("tracking") || on("history") ? appearanceButton("history", "customer.status", "Order status", "plate", "header-cart") : ""}</div></div></header>`;
-  const tools = `<details class="staff-account"><summary><span class="account-avatar"><svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3Z"/></svg></span><span><strong>${esc(role === "owner" ? T("role.owner", "Platform owner") : role === "admin" ? T("role.admin", "Admin") : role === "waiter" ? T("role.waiter", "Waiter") : T("role.manager", "Manager"))}</strong><small>${L("auth.signedIn", "Signed in")}</small></span><span class="account-chevron" aria-hidden="true"></span></summary><div class="account-menu">${role === "owner" ? `<a class="button" href="${esc(mainAdminURL())}">${L("owner.back", "Main admin · all restaurants")}</a>` : ""}${on("themeSwitch") ? B("theme", "common.theme", "Use light theme") : ""}${on("contact") ? B("contact", "contact.open", "Contact us") : ""}${["owner","admin","manager"].includes(role) ? B("phonePush", "push.phone", "Phone notifications") : ""}${B("logout", "auth.signOut", "Sign out")}<div class="toolbar">${B("refresh", "common.refresh", "Refresh")}${B("testAudio", "audio.test", "Volume test")}${on("wakeLock") ? B("wake", "device.awake", "Keep screen awake") : ""}</div></div></details>`;
+    return `<header><div class="header-top"><a class="brand-box" href="#home">${config.brand.logo ? `<img class="brand-logo" src="${esc(config.brand.logo)}" alt="${esc(config.brand.name)}">` : ""}<div><h1>${esc(config.brand.name)}</h1><p class="brand-caption">${esc(config.brand.tagline)}</p></div></a><div class="header-actions">${installButton()}<span class="table-badge"><span class="dot"></span>${esc(visit ? tableLabel(visit.table) : T("table.scan", "Scan table QR"))}</span>${on("callWaiter") && on("waiterCalls") && on("requests") ? `<div class="waiter-call-action">${appearanceButton("call", "customer.call", "Call waiter", "bell", "call-waiter-button")}</div>` : ""}${on("tracking") || on("history") ? appearanceButton("history", "customer.status", "Order status", "plate", "header-cart") : ""}</div></div></header>`;
+  const tools = `<details class="staff-account"><summary><span class="account-avatar"><svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3Z"/></svg></span><span><strong>${esc(role === "owner" ? T("role.owner", "Platform owner") : role === "admin" ? T("role.admin", "Admin") : role === "waiter" ? T("role.waiter", "Waiter") : T("role.manager", "Manager"))}</strong><small>${L("auth.signedIn", "Signed in")}</small></span><span class="account-chevron" aria-hidden="true"></span></summary><div class="account-menu">${installButton()}${role === "owner" ? `<a class="button" href="${esc(mainAdminURL())}">${L("owner.back", "Main admin · all restaurants")}</a>` : ""}${on("themeSwitch") ? B("theme", "common.theme", "Use light theme") : ""}${on("contact") ? B("contact", "contact.open", "Contact us") : ""}${["owner","admin","manager"].includes(role) ? B("phonePush", "push.phone", "Phone notifications") : ""}${B("logout", "auth.signOut", "Sign out")}<div class="toolbar">${B("refresh", "common.refresh", "Refresh")}${B("testAudio", "audio.test", "Volume test")}${on("wakeLock") ? B("wake", "device.awake", "Keep screen awake") : ""}</div></div></details>`;
   if (screen === "waiter")
     return `<header class="waiter-header"><div class="waiter-header-brand">${brand()}<h1>${L("waiter.heading", "Waiter Display & Requests")}</h1><span class="connection">${L("connection.live", "Live")}</span></div>${tools}</header>`;
-  return `<header><div class="header-left">${brand()}<h1>${L("staff.heading", "Kitchen Display & Orders")}</h1><div class="badge-live"><span class="connection-dot"></span><span id="syncBadge">${L("connection.live", "Live")} · ${L("connection.sync", "Last successful sync")} ${esc(time(Date.now()))}</span></div></div><div class="staff-header-actions">${role && on("callWaiter") ? appearanceButton("counter", "staff.call", "Call waiter", "bell", "secondary-btn") : ""}${role ? tools : ""}</div>${role ? originalNavigation() : ""}</header>`;
+  return `<header><div class="header-left">${brand()}<h1>${L("staff.heading", "Kitchen Display & Orders")}</h1><div class="badge-live"><span class="connection-dot"></span><span id="syncBadge">${L("connection.live", "Live")} · ${L("connection.sync", "Last successful sync")} ${esc(time(Date.now()))}</span></div></div><div class="staff-header-actions">${role && on("callWaiter") && on("requests") && on("waiterCalls") ? appearanceButton("counter", "staff.call", "Call waiter", "bell", "secondary-btn") : ""}${role ? tools : ""}</div>${role ? originalNavigation() : ""}</header>`;
 }
 function activateVisibility() {
   for (const e of document.querySelectorAll("[data-i18n]")) {
@@ -381,7 +386,7 @@ function renderCustomer() {
     t = totals(),
     qty = [...cart.values()].reduce((n, l) => n + l.qty, 0);
   $("#app").innerHTML =
-    `${header()}<section class="menu-hero" id="home"><div class="hero-copy"><p class="hero-eyebrow"><span aria-hidden="true"></span>${L("menu.eyebrow", "FRESH INGREDIENTS · BOLD FLAVORS")}</p><h2>${L("menu.headline", "Our Menu")}</h2><p class="hero-description">${L("menu.subtitle", "Steamed, crispy or spicy — find your favourite momos, dips and delicious bites.")}</p>${on("music") && on("musicQueue") && on("requests") ? `<div class="customer-tools">${appearanceButton("music", "customer.music", "Request music", "music", "song-request-button")}</div>` : ""}</div>${config.brand.hero ? `<div class="hero-photo"><img src="${esc(config.brand.hero)}" alt=""></div>` : ""}</section><div class="menu-workspace">${on("categories") ? `<section class="browse-menu"><div class="browse-heading"><h2>${L("menu.categoriesHeading", "Categories")}</h2></div><div class="categories-bar" id="categoriesBar">${cats.map((c) => `<button type="button" class="cat-btn ${category === c ? "active" : ""}" data-action="categoryChip" data-category="${esc(c)}">${esc(categoryLabel(c))}</button>`).join("")}</div></section>` : ""}<section class="menu-main"><div class="menu-search-tools">${on("search") ? `<div class="search-container"><input class="search-input" id="menuSearch" type="search" value="${esc(query)}" placeholder="${esc(T("menu.searchPlaceholder", "Search dishes, drinks, desserts..."))}" aria-label="${esc(T("menu.search", "Search menu"))}"></div>` : ""}${on("categories") ? `<select id="category" aria-label="${esc(T("menu.category", "Category"))}">${cats.map((c) => `<option value="${esc(c)}" ${category === c ? "selected" : ""}>${esc(categoryLabel(c))}</option>`).join("")}</select>` : ""}${
+    `${header()}<section class="menu-hero" id="home"><div class="hero-copy"><p class="hero-eyebrow"><span aria-hidden="true"></span>${L("menu.eyebrow", "FRESH INGREDIENTS · BOLD FLAVORS")}</p><h2>${L("menu.headline", "Our Menu")}</h2><p class="hero-description">${L("menu.subtitle", "Steamed, crispy or spicy — find your favourite momos, dips and delicious bites.")}</p>${on("music") && on("musicQueue") && on("requests") ? `<div class="customer-tools">${appearanceButton("music", "customer.music", "Request music", "music", "song-request-button")}</div>` : ""}</div>${config.brand.hero ? `<div class="hero-photo"><img src="${esc(config.brand.hero)}" alt=""></div>` : ""}</section><div class="menu-workspace">${on("categories") ? `<section class="browse-menu"><div class="browse-heading"><h2>${L("menu.categoriesHeading", "Categories")}</h2></div><div class="categories-bar" id="categoriesBar">${cats.map((c) => `<button type="button" class="cat-btn ${category === c ? "active" : ""}" data-action="categoryChip" data-category="${esc(c)}">${esc(categoryLabel(c))}<span class="category-count">${(data.items || []).filter(i => i.available !== false && (c === "All" || (c === "Recommended" && i.recommended) || (c === "Best Sellers" && i.bestSeller) || i.category === c)).length}</span></button>`).join("")}</div></section>` : ""}<section class="menu-main"><div class="menu-search-tools">${on("search") ? `<div class="search-container"><input class="search-input" id="menuSearch" type="search" value="${esc(query)}" placeholder="${esc(T("menu.searchPlaceholder", "Search dishes, drinks, desserts..."))}" aria-label="${esc(T("menu.search", "Search menu"))}"></div>` : ""}${on("categories") ? `<select id="category" aria-label="${esc(T("menu.category", "Category"))}">${cats.map((c) => `<option value="${esc(c)}" ${category === c ? "selected" : ""}>${esc(categoryLabel(c))}</option>`).join("")}</select>` : ""}${
       on("diet")
         ? `<select id="diet" aria-label="${esc(T("menu.diet", "Dietary filter"))}">${[
             ["all", "Veg / Non-Veg"],
@@ -491,7 +496,7 @@ function orderCard(o) {
         ? "Served"
         : null;
   let isRegular = on("loyalty") && regularDevices().has(o.device);
-  return `<article class="order-card card ${isRegular ? "regular" : ""}"><div class="order-header"><h3>${L("order.table", "Table")} ${esc(o.table)}</h3><span class="badge status-${esc(o.status)}">${L("status." + o.status, o.status)}</span></div><div class="order-body">${isRegular ? `<span class="badge">★ ${L("loyalty.regular", "Monthly regular")}</span>` : ""}<p class="muted">${L("order.number", "Order no.")} ${o.number} · ${esc(time(o.created))}</p><p>${esc(o.name)}</p>${o.items.map((l) => `<div class="line"><span>${l.qty} × ${esc(l.name)} ${esc(l.sizeLabel)}</span><b>${money(l.subtotal)}</b></div>`).join("")}${o.notes ? `<p class="security">${esc(o.notes)}</p>` : ""}${o.reason ? `<p class="danger">${esc(o.reason)}</p>` : ""}</div><div class="order-footer"><b>${money(o.total)}</b><div class="toolbar">${next && on(next === "Cooking" ? "accept" : "serve") ? B("status", next === "Cooking" ? "order.accept" : "order.serve", next === "Cooking" ? "Accept order" : "Mark served", `data-id="${o.id}" data-next="${next}" data-expected="${o.status}"`, true) : ""}${o.status === "Pending" && on("reject") && role !== "waiter" ? B("status", "order.reject", "Reject / unavailable", `data-id="${o.id}" data-next="Rejected" data-expected="${o.status}"`) : ""}${on("receipts") ? B("receipt", "order.bill", "Bill", `data-id="${o.id}"`) : ""}${undo[o.id] && on("undo") ? B("undo", "order.undo", "Undo", `data-id="${o.id}"`) : ""}${on("blocking") && role !== "waiter" && o.device && (role !== "manager" || config.manager.blocking) ? B("block", "device.block", "Block device", `data-id="${o.device}" data-blocked="true"`) : ""}</div></div></article>`;
+  return `<article class="order-card card ${isRegular ? "regular" : ""}"><div class="order-header"><h3>${L("order.table", "Table")} ${esc(tableLabel(o.table, o.tableName))}</h3><span class="badge status-${esc(o.status)}">${L("status." + o.status, o.status)}</span></div><div class="order-body">${isRegular ? `<span class="badge">★ ${L("loyalty.regular", "Monthly regular")}</span>` : ""}<p class="muted">${L("order.number", "Order no.")} ${o.number} · ${esc(time(o.created))}</p><p>${esc(o.name)}</p>${o.items.map((l) => `<div class="line"><span>${l.qty} × ${esc(l.name)} ${esc(l.sizeLabel)}</span><b>${money(l.subtotal)}</b></div>`).join("")}${o.notes ? `<p class="security">${esc(o.notes)}</p>` : ""}${o.reason ? `<p class="danger">${esc(o.reason)}</p>` : ""}</div><div class="order-footer"><b>${money(o.total)}</b><div class="toolbar">${next && on(next === "Cooking" ? "accept" : "serve") ? B("status", next === "Cooking" ? "order.accept" : "order.serve", next === "Cooking" ? "Accept order" : "Mark served", `data-id="${o.id}" data-next="${next}" data-expected="${o.status}"`, true) : ""}${o.status === "Pending" && on("reject") && role !== "waiter" ? B("status", "order.reject", "Reject / unavailable", `data-id="${o.id}" data-next="Rejected" data-expected="${o.status}"`) : ""}${on("receipts") ? B("receipt", "order.bill", "Bill", `data-id="${o.id}"`) : ""}${undo[o.id] && on("undo") ? B("undo", "order.undo", "Undo", `data-id="${o.id}"`) : ""}${on("blocking") && role !== "waiter" && o.device && (role !== "manager" || config.manager.blocking) ? B("block", "device.block", "Block device", `data-id="${o.device}" data-blocked="true"`) : ""}</div></div></article>`;
 }
 function regularDevices() {
   let result = new Set(),
@@ -532,7 +537,7 @@ function requestsHTML() {
         r.status === reqFilter) &&
       (r.type !== "music" || on("musicQueue")),
   );
-  return `<div class="requests-board" data-theme="${document.body.classList.contains("light") ? "light" : "dark"}"><div class="request-filters">${["All", "Pending", "Handled", "Expired", ...(on("musicQueue") ? ["Music"] : [])].map((k) => B("requestFilter", "filter." + k, k, `data-value="${k}" class="request-filter ${reqFilter === k ? "selected" : ""}"`)).join("")}</div><div class="request-cards">${list.map((r) => `<article class="request-card"><div class="request-card-heading"><h3>${r.type === "music" ? L("request.music", "Music request") : r.type === "reserved" ? L("request.reserved", "Reserved table opened") : L("request.assistance", "Waiter requested")}</h3><span class="request-state">${L("status." + r.status, r.status)}</span></div><p>${L("order.table", "Table")} ${esc(r.table)} · ${esc(time(r.created))}</p>${r.type === "music" ? `<h3>${esc(r.title)}</h3><p>${esc(r.artist)}</p>${r.url ? `<a class="button" href="${esc(r.url)}" target="_blank" rel="noopener">${L("music.open", "Open song link")}</a>` : ""}` : ""}${r.onWay ? `<p>${L("request.onWay", "Waiter is on the way")}</p>` : ""}<div class="toolbar">${!["Handled", "Expired", "Played", "Rejected"].includes(r.status) ? (r.type === "music" ? ["Playing", "Played", "Rejected"] : ["On the way", "Handled"]).map((n) => B("handle", "request." + n.replaceAll(" ", ""), n, `data-id="${esc(r.id)}" data-next="${n}"`)).join("") : ""}</div></article>`).join("") || `<div class="request-empty">${L("request.empty", "No requests.")}</div>`}</div><div class="request-pagination">${B("requestPage", "common.previous", "Previous", "disabled")}<span>${list.length} ${L("request.count", "requests")}</span>${B("requestPage", "common.next", "Next", "disabled")}</div></div>`;
+  return `<div class="requests-board" data-theme="${document.body.classList.contains("light") ? "light" : "dark"}"><div class="request-filters">${["All", "Pending", "Handled", "Expired", ...(on("musicQueue") ? ["Music"] : [])].map((k) => B("requestFilter", "filter." + k, k, `data-value="${k}" class="request-filter ${reqFilter === k ? "selected" : ""}"`)).join("")}</div><div class="request-cards">${list.map((r) => `<article class="request-card"><div class="request-card-heading"><h3>${r.type === "music" ? L("request.music", "Music request") : r.type === "reserved" ? L("request.reserved", "Reserved table opened") : r.type === "counter" ? L("request.counter", "Counter needs a waiter") : L("request.assistance", "Waiter requested")}</h3><span class="request-state">${L("status." + r.status, r.status)}</span></div><p>${L("order.table", "Table")} ${esc(tableLabel(r.table, r.tableName))} · ${esc(time(r.created))}</p>${r.type === "music" ? `<h3>${esc(r.title)}</h3><p>${esc(r.artist)}</p>${r.url ? `<a class="button" href="${esc(r.url)}" target="_blank" rel="noopener">${L("music.open", "Open song link")}</a>` : ""}` : ""}${r.onWay ? `<p>${L("request.onWay", "Waiter is on the way")}</p>` : ""}<div class="toolbar">${!["Handled", "Expired", "Played", "Rejected"].includes(r.status) ? (r.type === "music" ? ["Playing", "Played", "Rejected"] : ["On the way", "Handled"]).map((n) => B("handle", "request." + n.replaceAll(" ", ""), n, `data-id="${esc(r.id)}" data-next="${n}"`)).join("") : ""}</div></article>`).join("") || `<div class="request-empty">${L("request.empty", "No requests.")}</div>`}</div><div class="request-pagination">${B("requestPage", "common.previous", "Previous", "disabled")}<span>${list.length} ${L("request.count", "requests")}</span>${B("requestPage", "common.next", "Next", "disabled")}</div></div>`;
 }
 function menuEditorHTML() {
   return `<div class="toolbar">${role !== "manager" ? B("editItem", "menu.add", "Add dish", "", true) : ""}${on("arrangement") ? B("categories", "menu.arrange", "Categories & arrangement") : ""}</div>${filters()}<div class="grid">${filteredItems()
@@ -543,22 +548,16 @@ function menuEditorHTML() {
     .join("")}</div>`;
 }
 function tablesHTML() {
-  return `${role !== "manager" ? B("addTable", "table.add", "Add table", "", true) : ""}<div class="grid" style="margin-top:24px">${(
-    data.tables || []
-  )
-    .filter((t) => t.active)
-    .map((t) => {
-      let url =
-        (data.siteOrigin || location.origin) +
-        "/r/" +
-        slug +
-        "/menu?table=" +
-        t.number +
-        "&qr=" +
-        t.qr;
-      return `<article class="card"><h3>${esc(t.number)}</h3><p>${L(t.reserved ? "table.reserved" : "table.available", t.reserved ? "Reserved" : "Available")}</p>${on("qr") && t.qr ? `<div class="qr">${qrHTML(url)}</div><div class="toolbar">${B("copy", "table.copy", "Copy link", `data-text="${esc(url)}"`)}${B("downloadQR", "table.download", "Download QR", `data-text="${esc(url)}" data-name="${t.number}"`)}</div>` : ""}<div class="toolbar">${B("reserveTable", "table.toggle", "Available / reserved", `data-id="${t.number}" data-reserved="${!t.reserved}"`)}${role !== "manager" ? B("rotateTable", "table.rotate", "Revoke QR", `data-id="${t.number}"`) + B("removeTable", "table.remove", "Remove table", `data-id="${t.number}"`) : ""}</div></article>`;
-    })
-    .join("")}</div>`;
+  return `${role !== "manager" ? B("addTable", "table.add", "Add table", "", true) : ""}<div class="grid table-management-grid" style="margin-top:24px">${(data.tables || []).filter(t => t.active).map(t => {
+    let url = new URL("/r/" + slug + "/menu", data.siteOrigin || location.origin);
+    url.searchParams.set("table", t.number); url.searchParams.set("qr", t.qr);
+    const link = esc(url.href), id = esc(t.number);
+    return `<article class="card table-management-card"><h3>${esc(t.displayName || t.number)}</h3><small>Stable ID: ${id} · existing QR links stay the same when renamed</small>
+    ${role !== "manager" ? `<form id="tableNameForm-${id}" data-table-name="${id}" class="table-name-form"><label>Table name<input name="displayName" value="${esc(t.displayName || t.number)}" required maxlength="60"></label><button type="submit" class="primary">Save name</button></form>` : ""}
+    <p>${L(t.reserved ? "table.reserved" : "table.available", t.reserved ? "Reserved" : "Available")}</p>
+    ${on("qr") && t.qr ? `<label>Customer link<input readonly value="${link}" aria-label="Customer link for ${esc(t.displayName || t.number)}"></label><div class="qr table-qr">${qrHTML(url.href)}</div><div class="toolbar"><a class="button" href="${link}" target="_blank" rel="noopener">Open menu</a>${B("copy", "table.copy", "Copy link", `data-text="${link}"`)}${B("shareTable", "table.share", "Share link", `data-text="${link}"`)}${B("downloadQR", "table.download", "Download QR", `data-text="${link}" data-name="${id}"`)}</div>` : ""}
+    <div class="toolbar">${B("reserveTable", "table.toggle", "Available / reserved", `data-id="${id}" data-reserved="${!t.reserved}"`)}${role !== "manager" ? B("rotateTable", "table.rotate", "Revoke QR", `data-id="${id}"`) + B("removeTable", "table.remove", "Remove table", `data-id="${id}"`) : ""}</div></article>`;
+  }).join("")}</div>`;
 }
 function qrHTML(url) {
   try {
@@ -865,7 +864,7 @@ function receiptHTML(o, c = config) {
     t = (k, f) => esc(c.texts[k] ?? TEXTS[k] ?? f),
     line = (l, v) => `<div class="line"><span>${l}</span><b>${v}</b></div>`;
   if (r.showNumber) rows.push(line(t("bill.number", "Bill no."), o.number));
-  if (r.showTable) rows.push(line(t("order.table", "Table"), esc(o.table)));
+  if (r.showTable) rows.push(line(t("order.table", "Table"), esc(tableLabel(o.table, o.tableName))));
   if (r.showTime) rows.push(line(t("bill.time", "Time"), esc(time(o.created))));
   if (r.showPayment && on("payment"))
     rows.push(line(t("billing.payment", "Paid through"), esc(o.payment)));
@@ -932,6 +931,7 @@ async function refresh(force = false) {
             : "orders",
         );
     }
+    if (!demo) { $("#banner").hidden = true; $("#banner").textContent = ""; }
     render();
   } finally {
     refreshing = false;
@@ -1062,13 +1062,29 @@ function customizePortions(id) {
   form.originalItem = clone(item);
   document.querySelectorAll("[data-portion-cancel]").forEach(b => b.onclick = () => $("#modal").close());
 }
-async function customerHistory() {
-  let result = await api("customerOrders", device);
-  let list = result.orders;
-  modal(
-    `<h2>${L("customer.status", "Order status")}</h2>${list.map((o) => `<div class="card"><h3>#${o.number} · ${esc(T("status." + o.status, o.status))}</h3><p>${money(o.total)} · ${esc(time(o.created))}</p>${o.status === "Pending" && Date.now() < o.created + config.behavior.cancelSeconds * 1000 && on("cancel") ? B("cancel", "order.cancel", "Cancel order", `data-id="${o.id}"`) : ""}${on("receipts") ? B("customerReceipt", "order.bill", "Bill", `data-id="${o.id}"`) : ""}${o.status === "Served" && on("reviews") && config.links.review && Date.now() > o.updated + config.behavior.reviewDelay * 1000 ? `<a class="button" href="${esc(config.links.review)}" rel="noopener" target="_blank">${L("review.open", "Leave a review")}</a>` : ""}</div>`).join("") || L("history.empty", "No recent orders on this browser.")}`,
-  );
+async function customerHistory(mode = "all") {
+  const result = await api("customerOrders", device);
+  const list = result.orders.sort((a,b) => b.created-a.created);
   window.customerOrderCache = list;
+  const shown = mode === "past" ? list.filter(o => ["Served","Cancelled","Rejected","Expired"].includes(o.status)) : list;
+  modal(`<h2>${L("customer.status", "Order status")}</h2><p>Recent orders from this browser · ${config.behavior.historyMinutes} minute history window</p><div class="toolbar">${B("history", "history.all", "All recent orders")}${on("history") ? B("pastOrders", "history.past", "Order history") : ""}</div>${shown.map(o => `<div class="card"><h3>#${o.number} · ${esc(T("status." + o.status,o.status))}</h3><p>${esc(tableLabel(o.table,o.tableName))} · ${money(o.total)} · ${esc(time(o.created))}</p><div class="toolbar">${on("tracking") ? B("trackOrder","order.track","Track my order",`data-id="${esc(o.id)}"`) : ""}${o.status === "Pending" && Date.now() < o.created + config.behavior.cancelSeconds*1000 && on("cancel") ? B("cancel","order.cancel","Cancel order",`data-id="${esc(o.id)}"`) : ""}${on("receipts") ? B("customerReceipt","order.bill","Bill",`data-id="${esc(o.id)}"`) : ""}</div>${reviewLink(o)}</div>`).join("") || L("history.empty","No recent orders on this browser.")}`);
+}
+function reviewLink(o) {
+  return o.status === "Served" && on("reviews") && config.links.review && Date.now() > o.updated + config.behavior.reviewDelay*1000
+    ? `<p>Reviews are optional. Any honest rating is welcome.</p><a class="button" href="${esc(config.links.review)}" rel="noopener" target="_blank">${L("review.open","Leave a review")}</a>` : "";
+}
+async function trackOrder(id, background = false) {
+  const result = await api("customerOrders", device);
+  if (background && (!$("#modal").open || $("[data-tracking-order]")?.dataset.trackingOrder !== id)) return;
+  window.customerOrderCache = result.orders;
+  const o = result.orders.find(o => o.id === id);
+  if (!o) { if (!background) throw Error("Order is outside the current visibility window."); return; }
+  const steps = ["Pending","Cooking","Served"], state = o.status === "Ready" ? 1 : steps.indexOf(o.status);
+  const label = {Pending:"Waiting for kitchen acceptance",Cooking:"The kitchen is preparing your food",Ready:"Ready to be served",Served:"Served & complete",Rejected:"Order rejected",Cancelled:"Order cancelled",Expired:"Order expired"}[o.status] || o.status;
+  modal(`<section data-tracking-order="${esc(o.id)}"><h2>${L("customer.status","Order status")}</h2><p>Order no. ${o.number} · ${esc(tableLabel(o.table,o.tableName))}</p><div class="rp-tracking-banner"><h3>${esc(label)}</h3><p>${o.status === "Pending" ? "Your order is saved. A staff member will accept it shortly." : esc(o.reason || "Status received from the restaurant.")}</p></div>
+  ${state >= 0 ? `<ol class="rp-timeline">${["Order received","Cooking","Served & complete"].map((label,n) => `<li class="${n<=state ? "complete" : ""}"><strong>${n+1}. ${label}</strong></li>`).join("")}</ol>` : ""}
+  <div class="card rp-tracking-items"><h3>Ordered items</h3>${o.items.map(i => `<div class="line"><span>${esc(i.name)} ${esc(i.sizeLabel)} × ${i.qty}</span><b>${money(i.subtotal)}</b></div>`).join("")}<hr><div class="line"><strong>Total</strong><strong>${money(o.total)}</strong></div></div>
+  <div class="toolbar">${B("trackOrder","common.refresh","Refresh",`data-id="${esc(o.id)}"`)}${o.status === "Pending" && Date.now() < o.created + config.behavior.cancelSeconds*1000 && on("cancel") ? B("cancel","order.cancel","Cancel order",`data-id="${esc(o.id)}"`) : ""}${B("closeDialog","order.more","Add more items / order again")}${on("history") ? B("pastOrders","history.past","Order history") : ""}${on("receipts") ? B("customerReceipt","order.bill","Bill",`data-id="${esc(o.id)}"`) : ""}</div>${reviewLink(o)}<small>Refreshes while this screen is open. Acceptance is confirmed by restaurant staff, not by this device.</small></section>`);
 }
 async function submitCart(retry = false) {
   if (!manual && !visit)
@@ -1099,6 +1115,7 @@ async function submitCart(retry = false) {
   if (screen === "menu") $("#modal").close();
   if (screen !== "menu" && on("receipts")) showReceipt(result);
   await refresh(true);
+  if (screen === "menu" && on("tracking")) modal(`<div class="rp-confirmation"><div class="rp-check">✓</div><h2>Order sent to the kitchen</h2><p>Your order is saved. Track acceptance and cooking below.</p>${B("trackOrder","order.track","Track my order",`data-id="${esc(result.id)}"`,true)}${B("closeDialog","order.more","Add more items / order again")}</div>`);
 }
 document.addEventListener("click", async (e) => {
   let b = e.target.closest("[data-action]");
@@ -1142,6 +1159,7 @@ document.addEventListener("click", async (e) => {
         query = "";
         category = "All";
         render();
+        await refresh(true);
         break;
       case "refresh":
         await refresh(true);
@@ -1191,12 +1209,23 @@ document.addEventListener("click", async (e) => {
       case "clearCart":
         resetCart();
         render();
+        if ($("#modal").open && $("#modal").classList.contains("rp-checkout"))
+          $("#modalBody").innerHTML = checkoutHTML();
         break;
       case "submit":
         await submitCart();
         break;
       case "retry":
         await submitCart(true);
+        break;
+      case "trackOrder":
+        await trackOrder(b.dataset.id);
+        break;
+      case "closeDialog":
+        $("#modal").close();
+        break;
+      case "pastOrders":
+        await customerHistory("past");
         break;
       case "history":
         await customerHistory();
@@ -1249,6 +1278,8 @@ document.addEventListener("click", async (e) => {
         break;
       case "counter":
         await api("counterCall");
+        if (allowedTab("requests")) { tab = "requests"; reqFilter = "All"; }
+        await refresh(true);
         toast(T("request.sent", "Request sent to the kitchen."));
         break;
       case "orderFilter":
@@ -1321,8 +1352,11 @@ document.addEventListener("click", async (e) => {
         );
         break;
       case "addTable": {
-        let n = prompt(T("table.prompt", "Table number, for example T1"), "T1");
-        if (n) await api("table", { number: n });
+        const used = new Set((data.tables || []).map(t => t.number));
+        let index = 1; while (used.has("T" + index)) index++;
+        if (index > 9999) throw Error("Table limit reached.");
+        const name = prompt("Table name, for example Garden 1 or Family Cabin", "Table " + index);
+        if (name !== null) await api("table", { number: "T" + index, displayName: name });
         await refresh(true);
         break;
       }
@@ -1338,11 +1372,18 @@ document.addEventListener("click", async (e) => {
           break;
         await api("table", {
           number: b.dataset.id,
-          reserved: b.dataset.reserved === "true",
+          ...(a === "reserveTable" ? { reserved: b.dataset.reserved === "true" } : {}),
           rotate: a === "rotateTable",
           remove: a === "removeTable",
         });
         await refresh(true);
+        break;
+      case "installApp":
+        await installApp(modal);
+        break;
+      case "shareTable":
+        if (navigator.share) await navigator.share({title:config.brand.name, url:b.dataset.text});
+        else { await navigator.clipboard.writeText(b.dataset.text); toast("Link copied."); }
         break;
       case "copy":
         await navigator.clipboard.writeText(b.dataset.text);
@@ -1649,6 +1690,10 @@ document.addEventListener("submit", async (e) => {
     x = Object.fromEntries(fd);
   try {
     busy = true;
+    if (f.dataset.tableName) {
+      await api("table", {number:f.dataset.tableName, displayName:x.displayName});
+      await refresh(true); toast("Table name saved. QR link unchanged."); return;
+    }
     switch (f.getAttribute("id")) {
       case "loginForm":
         try {
@@ -1922,6 +1967,16 @@ window.addEventListener("beforeunload", (e) => {
     e.returnValue = "";
   }
 });
+let trackingRefreshing = false;
+setInterval(async () => {
+  const id = $("[data-tracking-order]")?.dataset.trackingOrder;
+  if (!id || !$("#modal").open || document.hidden || busy || trackingRefreshing) return;
+  trackingRefreshing = true;
+  try { await trackOrder(id, true); }
+  catch { toast("Tracking could not refresh. Showing the last received status."); }
+  finally { trackingRefreshing = false; }
+}, 10000);
+setupInstall({screen, slug, isMainAdmin});
 init();
 
 function dishSalesHTML() {
@@ -2111,7 +2166,7 @@ async function copyURL(value) {
   }
 }
 function ownerHeader() {
-  return `<header class="owner-header"><a class="owner-brand" href="${esc(mainAdminURL())}"><span class="owner-mark" aria-hidden="true">${icon("grid")}</span><span><strong>${L("owner.platformName", "Restaurant Platform")}</strong><small>${L("owner.workspace", "Main admin workspace")}</small></span></a>${role === "owner" ? `<div class="owner-header-tools"><span class="owner-role">${L("owner.role", "Platform owner")}</span>${B("logout", "auth.signOut", "Sign out")}</div>` : `<span class="owner-role">${L("owner.secure", "Owner access only")}</span>`}</header>`;
+  return `<header class="owner-header"><a class="owner-brand" href="${esc(mainAdminURL())}"><span class="owner-mark" aria-hidden="true">${icon("grid")}</span><span><strong>${L("owner.platformName", "Restaurant Platform")}</strong><small>${L("owner.workspace", "Main admin workspace")}</small></span></a>${role === "owner" ? `<div class="owner-header-tools">${installButton()}<span class="owner-role">${L("owner.role", "Platform owner")}</span>${B("logout", "auth.signOut", "Sign out")}</div>` : `<span class="owner-role">${L("owner.secure", "Owner access only")}</span>`}</header>`;
 }
 function renderOwnerConsole() {
   if (role !== "owner") {

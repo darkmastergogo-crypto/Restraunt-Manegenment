@@ -92,6 +92,8 @@ await call({
   artist: "The Beatles",
 });
 const types = {
+  ".webmanifest": "application/manifest+json",
+  ".webp": "image/webp",
   ".mjs": "text/javascript",
   ".js": "text/javascript",
   ".css": "text/css",

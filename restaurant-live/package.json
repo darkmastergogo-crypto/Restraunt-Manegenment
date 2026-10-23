@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "appwrite": "29.1.0",
-    "node-appwrite": "31.0.0"
+    "node-appwrite": "31.0.0",
+    "web-push": "3.6.7"
   }
 }

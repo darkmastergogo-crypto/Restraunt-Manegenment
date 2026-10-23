@@ -16,5 +16,13 @@ if(mode==='restaurant') {
 fs.rmSync('dist',{recursive:true,force:true});fs.cpSync('public','dist',{recursive:true});
 fs.copyFileSync('shared/schema.mjs','dist/schema.mjs');
 fs.writeFileSync('dist/config.js','window.PLATFORM_CONFIG = '+JSON.stringify(cfg,null,2)+';\n');
+// Build separate stable app identities for the menu, kitchen and waiter screens.
+const appName=(env.RESTAURANT_NAME || (mode==='restaurant' ? env.RESTAURANT_SLUG : 'Restaurant Platform')).slice(0,100);
+for (const [file,label,route] of [['manifest.webmanifest','Menu','menu'],['kitchen.webmanifest','Kitchen','kitchen'],['waiter.webmanifest','Waiter','waiter'],['owner.webmanifest','Owner','admin']]) {
+  const manifest=JSON.parse(fs.readFileSync('dist/'+file,'utf8'));
+  const start=mode==='restaurant' ? '/r/'+cfg.restaurantSlug+'/'+route : '/admin';
+  Object.assign(manifest,{id:start,start_url:start,name:appName+' · '+label,short_name:appName.slice(0,24),scope:'/'});
+  fs.writeFileSync('dist/'+file,JSON.stringify(manifest,null,2));
+}
 fs.writeFileSync('dist/release.json',JSON.stringify({mode,revision:env.APPWRITE_VCS_COMMIT_HASH || env.RELEASE_VERSION || 'unversioned'}));
 console.log('Built static '+mode+' site. No server credentials copied.');

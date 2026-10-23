@@ -1,0 +1,24 @@
+{
+  "id": "/menu",
+  "name": "Restaurant Menu",
+  "short_name": "Restaurant Menu",
+  "start_url": "/menu",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#191511",
+  "theme_color": "#191511",
+  "icons": [
+    {
+      "src": "/push-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/push-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "description": "Secure restaurant ordering and staff workspace",
+  "prefer_related_applications": false
+}

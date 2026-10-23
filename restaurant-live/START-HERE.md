@@ -1,3 +1,13 @@
+# Release 46 — start here
+
+**Built and tested locally; not deployed to your live account.** Read **docs/RELEASE46-UPDATE-GUIDE.md** for the update steps, client phone/PC installation and hosted acceptance checks. This combined release includes the earlier Sites, push and MFA changes. Keep existing data and private settings.
+
+---
+
+# Android push update
+
+Start with **docs/ANDROID-PUSH-SETUP.md** for this release. Source implementation is complete; cloud activation and a real Android delivery test are still required. Keep the existing tenant database and Function IDs. Do not upload private keys.
+
 # Start here — Automatic Restaurant Websites
 
 **Implemented in source; not installed on your live account yet.**
@@ -36,4 +46,4 @@ Automatic site provisioning consumes Appwrite resources and is subject to your p
 
 ## What is verified
 
-60 automated tests; syntax/build checks; local browser workflow with simulated deployments, including name-only creation, progress, separate links, customization, isolation and mobile layout. Real Appwrite domain/auth/Git integration still requires staging acceptance on your account.
+Earlier Sites milestone: 60 automated tests; syntax/build checks; local browser workflow with simulated deployments, including name-only creation, progress, separate links, customization, isolation and mobile layout. Real Appwrite domain/auth/Git integration still requires staging acceptance on your account.

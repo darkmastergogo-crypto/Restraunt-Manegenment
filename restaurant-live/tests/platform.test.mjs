@@ -389,9 +389,9 @@ test("waiter cannot use manual billing until explicitly allowed", async () => {
     403,
   );
 });
-test("owner cannot activate unported background push", async () => {
+test("owner can activate implemented background push", async () => {
   let { call } = await fixture();
-  await denied(call("entitlements", { features: { push: true } }), 400);
+  await call("entitlements", { features: { push: true } });
 });
 test("public config exposes the exact key expected by the browser SDK", async () => {
   let fs = await import("node:fs"),
