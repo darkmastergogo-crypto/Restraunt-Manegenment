@@ -1,0 +1,19 @@
+PASS billing screen rendered
+PASS records screen rendered
+PASS analytics screen rendered
+PASS requests screen rendered
+PASS tables screen rendered
+PASS devices screen rendered
+PASS menuEditor screen rendered
+PASS stocks screen rendered
+PASS notifications screen rendered
+PASS customize screen rendered
+PASS platform screen rendered
+PASS QR checkout saved
+PASS Customer music form submitted
+PASS Customer music appeared in kitchen Requests
+PASS Music visibility disabled customer button
+PASS Admin customization propagated to menu
+PASS Customer mobile width 390: no page overflow
+PASS Admin mobile width 390: no page overflow
+PASS No uncaught browser exceptions

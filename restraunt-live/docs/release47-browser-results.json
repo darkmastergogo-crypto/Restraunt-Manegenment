@@ -1,0 +1,523 @@
+{
+  "checks": [
+    "dark preference and palette survive reload",
+    "device theme reacts to system changes",
+    "customer call waiter appears in kitchen Requests",
+    "waiter receives call and can mark On the way",
+    "custom table name saves without changing QR token",
+    "appearance change preserves active menu search",
+    "empty menu filters have a working reset",
+    "mobile cart drawer submits real local order and shows confirmation",
+    "kitchen accepts order and backend records Cooking",
+    "theme preference is isolated per restaurant",
+    "owner console has its own appearance preference",
+    "owner heading is not overlapped at phone, tablet or desktop widths"
+  ],
+  "layouts": [
+    {
+      "tab": "orders",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "orders",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "orders",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "billing",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "billing",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "billing",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "records",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "records",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "records",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "analytics",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "analytics",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "analytics",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "requests",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "requests",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "requests",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "tables",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "tables",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "tables",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "devices",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "devices",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "devices",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "menuEditor",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "menuEditor",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "menuEditor",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "stocks",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "stocks",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "stocks",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "customize",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "customize",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "customize",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "notifications",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "notifications",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "notifications",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "platform",
+      "mode": "light",
+      "width": 360,
+      "scroll": 360,
+      "theme": "light"
+    },
+    {
+      "tab": "platform",
+      "mode": "light",
+      "width": 768,
+      "scroll": 768,
+      "theme": "light"
+    },
+    {
+      "tab": "platform",
+      "mode": "light",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "light"
+    },
+    {
+      "tab": "orders",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "orders",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "orders",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "billing",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "billing",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "billing",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "records",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "records",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "records",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "analytics",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "analytics",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "analytics",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "requests",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "requests",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "requests",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "tables",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "tables",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "tables",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "devices",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "devices",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "devices",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "menuEditor",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "menuEditor",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "menuEditor",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "stocks",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "stocks",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "stocks",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "customize",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "customize",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "customize",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "notifications",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "notifications",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "notifications",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    },
+    {
+      "tab": "platform",
+      "mode": "dark",
+      "width": 360,
+      "scroll": 360,
+      "theme": "dark"
+    },
+    {
+      "tab": "platform",
+      "mode": "dark",
+      "width": 768,
+      "scroll": 768,
+      "theme": "dark"
+    },
+    {
+      "tab": "platform",
+      "mode": "dark",
+      "width": 1440,
+      "scroll": 1440,
+      "theme": "dark"
+    }
+  ],
+  "errors": []
+}

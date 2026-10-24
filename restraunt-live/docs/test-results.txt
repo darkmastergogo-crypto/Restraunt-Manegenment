@@ -1,0 +1,53 @@
+
+> restaurant-shared-platform@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ row IDs are tenant-scoped and within Appwrite ID length (1.694402ms)
+✔ public menu exposes no device, member or order data (4.702931ms)
+✔ unauthenticated staff access is rejected (2.272443ms)
+✔ membership in A does not grant access to B even with a forged body role (2.485189ms)
+✔ forged restaurant URL cannot retrieve or cancel A orders (17.497809ms)
+✔ QR and visit capabilities cannot be reused across tenants (1.967957ms)
+✔ server feature entitlement disables music even if caller forges visibility (2.255539ms)
+✔ restaurant hide/show music is also enforced by backend (5.833809ms)
+✔ music arrives in Requests and transitions Playing → Played (3.220393ms)
+✔ music submission replay is idempotent before cooldown check (2.739962ms)
+✔ music links reject javascript and unsupported hosts (2.088532ms)
+✔ prices come from server; client price cannot reduce bill (2.124536ms)
+✔ duplicate order submission charges stock exactly once (2.870395ms)
+✔ pending cap under concurrent submissions prevents third order (4.584698ms)
+✔ stock reservation, rejection, undo and cancel preserve quantities (3.807454ms)
+✔ failed cart rolls back stock and counter writes (2.023028ms)
+✔ blocked browser cannot order or open its receipt history (1.776607ms)
+✔ manager cannot access devices by default or grant roles (1.754969ms)
+✔ waiter URL rotation revokes old link (2.283661ms)
+✔ settings optimistic revision detects overwrite (2.393975ms)
+✔ owner locked groups cannot be changed by restaurant admin (3.434633ms)
+✔ MFA required for owner and restaurant admin in production mode (1.657964ms)
+✔ receipt logo URLs reject script injection; unsafe colors rejected (0.522725ms)
+✔ record reset is blocked with active orders and then archives epoch (3.360707ms)
+✔ manual billing needs valid payment and server prices (2.040856ms)
+✔ lazy loop generation deterministic across repeated reads (0.15753ms)
+✔ maintenance expires stale pending orders and restores same-generation stock (2.967778ms)
+✔ disabling kitchen orders does not erase enabled records access (3.081052ms)
+✔ revoking a table QR revokes already-open customer visits (1.561917ms)
+✔ waiter cannot use manual billing until explicitly allowed (1.598457ms)
+✔ owner cannot activate unported background push (1.314666ms)
+✔ public config exposes the exact key expected by the browser SDK (1.850129ms)
+✔ Appwrite adapter scopes all list queries and uses private row permissions (1.639463ms)
+✔ Appwrite adapter stages tenant lock and commits using one transaction ID (0.46957ms)
+✔ table QR rotation preserves reservation state (1.540138ms)
+✔ portion entitlement also denies stale client cart submissions (2.235086ms)
+✔ all literal interface keys are present in the customization registry (1.769492ms)
+✔ main admin list and creation work without an existing restaurant URL (0.846211ms)
+✔ main admin denies anonymous and restaurant staff even with forged owner fields (1.59959ms)
+✔ main admin requires owner MFA for both listing and creation (1.104167ms)
+✔ owner list reflects current restaurant names and does not expose configuration (2.041009ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 304.220603

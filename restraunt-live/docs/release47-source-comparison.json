@@ -1,0 +1,17 @@
+{
+  "changed": [
+    "build/restaurant-function.tar.gz",
+    "docs/CUSTOMIZATION-CATALOG.md",
+    "public/app.mjs",
+    "public/index.html",
+    "public/texts.mjs",
+    "public/modern-shell.css",
+    "RELEASE-PACKAGE.txt",
+    ".gitignore",
+    "README.md",
+    "START-HERE.md"
+  ],
+  "missing": [],
+  "backendFilesUnchanged": true,
+  "backendFileCount": 13
+}

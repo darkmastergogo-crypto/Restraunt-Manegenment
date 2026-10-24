@@ -1,0 +1,8 @@
+
+> restaurant-shared-platform@0.1.0 build
+> node scripts/build.mjs
+
+504 interface/setting/feature texts registered.
+Syntax checked 43 JS files; shared schema copies match.
+Generated parity and customization catalogs for 73 capabilities.
+Static site: dist/. Server bundle: build/restaurant-function.tar.gz. Not deployed.

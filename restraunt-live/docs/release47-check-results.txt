@@ -1,0 +1,5 @@
+
+> restaurant-shared-platform@0.1.0 check
+> node scripts/check.mjs
+
+Syntax checked 43 JS files; shared schema copies match.
