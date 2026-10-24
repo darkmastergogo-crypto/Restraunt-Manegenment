@@ -1,0 +1,443 @@
+/* Release 47 — one editorial design system, all roles, both appearances.
+   Legacy feature markup stays intact; this final layer owns presentation. */
+#restaurant-platform.redesign {
+  --display: Georgia, "Times New Roman", serif;
+  --rail-width: 248px;
+  --panel-radius: calc(var(--radius, 12px) + 8px);
+  --soft-shadow: 0 8px 28px color-mix(in srgb, var(--text) 5%, transparent);
+  display: block !important; margin: 0 !important; padding: 0 !important;
+  min-width: 0; background: var(--background) !important; color: var(--text) !important;
+  font: 14px/1.6 var(--font, "Plus Jakarta Sans"), sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+#restaurant-platform.redesign *, #restaurant-platform.redesign *::before, #restaurant-platform.redesign *::after {box-sizing:border-box}
+#restaurant-platform.redesign [hidden] {display:none!important}
+#restaurant-platform.redesign #app {min-width:0;width:100%;max-width:none;margin:0;min-height:calc(100dvh - 48px)}
+#restaurant-platform.redesign :is(h1,h2,h3,h4,p) {color:inherit;overflow-wrap:anywhere}
+#restaurant-platform.redesign h1 {font-size:clamp(26px,3vw,40px);line-height:1.18;letter-spacing:-.04em;font-weight:700}
+#restaurant-platform.redesign h2 {font-size:clamp(23px,2.3vw,32px);line-height:1.25;letter-spacing:-.035em;font-weight:700}
+#restaurant-platform.redesign h3 {font-size:18px;line-height:1.35;letter-spacing:-.025em;font-weight:700}
+#restaurant-platform.redesign :is(p,small,label,.muted,.item-desc,.brand-caption,.owner-role,.owner-slug,.cust-info) {color:var(--muted)!important}
+#restaurant-platform.redesign :is(h1,h2,h3,h4,strong,b,.item-price) {color:var(--text)!important}
+#restaurant-platform.redesign :is(a,button,input,select,textarea,summary) {-webkit-tap-highlight-color:transparent}
+#restaurant-platform.redesign a {color:var(--accent);text-underline-offset:4px}
+#restaurant-platform.redesign :is(button,.button) {
+  min-height:44px; max-width:100%; padding:11px 16px; gap:8px; display:inline-flex; align-items:center;justify-content:center;
+  border:1px solid var(--border)!important;border-radius:var(--radius)!important;
+  background:var(--surface)!important; background-image:none!important;color:var(--text)!important;
+  font:600 13px/1.4 var(--font),sans-serif!important; text-decoration:none;
+  box-shadow:none!important;cursor:pointer;letter-spacing:-.01em;white-space:normal;overflow-wrap:anywhere;
+  transition:background-color 160ms,border-color 160ms,box-shadow 160ms;
+}
+#restaurant-platform.redesign :is(button,.button):hover:not(:disabled) {background:var(--raised)!important;border-color:var(--accent)!important}
+#restaurant-platform.redesign :is(button.primary,.primary-btn,.button.primary,.btn-place-order,.floating-cart-bar) {background:var(--accent)!important;color:var(--accentText)!important;border-color:var(--accent)!important}
+#restaurant-platform.redesign :is(button.primary,.primary-btn,.btn-place-order,.floating-cart-bar) :is(span,strong,b) {color:inherit!important}
+#restaurant-platform.redesign :is(button.primary,.primary-btn,.floating-cart-bar):hover:not(:disabled) {filter:brightness(.96)}
+#restaurant-platform.redesign :is(button:disabled,input:disabled,select:disabled) {opacity:.55;cursor:not-allowed}
+#restaurant-platform.redesign button[data-next="Rejected"],#restaurant-platform.redesign :is([data-action="removeTable"],[data-action="rotateTable"],[data-action="deleteItem"],[data-action="cancel"]) {color:var(--danger)!important;background:color-mix(in srgb,var(--danger) 6%,var(--surface))!important;border-color:color-mix(in srgb,var(--danger) 35%,var(--border))!important}
+#restaurant-platform.redesign :is(input,select,textarea) {
+  background:var(--background)!important;color:var(--text)!important;border:1px solid var(--border)!important;
+  border-radius:var(--radius)!important;min-height:46px;padding:11px 13px;max-width:100%;min-width:0;
+  font:400 14px/1.5 var(--font),sans-serif;box-shadow:none!important;
+}
+#restaurant-platform.redesign input::placeholder,#restaurant-platform.redesign textarea::placeholder {color:var(--muted)!important;opacity:1}
+#restaurant-platform.redesign :is(input,textarea):focus {border-color:var(--accent)!important}
+#restaurant-platform.redesign :is(input[type="checkbox"],input[type="radio"]) {min-height:22px;width:22px;height:22px;accent-color:var(--accent)}
+#restaurant-platform.redesign input[type="color"] {min-height:46px;padding:4px}
+#restaurant-platform.redesign input[readonly] {font-size:12px;cursor:text}
+#restaurant-platform.redesign textarea {min-height:98px;resize:vertical}
+#restaurant-platform.redesign label {display:grid;gap:8px;font-size:13px;font-weight:500;min-width:0}
+#restaurant-platform.redesign :focus-visible {outline:3px solid var(--accent)!important;outline-offset:3px}
+#restaurant-platform.redesign img {max-width:100%}
+#restaurant-platform.redesign svg.ui-icon {width:19px;height:19px;flex:none}
+#restaurant-platform.redesign :is(.panel,.card,.access-panel,.history-container,.order-card,.request-card,.table-management-card,.stock-card,.device-card,.stat-card,.owner-restaurant,.owner-login,.owner-empty,.owner-url-note) {
+  min-width:0;background:var(--surface)!important;background-image:none!important;color:var(--text)!important;
+  border:1px solid var(--border)!important;border-radius:var(--panel-radius)!important;box-shadow:var(--soft-shadow)!important;
+}
+#restaurant-platform.redesign :is(.card,.panel) {padding:22px}
+#restaurant-platform.redesign :is(.grid,.request-cards) {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:20px;align-items:start;min-width:0}
+#restaurant-platform.redesign .grid > .empty {grid-column:1/-1}
+#restaurant-platform.redesign :is(.toolbar,.tabs,.record-subtabs,.request-filters,.note-chips) {display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0;margin:16px 0}
+#restaurant-platform.redesign .toolbar > label {flex:1 1 160px}
+#restaurant-platform.redesign :is(.tabs,.request-filters,.record-subtabs) button[aria-pressed="true"],#restaurant-platform.redesign button.selected,#restaurant-platform.redesign .waiter-mobile-nav button[aria-pressed="true"] {background:var(--raised)!important;border-color:var(--accent)!important;color:var(--text)!important}
+#restaurant-platform.redesign :is(.line,.bill-row) {display:flex;align-items:flex-start;justify-content:space-between;gap:16px;min-width:0}
+#restaurant-platform.redesign .line > span {min-width:0;overflow-wrap:anywhere}
+#restaurant-platform.redesign :is(.line,.bill-row) > b {white-space:nowrap}
+#restaurant-platform.redesign :is(hr,.divider) {border:0;border-top:1px solid var(--border)!important;margin:18px 0;background:none}
+#restaurant-platform.redesign :is(.empty,.request-empty,.loading) {background:var(--surface)!important;border:1px dashed var(--border);border-radius:var(--panel-radius);padding:36px 24px;text-align:center;color:var(--muted)!important;min-height:110px}
+#restaurant-platform.redesign .empty button {display:flex;margin:16px auto 0}
+#restaurant-platform.redesign :is(.badge,.status-pill,.request-state,.menu-label,.stock-badge) {display:inline-flex;align-items:center;padding:5px 10px;border:1px solid var(--border)!important;border-radius:999px!important;background:var(--raised)!important;color:var(--text)!important;font:600 11px/1.4 var(--font)!important;white-space:normal;max-width:100%}
+#restaurant-platform.redesign :is(.status-Pending,[data-state="pending"]) {background:color-mix(in srgb,var(--accent) 12%,var(--surface))!important;color:var(--text)!important}
+#restaurant-platform.redesign :is(.status-Served,.status-Cooking,[data-state="handled"],[data-state="played"],.success) {color:var(--success)!important;background:color-mix(in srgb,var(--success) 8%,var(--surface))!important}
+#restaurant-platform.redesign :is(.danger,.error,.status-Rejected,.status-Cancelled,[data-state="rejected"],[data-state="expired"]) {color:var(--danger)!important}
+#restaurant-platform.redesign :is(.security,.scan-hint) {background:var(--raised)!important;border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text)!important}
+#restaurant-platform.redesign #banner:not(:empty) {position:relative!important;inset:auto!important;z-index:70;margin:0;padding:9px 24px;background:var(--raised)!important;border-bottom:1px solid var(--border);color:var(--text)!important;font-size:12px}
+#restaurant-platform.redesign #banner:empty {display:none}
+#restaurant-platform.redesign #toast {position:fixed;left:50%;bottom:24px;top:auto;transform:translateX(-50%);z-index:5000;width:max-content;max-width:calc(100% - 32px);padding:14px 20px;border:1px solid var(--border);border-radius:14px;background:var(--text)!important;color:var(--background)!important;box-shadow:var(--soft-shadow);font:500 13px/1.5 var(--font)}
+#restaurant-platform.redesign .skip-link {position:fixed;left:16px;top:-150px;z-index:6000;background:var(--surface);color:var(--text);padding:12px;border:2px solid var(--accent);border-radius:10px}
+#restaurant-platform.redesign .skip-link:focus {top:12px}
+#restaurant-platform.redesign .sr-only {position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Identity and controls */
+#restaurant-platform.redesign :is(.brand-box,.staff-brand,.owner-brand) {display:flex;align-items:center;gap:12px;min-width:0;text-decoration:none;color:var(--text)!important}
+#restaurant-platform.redesign :is(.brand-logo,.brand-mark,.owner-mark) {width:44px!important;height:44px!important;flex:none;object-fit:contain;border-radius:12px;background:var(--raised);border:1px solid var(--border);padding:3px}
+#restaurant-platform.redesign :is(.brand-mark,.owner-mark) {display:grid;place-items:center;color:var(--accent)!important;font-size:24px;font-family:var(--display)}
+#restaurant-platform.redesign .brand-box h1 {font:700 clamp(22px,2vw,29px)/1.15 var(--display)!important;margin:0 0 3px;letter-spacing:-.04em}
+#restaurant-platform.redesign .brand-caption {font-size:11px;letter-spacing:.025em;margin:0!important}
+#restaurant-platform.redesign .appearance-control {display:block;flex:none;margin:0;max-width:165px}
+#restaurant-platform.redesign .appearance-control select {font-size:12px!important;font-weight:600;min-height:44px;width:100%;background:var(--surface)!important;padding:10px 24px 10px 12px}
+#restaurant-platform.redesign .staff-account {position:relative;min-width:0;margin:0}
+#restaurant-platform.redesign .staff-account summary {display:flex;align-items:center;gap:9px;padding:7px 10px;cursor:pointer;list-style:none;border:1px solid var(--border);border-radius:12px;background:var(--surface);min-height:46px}
+#restaurant-platform.redesign .staff-account summary::-webkit-details-marker {display:none}
+#restaurant-platform.redesign .staff-account summary strong {font-size:12px}
+#restaurant-platform.redesign .staff-account summary small {display:block;font-size:10px}
+#restaurant-platform.redesign .account-avatar {width:30px;height:30px;padding:6px;background:var(--raised);border-radius:9px;flex:none}
+#restaurant-platform.redesign .account-avatar svg {width:100%;height:100%}
+#restaurant-platform.redesign .account-menu {position:absolute;top:calc(100% + 8px);right:0;z-index:150;min-width:240px;max-width:calc(100vw - 32px);padding:12px;display:grid;gap:8px;background:var(--surface)!important;border:1px solid var(--border);border-radius:16px;box-shadow:var(--soft-shadow)}
+#restaurant-platform.redesign .staff-account:not([open]) .account-menu {display:none}
+#restaurant-platform.redesign .account-menu :is(button,a) {width:100%;justify-content:flex-start}
+#restaurant-platform.redesign :is(.badge-live,.connection) {display:inline-flex;align-items:center;gap:7px;color:var(--success)!important;background:color-mix(in srgb,var(--success) 8%,var(--surface))!important;border:1px solid color-mix(in srgb,var(--success) 28%,var(--border));padding:6px 10px;border-radius:999px;font:600 10px/1.5 var(--font);white-space:normal;max-width:100%}
+#restaurant-platform.redesign .connection-dot {background:var(--success)!important;flex:none}
+/* Customer — editorial cover, compact browse, clear purchase path */
+#restaurant-platform.redesign.customer-site #app > header {position:sticky!important;top:0!important;left:auto!important;right:auto!important;z-index:60;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:var(--surface)!important;border-bottom:1px solid var(--border);box-shadow:none!important}
+#restaurant-platform.redesign.customer-site .header-top {display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1280px;margin:auto;padding:18px 32px;flex-wrap:wrap}
+#restaurant-platform.redesign.customer-site .header-actions {display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;min-width:0}
+#restaurant-platform.redesign.customer-site .table-badge {display:inline-flex;align-items:center;gap:7px;max-width:240px;padding:10px 12px;min-height:44px;font-size:12px;font-weight:600;background:var(--raised)!important;color:var(--text)!important;border:1px solid var(--border);border-radius:999px;overflow-wrap:anywhere}
+#restaurant-platform.redesign.customer-site .table-badge .dot {background:var(--success)}
+#restaurant-platform.redesign.customer-site .menu-hero {display:flex;align-items:center;gap:36px;width:calc(100% - 64px)!important;max-width:1216px;margin:28px auto!important;padding:34px!important;background:var(--raised)!important;background-image:none!important;border:1px solid var(--border);border-radius:var(--panel-radius);min-height:0!important}
+#restaurant-platform.redesign.customer-site .hero-copy {flex:1;min-width:0;padding:0!important}
+#restaurant-platform.redesign.customer-site .hero-eyebrow {font:600 10px/1.5 var(--font)!important;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)!important;margin:0 0 12px!important}
+#restaurant-platform.redesign.customer-site .hero-copy h2 {font:700 clamp(34px,4vw,54px)/1.05 var(--display)!important;letter-spacing:-.05em;margin:0 0 12px!important}
+#restaurant-platform.redesign.customer-site .hero-description {font-size:14px;max-width:540px;line-height:1.8;margin:0!important}
+#restaurant-platform.redesign.customer-site .customer-tools {margin:20px 0 0!important;display:flex;gap:8px}
+#restaurant-platform.redesign.customer-site .hero-photo {width:32%;max-width:330px;flex:none;align-self:stretch;border-radius:14px;overflow:hidden}
+#restaurant-platform.redesign.customer-site .hero-photo img {width:100%;height:100%;max-height:240px;object-fit:cover;display:block}
+#restaurant-platform.redesign.customer-site .menu-workspace {display:grid!important;grid-template-columns:210px minmax(0,1fr)!important;align-items:start;gap:28px!important;width:100%!important;max-width:1280px!important;padding:0 32px 20px!important;margin:auto!important}
+#restaurant-platform.redesign.customer-site .browse-menu {position:sticky!important;top:130px!important;width:100%;padding:18px!important;margin:0!important;background:var(--surface)!important;border:1px solid var(--border);border-radius:var(--panel-radius);min-width:0}
+#restaurant-platform.redesign.customer-site .browse-heading h2 {font:700 13px/1.5 var(--font)!important;margin:0 0 12px!important;letter-spacing:0}
+#restaurant-platform.redesign.customer-site #categoriesBar {display:flex!important;flex-direction:column!important;gap:6px!important;overflow:visible!important;border:0!important;padding:0!important;position:static!important;max-height:none!important;background:transparent!important}
+#restaurant-platform.redesign.customer-site .cat-btn {width:100%;justify-content:space-between;white-space:normal;text-align:left;min-height:44px;position:static!important;margin:0!important;padding:10px 12px!important;border-color:transparent!important}
+#restaurant-platform.redesign.customer-site .cat-btn.active {background:var(--accent)!important;color:var(--accentText)!important;border-color:var(--accent)!important}
+#restaurant-platform.redesign.customer-site .cat-btn.active span {color:inherit!important}
+#restaurant-platform.redesign.customer-site .category-count {font-size:10px;border:1px solid currentColor;border-radius:999px;padding:1px 6px;margin-left:8px;opacity:.85}
+#restaurant-platform.redesign.customer-site .menu-main {min-width:0;width:100%!important;padding:0!important;margin:0!important}
+#restaurant-platform.redesign.customer-site .menu-search-tools {display:grid;grid-template-columns:minmax(0,1fr) 160px 160px;gap:10px;align-items:center;margin:0 0 24px;padding:0!important}
+#restaurant-platform.redesign.customer-site .search-container {min-width:0;margin:0!important;width:100%}
+#restaurant-platform.redesign.customer-site .menu-list-heading {display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+#restaurant-platform.redesign.customer-site .menu-list-heading h2 {font-family:var(--display);margin:0!important}
+#restaurant-platform.redesign.customer-site .menu-list-heading p {font-size:12px;margin:0!important}
+#restaurant-platform.redesign.customer-site #dishGrid {position:static!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;flex:none!important}
+#restaurant-platform.redesign.customer-site .item-card {display:grid!important;grid-template-columns:minmax(0,1fr) 96px!important;gap:14px!important;align-content:start;align-items:start;margin:0!important;padding:20px!important;background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:var(--panel-radius)!important;box-shadow:var(--soft-shadow)!important;transform:none!important;overflow:hidden!important;min-width:0;transition:border-color 160ms}
+#restaurant-platform.redesign.customer-site .item-card:not(:has(.item-img-container)) {grid-template-columns:minmax(0,1fr)!important}
+#restaurant-platform.redesign.customer-site .item-info {min-width:0;display:block!important;padding:0!important;grid-column:1}
+#restaurant-platform.redesign.customer-site .item-title {font:700 17px/1.4 var(--font)!important;margin:9px 0 7px!important;letter-spacing:-.03em}
+#restaurant-platform.redesign.customer-site .item-desc {font-size:12px!important;line-height:1.8!important;margin:8px 0 0!important}
+#restaurant-platform.redesign.customer-site .item-img-container {width:96px!important;height:104px!important;position:static!important;grid-column:2;grid-row:1;border-radius:12px;overflow:hidden;margin:0!important}
+#restaurant-platform.redesign.customer-site .item-img {width:100%!important;height:100%!important;object-fit:cover!important;display:block}
+#restaurant-platform.redesign.customer-site .badge-veg-nonveg {position:static!important;display:inline-flex;width:14px;height:14px;border-radius:3px}
+#restaurant-platform.redesign.customer-site .menu-label {font-size:9px!important;padding:3px 7px!important;margin:2px 4px 2px 0}
+#restaurant-platform.redesign.customer-site .item-size-options {grid-column:1/-1;display:flex;gap:7px;flex-wrap:wrap;margin:0!important;padding:0!important}
+#restaurant-platform.redesign.customer-site .pizza-size-button {display:grid;gap:2px;min-height:48px;padding:7px 11px!important}
+#restaurant-platform.redesign.customer-site .pizza-size-button.selected {border-color:var(--accent)!important;background:var(--raised)!important}
+#restaurant-platform.redesign.customer-site .pizza-size-button small {font-size:10px}
+#restaurant-platform.redesign.customer-site .item-purchase-row {grid-column:1/-1;display:flex!important;align-items:center;justify-content:space-between;margin:0!important;padding:14px 0 0!important;border-top:1px solid var(--border)!important;gap:8px}
+#restaurant-platform.redesign.customer-site .item-price {font:700 16px/1.4 var(--font)!important}
+#restaurant-platform.redesign.customer-site .btn-add {background:var(--raised)!important;color:var(--accent)!important;border-color:var(--border)!important;min-width:94px}
+#restaurant-platform.redesign.customer-site .qty-counter {display:flex!important;align-items:center;gap:8px;background:var(--raised)!important;border:1px solid var(--border)!important;border-radius:12px!important;padding:0 4px!important;color:var(--text)!important;min-height:44px}
+#restaurant-platform.redesign.customer-site .qty-counter button {background:transparent!important;border:0!important;min-width:44px!important;min-height:44px!important;padding:0!important;color:var(--text)!important}
+#restaurant-platform.redesign.customer-site .qty-counter span {color:var(--text)!important;font-weight:700}
+#restaurant-platform.redesign.customer-site .floating-cart-bar {position:fixed!important;left:50%!important;right:auto!important;bottom:calc(20px + env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important;width:calc(100% - 64px)!important;max-width:640px!important;z-index:80;display:flex;justify-content:space-between!important;padding:16px 22px!important;border-radius:16px!important;box-shadow:0 12px 35px #0003!important;min-height:68px}
+#restaurant-platform.redesign.customer-site .floating-cart-bar .cart-items-count {font-size:10px;letter-spacing:.08em}
+#restaurant-platform.redesign.customer-site .floating-cart-bar .cart-total-price {font-size:20px;font-weight:700}
+#restaurant-platform.redesign.customer-site .system-footer {padding:34px 20px 125px!important;margin:0;text-align:center;border:0;background:none!important;font-size:11px}
+/* Staff shell — navigation outside header, no fixed-height compensation */
+#restaurant-platform.redesign.staff-site:not(.owner-console):not(.signed-out) #app {display:grid;grid-template-columns:var(--rail-width) minmax(0,1fr);grid-template-rows:auto 1fr;grid-template-areas:"rail top" "rail content";align-items:start}
+#restaurant-platform.redesign.staff-site:not(.owner-console) #app > header {grid-area:top;position:sticky!important;top:0!important;left:auto!important;right:auto!important;z-index:60;width:100%!important;height:auto!important;min-height:96px!important;margin:0!important;padding:18px 28px!important;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--surface)!important;border-bottom:1px solid var(--border);box-shadow:none!important}
+#restaurant-platform.redesign .header-left {display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0;max-width:100%}
+#restaurant-platform.redesign .header-left h1 {font-size:12px!important;line-height:1.4!important;font-weight:500;color:var(--muted)!important;margin:0!important}
+#restaurant-platform.redesign .header-left .staff-brand strong {font-size:17px}
+#restaurant-platform.redesign .staff-header-actions {display:flex;gap:9px;align-items:center;flex-wrap:wrap;min-width:0;margin:0}
+#restaurant-platform.redesign #managerNav {grid-area:rail;position:sticky!important;top:0!important;left:auto!important;bottom:auto!important;height:100dvh!important;max-height:100dvh;width:100%!important;min-width:0!important;padding:24px 14px!important;margin:0!important;display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;gap:5px!important;overflow-y:auto!important;overflow-x:hidden!important;background:var(--surface)!important;border-right:1px solid var(--border)!important;border-bottom:0;z-index:65;align-items:stretch;box-shadow:none!important}
+#restaurant-platform.redesign .rail-identity {display:grid;gap:9px;padding:0 10px 24px;margin-bottom:10px;border-bottom:1px solid var(--border)}
+#restaurant-platform.redesign .rail-identity .staff-brand {gap:9px}
+#restaurant-platform.redesign .rail-identity .staff-brand strong {font-size:16px}
+#restaurant-platform.redesign .rail-identity small {font-size:10px;text-transform:uppercase;letter-spacing:.15em}
+#restaurant-platform.redesign #managerNav .nav-tab-btn {width:100%!important;min-width:0;min-height:46px;justify-content:flex-start;text-align:left;gap:11px;flex:none;margin:0!important;border-color:transparent!important;background:transparent!important;border-radius:11px!important;font-size:12px!important;padding:12px 13px!important}
+#restaurant-platform.redesign #managerNav .nav-tab-btn.active {background:var(--raised)!important;color:var(--accent)!important;border-color:var(--border)!important;box-shadow:inset 3px 0 var(--accent)!important}
+#restaurant-platform.redesign #managerNav .nav-tab-btn svg {color:var(--muted)}
+#restaurant-platform.redesign #managerNav .nav-tab-btn.active svg {color:var(--accent)}
+#restaurant-platform.redesign.staff-site:not(.owner-console) #app > #staffMain {grid-area:content;width:100%!important;max-width:1700px!important;margin:0 auto!important;padding:30px 28px 64px!important;min-width:0;display:block!important;overflow:visible!important}
+#restaurant-platform.redesign #staffMain > section {display:block!important;min-width:0;max-width:100%}
+#restaurant-platform.redesign .page-tools {display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:0 0 25px;padding:0!important}
+#restaurant-platform.redesign .page-tools h2 {font-family:var(--display)!important;margin:0!important;letter-spacing:-.04em}
+#restaurant-platform.redesign .page-tools .toolbar {margin:0!important}
+#restaurant-platform.redesign :is(.order-card,.request-card) {padding:0!important;overflow:hidden}
+#restaurant-platform.redesign .order-header {display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:20px!important;border-bottom:1px solid var(--border);background:var(--raised)!important}
+#restaurant-platform.redesign .order-header h3 {font-size:21px!important;margin:0!important}
+#restaurant-platform.redesign .order-body {padding:20px!important;background:var(--surface)!important}
+#restaurant-platform.redesign .order-body .line {padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+#restaurant-platform.redesign .order-body .muted {font-size:11px}
+#restaurant-platform.redesign .order-footer {padding:18px 20px!important;background:var(--surface)!important;border-top:1px solid var(--border);display:block!important}
+#restaurant-platform.redesign .order-footer > b {font-size:23px;font-variant-numeric:tabular-nums}
+#restaurant-platform.redesign .order-footer .toolbar {margin:14px 0 0!important;gap:8px}
+#restaurant-platform.redesign .order-footer .toolbar button {flex:1 1 120px}
+#restaurant-platform.redesign .request-card {padding:22px!important;border-left:3px solid var(--accent)!important}
+#restaurant-platform.redesign .request-card-heading {display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+#restaurant-platform.redesign .request-card-heading h3 {font-size:17px;margin:0 0 12px}
+#restaurant-platform.redesign .request-card > p {font-size:12px}
+#restaurant-platform.redesign .request-card .toolbar {margin:18px 0 0!important}
+#restaurant-platform.redesign .request-pagination {display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:22px;color:var(--muted);font-size:12px}
+#restaurant-platform.redesign .table-name-form {margin:20px 0;display:grid;gap:12px}
+#restaurant-platform.redesign .table-name-form button {justify-self:start}
+#restaurant-platform.redesign .table-qr {background:white!important;padding:15px!important;border-radius:14px;max-width:240px;margin:22px auto}
+#restaurant-platform.redesign .table-qr svg {display:block;width:100%;height:auto}
+#restaurant-platform.redesign .table-management-card > small {display:block;font-size:11px}
+#restaurant-platform.redesign .metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:16px;margin:0 0 24px}
+#restaurant-platform.redesign .metric {background:var(--surface)!important;display:grid;gap:10px}
+#restaurant-platform.redesign .metric strong {font-size:32px;line-height:1.2;font-variant-numeric:tabular-nums}
+#restaurant-platform.redesign .metric small {font-size:11px;letter-spacing:.04em}
+#restaurant-platform.redesign :is(.settings-grid,.portion-fields) {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:20px}
+#restaurant-platform.redesign .savebar {display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;background:var(--surface)!important;border:1px solid var(--border);border-radius:var(--panel-radius);position:static!important;margin-bottom:24px}
+#restaurant-platform.redesign .savebar p {flex:1 1 240px;font-size:12px;margin:0}
+#restaurant-platform.redesign .visibility-row {min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+#restaurant-platform.redesign .bar {background:var(--raised)!important;height:6px;border-radius:8px}
+#restaurant-platform.redesign .bar span {background:var(--accent)!important}
+#restaurant-platform.redesign table {width:100%;border-collapse:collapse;color:var(--text)!important}
+#restaurant-platform.redesign :is(th,td) {padding:12px;border-color:var(--border)!important;overflow-wrap:anywhere}
+#restaurant-platform.redesign th {background:var(--raised)!important;color:var(--text)!important;text-align:left}
+#restaurant-platform.redesign .billing-layout {display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:22px;min-width:0}
+#restaurant-platform.redesign .sticky {position:sticky;top:130px;align-self:start}
+/* Waiter — familiar service cards, dual wide workspace, one active pane on phone */
+#restaurant-platform.redesign.waiter-site #app {display:block}
+#restaurant-platform.redesign.waiter-site #app > header {position:sticky!important;top:0!important;z-index:60;left:auto!important;right:auto!important;width:100%!important;height:auto!important;margin:0!important;padding:18px 28px!important;background:var(--surface)!important;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:none!important}
+#restaurant-platform.redesign.waiter-site .waiter-header-brand {display:flex;align-items:center;gap:16px;flex:1;flex-wrap:wrap;min-width:0}
+#restaurant-platform.redesign.waiter-site .waiter-header h1 {font:500 12px/1.5 var(--font)!important;color:var(--muted)!important;margin:0}
+#restaurant-platform.redesign.waiter-site #app > main {width:100%!important;max-width:1500px!important;display:block!important;padding:28px!important;margin:0 auto!important;min-width:0}
+#restaurant-platform.redesign.waiter-site .waiter-mobile-nav {display:flex!important;gap:8px;overflow-x:auto;margin-bottom:24px;padding:0 0 6px}
+#restaurant-platform.redesign.waiter-site .waiter-mobile-nav button {flex:none;min-width:110px}
+#restaurant-platform.redesign.waiter-site .waiter-workspace {display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:28px;align-items:start}
+#restaurant-platform.redesign.waiter-site .waiter-workspace.rp-dual {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#restaurant-platform.redesign.waiter-site .waiter-pane {display:block!important;min-width:0;padding:0!important;margin:0!important}
+#restaurant-platform.redesign.waiter-site .waiter-pane .page-heading {margin:0 0 20px}
+#restaurant-platform.redesign.waiter-site .waiter-pane h2 {font-family:var(--display)}
+#restaurant-platform.redesign.waiter-site .waiter-pane :is(.grid,.request-cards) {grid-template-columns:minmax(0,1fr)!important}
+/* Owner — no staff rail offset, no fixed header covering page heading */
+#restaurant-platform.redesign.owner-console #app {display:block!important;padding:0!important}
+#restaurant-platform.redesign.owner-console #app > .owner-header {position:sticky!important;inset:auto!important;top:0!important;z-index:60;width:100%!important;height:auto!important;min-height:88px;margin:0!important;padding:20px max(24px,calc((100vw - 1216px)/2))!important;background:var(--surface)!important;border:0;border-bottom:1px solid var(--border)!important;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;box-shadow:none!important}
+#restaurant-platform.redesign.owner-console .owner-brand strong {font:700 20px/1.3 var(--font)!important;letter-spacing:-.04em}
+#restaurant-platform.redesign.owner-console .owner-brand small {font-size:11px}
+#restaurant-platform.redesign.owner-console .owner-header-tools {display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#restaurant-platform.redesign.owner-console #app > main.owner-main {display:block!important;width:100%!important;max-width:1280px!important;margin:0 auto!important;padding:38px 32px 64px!important}
+#restaurant-platform.redesign.owner-console .owner-page-heading {display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin:0 0 28px}
+#restaurant-platform.redesign.owner-console :is(.owner-page-heading h1,.owner-login h1) {font:700 clamp(30px,3.5vw,44px)/1.12 var(--display)!important;letter-spacing:-.05em;margin:0 0 12px}
+#restaurant-platform.redesign.owner-console .owner-eyebrow {font:700 10px/1.4 var(--font)!important;letter-spacing:.17em;text-transform:uppercase;color:var(--accent)!important;margin:0 0 12px!important}
+#restaurant-platform.redesign.owner-console .owner-heading-actions {display:flex;gap:8px;flex-wrap:wrap}
+#restaurant-platform.redesign.owner-console .owner-page-heading p {max-width:630px;font-size:13px;line-height:1.8}
+#restaurant-platform.redesign.owner-console .owner-summary {padding:24px 28px;background:var(--raised)!important;border:1px solid var(--border)!important;border-radius:var(--panel-radius);margin:0 0 28px;display:flex;gap:40px;align-items:center;box-shadow:none}
+#restaurant-platform.redesign.owner-console .owner-summary > div {display:grid;gap:6px;min-width:150px}
+#restaurant-platform.redesign.owner-console .owner-summary strong {font-size:36px;line-height:1.1}
+#restaurant-platform.redesign.owner-console .owner-summary p {margin:0;font-size:13px}
+#restaurant-platform.redesign.owner-console .owner-list-tools {max-width:560px;margin:0 0 26px}
+#restaurant-platform.redesign.owner-console .owner-list-tools label {margin-bottom:8px}
+#restaurant-platform.redesign.owner-console .owner-list-count {font-size:12px;color:var(--muted);margin-bottom:16px}
+#restaurant-platform.redesign.owner-console .owner-restaurants {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start}
+#restaurant-platform.redesign.owner-console .owner-restaurant {padding:26px}
+#restaurant-platform.redesign.owner-console .owner-card-heading {display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#restaurant-platform.redesign.owner-console .owner-card-heading h2 {font:700 26px/1.25 var(--display)!important;letter-spacing:-.04em;margin:0 0 10px}
+#restaurant-platform.redesign.owner-console .owner-slug {font-size:11px;overflow-wrap:anywhere}
+#restaurant-platform.redesign.owner-console .owner-card-actions {display:flex;gap:9px;flex-wrap:wrap;margin:22px 0}
+#restaurant-platform.redesign.owner-console .owner-url-row {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;border-top:1px solid var(--border);padding-top:16px;margin:16px 0 0}
+#restaurant-platform.redesign.owner-console .owner-url-row label {min-width:0}
+#restaurant-platform.redesign.owner-console .owner-menu-link {margin-top:12px;display:inline-flex}
+#restaurant-platform.redesign.owner-console .owner-url-note {margin-top:28px;padding:24px}
+#restaurant-platform.redesign.owner-console .owner-url-note h2 {font-size:18px}
+#restaurant-platform.redesign.owner-console .owner-url-note p {font-size:12px;max-width:850px}
+#restaurant-platform.redesign.owner-console .owner-login-main {max-width:640px!important}
+#restaurant-platform.redesign.owner-console .owner-login {max-width:560px;padding:32px;margin:0 auto}
+#restaurant-platform.redesign.owner-console .owner-login form {display:grid;gap:18px;margin:24px 0}
+#restaurant-platform.redesign.owner-console .owner-login > p {font-size:13px;line-height:1.8}
+#restaurant-platform.redesign.signed-out #app {display:block!important}
+#restaurant-platform.redesign.signed-out .customer {padding:0!important;max-width:none!important;margin:0!important}
+#restaurant-platform.redesign.signed-out .customer > section {margin:32px auto!important;width:calc(100% - 32px)!important}
+/* Dialog system, cart drawer, tracking, portion editor */
+#restaurant-platform.redesign #modal {position:fixed!important;inset:0!important;margin:auto!important;transform:none!important;width:min(680px,calc(100% - 32px))!important;max-width:calc(100% - 32px)!important;max-height:calc(100dvh - 40px)!important;height:fit-content;padding:28px!important;border:1px solid var(--border)!important;border-radius:var(--panel-radius)!important;background:var(--surface)!important;color:var(--text)!important;box-shadow:0 30px 100px #0004;overflow:auto!important;z-index:2000}
+#restaurant-platform.redesign #modal::backdrop {background:rgb(15 13 10 / .6);backdrop-filter:blur(3px)}
+#restaurant-platform.redesign #modalBody {min-width:0}
+#restaurant-platform.redesign #modalBody > :is(h1,h2,h3):first-child {padding-right:78px}
+#restaurant-platform.redesign #modalClose {position:sticky!important;bottom:0!important;top:auto!important;right:auto!important;float:none!important;font-size:12px!important;width:auto!important;height:auto!important;min-height:44px;padding:10px 20px!important;margin:24px 0 0!important;background:var(--raised)!important;z-index:5}
+#restaurant-platform.redesign #modalClose::after {display:none!important}
+#restaurant-platform.redesign #modal form {display:grid;gap:18px;min-width:0}
+#restaurant-platform.redesign #modal :is(.card,.panel) {box-shadow:none!important}
+#restaurant-platform.redesign #modal.rp-checkout {inset:0 0 0 auto!important;margin:0!important;height:100dvh!important;max-height:100dvh!important;width:min(560px,100%)!important;max-width:100%!important;border-radius:var(--panel-radius) 0 0 var(--panel-radius)!important;padding:0!important;display:none;overflow:auto!important}
+#restaurant-platform.redesign #modal.rp-checkout[open] {display:flex!important;flex-direction:column}
+#restaurant-platform.redesign #modal.rp-checkout #modalBody {display:flex;flex-direction:column;flex:1;min-height:0}
+#restaurant-platform.redesign #modal.rp-checkout .drawer-header {padding:24px 90px 20px 24px!important;position:sticky;top:0;background:var(--surface)!important;border-bottom:1px solid var(--border);z-index:2}
+#restaurant-platform.redesign #modal.rp-checkout .drawer-header h2 {font-family:var(--display);margin:0 0 4px}
+#restaurant-platform.redesign #modal.rp-checkout .cart-table-label {font-size:12px;margin:0}
+#restaurant-platform.redesign #modal.rp-checkout .drawer-body {padding:0 24px 24px!important;flex:1;overflow:auto!important;min-height:0}
+#restaurant-platform.redesign #modal.rp-checkout #modalClose {position:absolute!important;top:20px!important;right:18px!important;bottom:auto!important;margin:0!important;z-index:4;min-width:60px!important}
+#restaurant-platform.redesign #modal.rp-checkout .drawer-footer {position:relative!important;bottom:0;padding:18px 24px calc(18px + env(safe-area-inset-bottom))!important;background:var(--surface)!important;border-top:1px solid var(--border);z-index:2}
+#restaurant-platform.redesign #modal.rp-checkout .drawer-footer button {width:100%;justify-content:center;min-height:50px}
+#restaurant-platform.redesign .cart-item-row {display:flex;align-items:center;gap:12px;padding:20px 0;border-bottom:1px solid var(--border)}
+#restaurant-platform.redesign .cart-item-row > div:first-child {flex:1;min-width:0}
+#restaurant-platform.redesign .cart-item-row strong {font-size:13px}
+#restaurant-platform.redesign .cart-item-row p {font-size:12px;margin:5px 0 0}
+#restaurant-platform.redesign .cart-item-stepper {display:flex;align-items:center;gap:8px}
+#restaurant-platform.redesign .cart-item-stepper button {padding:0!important;min-width:44px!important}
+#restaurant-platform.redesign .order-form-section {padding-top:24px;display:grid;gap:20px}
+#restaurant-platform.redesign .form-group {display:grid;gap:10px}
+#restaurant-platform.redesign .note-chips {margin:0!important}
+#restaurant-platform.redesign .note-hint {font-size:11px;margin:0}
+#restaurant-platform.redesign .bill-summary {margin-top:24px;border-top:1px solid var(--border);padding-top:18px;display:grid;gap:12px}
+#restaurant-platform.redesign .bill-row {font-size:13px}
+#restaurant-platform.redesign .bill-row.total {padding-top:14px;border-top:1px solid var(--border);font-size:18px;font-weight:700}
+#restaurant-platform.redesign .rp-tracking-banner {background:var(--raised)!important;border:1px solid var(--border)!important;border-radius:var(--radius);padding:20px;margin:18px 0}
+#restaurant-platform.redesign .rp-timeline {list-style:none;padding:18px;margin:18px 0;border:1px solid var(--border);border-radius:var(--radius)}
+#restaurant-platform.redesign .rp-timeline li {padding:14px 12px;border-left:2px solid var(--border);margin-left:8px;color:var(--muted)}
+#restaurant-platform.redesign .rp-timeline li.complete {border-color:var(--accent);color:var(--text)}
+#restaurant-platform.redesign .rp-confirmation {text-align:center;padding:25px 0}
+#restaurant-platform.redesign .rp-confirmation .rp-check {display:grid;place-items:center;width:64px;height:64px;border-radius:50%;margin:0 auto 20px;background:color-mix(in srgb,var(--success) 12%,var(--surface))!important;color:var(--success)!important;font-size:32px}
+#restaurant-platform.redesign .receipt {background:#fff!important;color:#111!important;max-width:100%;padding:20px;border-radius:8px}
+#restaurant-platform.redesign .receipt * {color:#111!important;border-color:#bbb!important}
+#restaurant-platform.redesign .receipt th {background:#f5f5f5!important}
+/* Tablet and mobile — no fixed header height guesses */
+@media (max-width:1200px) {
+ #restaurant-platform.redesign {--rail-width:220px}
+ #restaurant-platform.redesign .header-left .badge-live {flex-basis:100%;width:max-content}
+ #restaurant-platform.redesign.customer-site .menu-workspace {grid-template-columns:180px minmax(0,1fr)!important;gap:20px!important}
+ #restaurant-platform.redesign.customer-site .menu-search-tools {grid-template-columns:repeat(2,minmax(0,1fr))}
+ #restaurant-platform.redesign.customer-site .search-container {grid-column:1/-1}
+ #restaurant-platform.redesign.owner-console .owner-restaurants {grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:1023px) {
+ #restaurant-platform.redesign.staff-site:not(.owner-console):not(.signed-out) #app {display:block!important}
+ #restaurant-platform.redesign.staff-site:not(.owner-console) #app > header {position:relative!important;padding:18px 22px!important;min-height:0!important}
+ #restaurant-platform.redesign #managerNav {position:sticky!important;top:0!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;gap:6px!important;height:auto!important;max-height:none!important;min-height:64px;width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;border-right:0!important;border-bottom:1px solid var(--border)!important;padding:10px 20px!important;align-items:center;z-index:55}
+ #restaurant-platform.redesign #managerNav .rail-identity {display:none}
+ #restaurant-platform.redesign #managerNav .nav-tab-btn {width:auto!important;min-width:max-content!important;padding:10px 13px!important;white-space:nowrap}
+ #restaurant-platform.redesign #managerNav .nav-tab-btn.active {box-shadow:none!important}
+ #restaurant-platform.redesign.staff-site:not(.owner-console) #app > #staffMain {padding:26px 22px 48px!important}
+ #restaurant-platform.redesign.customer-site .header-top {padding:16px 24px}
+ #restaurant-platform.redesign.customer-site .menu-workspace {display:block!important;padding:0 24px!important}
+ #restaurant-platform.redesign.customer-site .browse-menu {position:relative!important;top:auto!important;padding:0!important;border:0;background:none!important;margin:0 0 22px!important}
+ #restaurant-platform.redesign.customer-site #categoriesBar {flex-direction:row!important;overflow-x:auto!important;overflow-y:hidden!important;padding:0 0 8px!important}
+ #restaurant-platform.redesign.customer-site .cat-btn {width:auto!important;min-width:max-content;flex:none;justify-content:center;border-color:var(--border)!important;border-radius:999px!important;background:var(--surface)!important}
+ #restaurant-platform.redesign.customer-site .cat-btn.active {background:var(--accent)!important}
+ #restaurant-platform.redesign.customer-site .browse-heading h2 {margin:0 0 10px!important}
+ #restaurant-platform.redesign.customer-site .menu-hero {width:calc(100% - 48px)!important;margin:24px auto!important;padding:28px!important}
+ #restaurant-platform.redesign.customer-site .menu-search-tools {grid-template-columns:minmax(0,1fr) 170px 170px}
+ #restaurant-platform.redesign.customer-site .search-container {grid-column:auto}
+ #restaurant-platform.redesign.waiter-site .waiter-workspace.rp-dual {grid-template-columns:minmax(0,1fr)!important}
+ #restaurant-platform.redesign.waiter-site .waiter-pane:not(.rp-active) {display:none!important}
+}
+@media (max-width:760px) {
+ #restaurant-platform.redesign {font-size:14px!important;--panel-radius:calc(var(--radius,12px) + 5px)}
+ #restaurant-platform.redesign :is(input,select,textarea) {font-size:16px}
+ #restaurant-platform.redesign :is(.panel,.card) {padding:20px}
+ #restaurant-platform.redesign :is(.grid,.request-cards) {grid-template-columns:minmax(0,1fr)!important;gap:16px}
+ #restaurant-platform.redesign #banner:not(:empty) {padding:8px 16px;font-size:10px}
+ #restaurant-platform.redesign.customer-site #app > header {position:relative!important}
+ #restaurant-platform.redesign.customer-site .header-top {display:block;padding:18px 16px!important}
+ #restaurant-platform.redesign.customer-site .brand-box {margin-bottom:16px}
+ #restaurant-platform.redesign.customer-site .header-actions {display:flex;gap:8px;width:100%!important;align-items:center}
+ #restaurant-platform.redesign.customer-site .header-actions :is(button,.table-badge,.appearance-control select) {font-size:11px!important;min-height:44px;padding:9px 11px!important}
+ #restaurant-platform.redesign .appearance-control {max-width:155px}
+ #restaurant-platform.redesign.customer-site .brand-box h1 {font-size:27px!important}
+ #restaurant-platform.redesign.customer-site .menu-hero {width:calc(100% - 32px)!important;margin:18px auto 24px!important;padding:24px!important;gap:20px;flex-direction:column;align-items:stretch}
+ #restaurant-platform.redesign.customer-site .hero-copy h2 {font-size:36px!important}
+ #restaurant-platform.redesign.customer-site .hero-description {font-size:12px!important;line-height:1.8}
+ #restaurant-platform.redesign.customer-site .hero-photo {width:100%;max-width:none;height:150px}
+ #restaurant-platform.redesign.customer-site .menu-workspace {padding:0 16px!important}
+ #restaurant-platform.redesign.customer-site .menu-search-tools {grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:22px}
+ #restaurant-platform.redesign.customer-site .search-container {grid-column:1/-1}
+ #restaurant-platform.redesign.customer-site #dishGrid {grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+ #restaurant-platform.redesign.customer-site .menu-list-heading h2 {font-size:26px!important}
+ #restaurant-platform.redesign.customer-site .menu-list-heading p {display:none}
+ #restaurant-platform.redesign.customer-site .item-card {padding:20px!important;grid-template-columns:minmax(0,1fr) 94px!important}
+ #restaurant-platform.redesign.customer-site .item-img-container {width:94px!important;height:106px!important}
+ #restaurant-platform.redesign.customer-site .floating-cart-bar {left:16px!important;right:16px!important;width:calc(100% - 32px)!important;transform:none!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;padding:14px 18px!important}
+ #restaurant-platform.redesign.staff-site:not(.owner-console) #app > header {padding:16px!important;gap:16px}
+ #restaurant-platform.redesign .header-left {width:100%;gap:10px}
+ #restaurant-platform.redesign .header-left .staff-brand {flex:1 1 100%}
+ #restaurant-platform.redesign .header-left h1 {font-size:11px!important}
+ #restaurant-platform.redesign .header-left .badge-live {flex-basis:auto;font-size:9px}
+ #restaurant-platform.redesign .staff-header-actions {width:100%;gap:8px;justify-content:space-between}
+ #restaurant-platform.redesign .staff-header-actions > button {font-size:11px!important;padding:10px!important}
+ #restaurant-platform.redesign .staff-account summary {padding:7px}
+ #restaurant-platform.redesign .staff-account summary small {display:none}
+ #restaurant-platform.redesign .staff-account summary .account-avatar {width:22px;height:22px;padding:3px}
+ #restaurant-platform.redesign .staff-account summary strong {font-size:10px}
+ #restaurant-platform.redesign .staff-account summary .account-chevron {display:none}
+ #restaurant-platform.redesign #managerNav {padding:10px 16px!important;scrollbar-width:thin}
+ #restaurant-platform.redesign.staff-site:not(.owner-console) #app > #staffMain {padding:24px 16px 48px!important}
+ #restaurant-platform.redesign .page-tools {gap:16px;margin-bottom:20px}
+ #restaurant-platform.redesign .page-tools .toolbar {width:100%;gap:8px}
+ #restaurant-platform.redesign .page-tools .toolbar button {font-size:11px!important;padding:10px 12px!important}
+ #restaurant-platform.redesign .page-tools h2 {font-size:30px!important}
+ #restaurant-platform.redesign .settings-grid {grid-template-columns:minmax(0,1fr)!important}
+ #restaurant-platform.redesign .billing-layout {grid-template-columns:minmax(0,1fr)!important}
+ #restaurant-platform.redesign .sticky {position:static!important}
+ #restaurant-platform.redesign .metrics {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ #restaurant-platform.redesign .metric {padding:16px}
+ #restaurant-platform.redesign .metric strong {font-size:26px}
+ #restaurant-platform.redesign .request-pagination {justify-content:center}
+ #restaurant-platform.redesign.waiter-site #app > header {position:relative!important;padding:18px 16px!important;gap:12px}
+ #restaurant-platform.redesign.waiter-site .waiter-header-brand {flex-basis:100%;gap:10px}
+ #restaurant-platform.redesign.waiter-site .waiter-header-brand .staff-brand {flex-basis:100%}
+ #restaurant-platform.redesign.waiter-site .waiter-header-brand h1 {font-size:11px!important}
+ #restaurant-platform.redesign.waiter-site #app > main {padding:22px 16px 48px!important}
+ #restaurant-platform.redesign.owner-console #app > .owner-header {padding:18px 16px!important;gap:16px}
+ #restaurant-platform.redesign.owner-console .owner-brand strong {font-size:19px!important}
+ #restaurant-platform.redesign.owner-console .owner-header-tools {gap:8px;width:100%}
+ #restaurant-platform.redesign.owner-console .owner-role {display:none}
+ #restaurant-platform.redesign.owner-console #app > main.owner-main {padding:26px 16px 48px!important}
+ #restaurant-platform.redesign.owner-console .owner-page-heading {margin-bottom:24px}
+ #restaurant-platform.redesign.owner-console .owner-page-heading h1 {font-size:36px!important}
+ #restaurant-platform.redesign.owner-console .owner-summary {padding:22px;display:block}
+ #restaurant-platform.redesign.owner-console .owner-summary p {margin-top:16px;font-size:12px}
+ #restaurant-platform.redesign.owner-console .owner-restaurant {padding:22px}
+ #restaurant-platform.redesign.owner-console .owner-card-heading {flex-wrap:wrap;gap:8px}
+ #restaurant-platform.redesign.owner-console .owner-card-actions {margin:20px 0}
+ #restaurant-platform.redesign.owner-console .owner-url-row {grid-template-columns:minmax(0,1fr)}
+ #restaurant-platform.redesign.owner-console .owner-url-row button {justify-self:start}
+ #restaurant-platform.redesign.owner-console .owner-login {padding:24px}
+ #restaurant-platform.redesign #modal {width:calc(100% - 24px)!important;max-width:calc(100% - 24px)!important;padding:22px!important;max-height:calc(100dvh - 24px)!important}
+ #restaurant-platform.redesign #modal.rp-checkout {width:100%!important;max-width:100%!important;max-height:100dvh!important;border-radius:0!important;padding:0!important}
+ #restaurant-platform.redesign .cart-item-row {flex-wrap:wrap}
+ #restaurant-platform.redesign .cart-item-row > div:first-child {flex-basis:calc(100% - 125px)}
+ #restaurant-platform.redesign .cart-item-row > b {margin-left:auto}
+}
+@media (prefers-reduced-motion:reduce) {
+ #restaurant-platform.redesign *,#restaurant-platform.redesign *::before,#restaurant-platform.redesign *::after {animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important;scroll-behavior:auto!important}
+}
+@media print {
+ #restaurant-platform.redesign {background:white!important;color:black!important}
+ #restaurant-platform.redesign :is(#app,#banner,#toast,.skip-link,#modal) {display:none!important}
+ #restaurant-platform.redesign #printArea {display:block!important;background:white!important;color:black!important}
+ #restaurant-platform.redesign #printArea * {color:black!important;box-shadow:none!important}
+}
+
+/* Neutralize the reference theme's decorative header block and local palette overrides. */
+#restaurant-platform.redesign .header-left {background:transparent!important;background-image:none!important;padding:0!important;margin:0!important;border:0!important;min-height:0!important;box-shadow:none!important}
+#restaurant-platform.redesign :is(.page-tools>h2,.owner-main>h1,.waiter-pane>h2,.hero-copy h2,.menu-list-heading h2) {font-family:var(--display)!important}
+
+#restaurant-platform.redesign * {font-family:var(--font),sans-serif}
+#restaurant-platform.redesign :is(h1,h2) {font-family:var(--display)!important}
+#restaurant-platform.redesign .header-left h1 {font-family:var(--font)!important}
+#restaurant-platform.redesign.customer-site #app > header {border-top:0!important}
+#restaurant-platform.redesign.customer-site .header-top {max-width:1280px!important;gap:20px!important;min-height:94px;align-items:center!important}
+#restaurant-platform.redesign.customer-site .header-actions {width:auto!important;flex:none}
+#restaurant-platform.redesign.customer-site .browse-menu {border-radius:var(--panel-radius)!important}
+#restaurant-platform.redesign.customer-site .menu-search-tools {display:grid!important;grid-template-columns:minmax(0,1fr) 160px 160px!important}
+#restaurant-platform.redesign.customer-site .search-container {grid-column:auto!important}
+#restaurant-platform.redesign.owner-console .owner-summary :is(span,p) {color:var(--muted)!important}
+@media(max-width:1200px){
+ #restaurant-platform.redesign.customer-site .header-top {gap:16px!important}
+ #restaurant-platform.redesign.customer-site .menu-search-tools {grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #restaurant-platform.redesign.customer-site .search-container {grid-column:1/-1!important}
+}
+@media(max-width:760px){
+ #restaurant-platform.redesign.customer-site .header-top {display:block!important;min-height:0}
+ #restaurant-platform.redesign.customer-site .header-actions {width:100%!important}
+}
+/* Translation spans must inherit display typography rather than the legacy universal font. */
+#restaurant-platform.redesign :is(h1,h2) * {font-family:inherit!important}
