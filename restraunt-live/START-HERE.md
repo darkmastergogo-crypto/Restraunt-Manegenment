@@ -1,0 +1,57 @@
+# Release 47 — unified light/dark design
+
+**Start with `docs/RELEASE47-DESIGN-UPDATE.md`.** This package extends your uploaded Manus design to menu, kitchen/admin, waiter and owner screens. It includes coordinated Light, Dark, Device and saved Restaurant appearances. Built/tested locally; not deployed. Existing backend/schema files are unchanged, so an already matching Release46 backend does not need redeployment for this design-only update.
+
+The earlier setup instructions below are retained for installations that have not completed the earlier backend/Sites/push setup. Validation for this package is in `docs/RELEASE47-VALIDATION.md`.
+
+---
+
+# Release 46 — start here
+
+**Built and tested locally; not deployed to your live account.** Read **docs/RELEASE46-UPDATE-GUIDE.md** for the update steps, client phone/PC installation and hosted acceptance checks. This combined release includes the earlier Sites, push and MFA changes. Keep existing data and private settings.
+
+---
+
+# Android push update
+
+Start with **docs/ANDROID-PUSH-SETUP.md** for this release. Source implementation is complete; cloud activation and a real Android delivery test are still required. Keep the existing tenant database and Function IDs. Do not upload private keys.
+
+# Start here — Automatic Restaurant Websites
+
+**Implemented in source; not installed on your live account yet.**
+
+After the one-time setup:
+
+**Create restaurant → enter name → wait until Ready → copy menu/dashboard/kitchen links → customize it like now.**
+
+## Included
+
+- Separate Appwrite Site per restaurant, from one shared codebase.
+- Automatic HTTPS addresses; no custom domain needed.
+- Permanent unique restaurant IDs; tenant-scoped data and staff permissions.
+- Sign-in-protected dashboards and kitchens; owner/admin MFA.
+- Deployment progress, Retry, and a private background worker.
+- Client branding/menu/price/portion edits without redeployment.
+- Existing restaurants can get their own Site without rebuilding their data.
+- The visual portion editor is included.
+
+## What you need to do once
+
+Follow **docs/APPWRITE-SITES-SETUP.md**, in order:
+
+1. Back up and test in staging. Put this source in the shared private repository.
+2. Create the `restaurant-live` branch; keep owner releases on `main`.
+3. Connect one central owner Appwrite Site to the repository. Build command: `node scripts/build-site.mjs`; output `dist`; SPA fallback `index.html`. Use the public build variables from the guide.
+4. Update your existing API Function with `build/restaurant-function.tar.gz`, keeping its Function ID. Add the documented provisioning scopes and server settings.
+5. Deploy the separate private scheduled worker from the same archive, entrypoint `src/sites-worker-main.mjs`.
+6. Verify the staging acceptance checklist, then switch to the new owner Site.
+
+**Do not just upload the public/ folder, change only config.js, or upload this whole ZIP as a Function.** This is an architecture upgrade, not the earlier three-file frontend patch. The nested Function archive is the backend upload. Appwrite Sites builds the source through Git.
+
+Do not put an API key in the frontend. Do not make the database public. Do not share your owner account with clients. Clients need their own Auth accounts and restaurant-specific membership before their dashboard links work.
+
+Automatic site provisioning consumes Appwrite resources and is subject to your plan's quotas/billing. Exact custom domain names and domain registration are not included.
+
+## What is verified
+
+Earlier Sites milestone: 60 automated tests; syntax/build checks; local browser workflow with simulated deployments, including name-only creation, progress, separate links, customization, isolation and mobile layout. Real Appwrite domain/auth/Git integration still requires staging acceptance on your account.

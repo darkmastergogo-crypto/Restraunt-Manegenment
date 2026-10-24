@@ -1,0 +1,12 @@
+Restaurant Platform Release 47 — all-screen editorial light/dark design
+
+Source update based on your uploaded Release46 Refined package and DESIGN.md.
+Includes menu, kitchen/admin, waiter, owner and supporting components, coordinated appearance modes and responsive layouts.
+
+START: docs/RELEASE47-DESIGN-UPDATE.md
+VALIDATION: docs/RELEASE47-VALIDATION.md
+DESIGN: DESIGN.md (original supplied reference preserved in docs/DESIGN-REFERENCE.md)
+
+90 automated tests passed; local browser workflow/layout checks passed. Backend/shared source unchanged (13 files).
+NOT deployed. No database migration. If your backend matches the supplied Release46 source, the visual update requires Site builds, not a new backend deployment.
+Real-device installation and locked-phone push remain hosted acceptance checks.
