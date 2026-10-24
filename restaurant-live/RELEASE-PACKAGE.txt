@@ -1,6 +1,0 @@
-Restaurant Platform Release 46 — refined source package
-
-This is a multi-restaurant Appwrite Sites source release. Each provisioned restaurant keeps its own tenant data, brand name, logo, favicon, menu/admin/kitchen URLs and runtime PWA identity. Production provisioning and client-specific logo values are applied through the owner workflow and Appwrite backend configuration.
-
-Validation: npm test (81 passed), npm run check (passed), npm run build (passed).
-See docs/RELEASE46-VALIDATION-RESULTS.md and docs/APPWRITE-SITES-SETUP.md.
