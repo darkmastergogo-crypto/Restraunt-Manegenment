@@ -5,8 +5,8 @@ const RESTAURANT_CONFIG = {
   tagline: "Yummy in your tummy",
   currency: "₹",
   // Use this shop's OWN Supabase project, not another restaurant's project.
-  supabaseUrl: "PASTE_YUMMY_MOMO_SUPABASE_URL",
-  supabaseAnonKey: "PASTE_YUMMY_MOMO_PUBLIC_ANON_KEY",
+  supabaseUrl: "https://vcisgzhofawsgcuykche.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjaXNnemhvZmF3c2djdXlrY2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4ODk5NzgsImV4cCI6MjEwODQ2NTk3OH0.JpK0VR9EqbLgBv0JtYQdNc60rR52UQ8Y29kb4oOYwDw",
   // Optional: this shop's Google review link. Blank disables the review prompt.
   googleReviewUrl: "",
   categories: ["All", "Steamed Momos", "Fried Momos", "Kurkure Momos", "Tandoori Momos", "Chutney & Dips", "Drinks", "Desserts"],
