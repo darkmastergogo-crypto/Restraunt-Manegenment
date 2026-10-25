@@ -1,0 +1,14 @@
+/* Receipts are deliberately independent of the dashboard theme. */
+'use strict';
+const YummyReceipt={
+ async ready(root){await Promise.all([...root.querySelectorAll("img")].map(i=>i.decode().catch(()=>{})));},
+ html(o,custom=window.Custom48?.get()){
+  const brand=custom||{name:Cloud.cfg.restaurantName||'Yummy Momo',tagline:Cloud.cfg.tagline||'Yummy in your tummy'},bill=brand.bill||{},show=key=>bill[key]!==false;
+  const e=value=>Cloud.esc(brand.texts?.[String(value)]??value),m=v=>(Cloud.cfg.currency||'₹')+Number(v||0).toFixed(2);
+  let items=o.items;if(typeof items==='string'){try{items=JSON.parse(items);}catch{items=[];}}
+  if(!Array.isArray(items))items=[];
+  const manual=o.order_source==='manual'||String(o.order_id||'').startsWith('MAN-');
+  const tax=show('showTax')&&(o.tax_enabled||Number(o.tax_amount)>0)?`<div class="receipt-row"><span>${e(bill.subtotalLabel??'Items subtotal')}</span><b>${m(o.items_subtotal)}</b></div><div class="receipt-row"><span>${e((bill.taxLabel??'Tax')+(o.tax_mode==='percent'?' ('+Number(o.tax_value)+'%)':' (fixed)'))}</span><b>${m(o.tax_amount)}</b></div>`:'';
+  return `<div class="receipt yummy-receipt">${show('showLogo')?`<img class="receipt-logo" src="${e(Cloud.safeImage(brand.logo)||'receipt-logo.png?v=yummy-39')}" alt="${e(brand.name)} logo" width="80" height="80">`:''}${show('showName')?`<h2>${e(brand.name)}</h2>`:''}${show('showTagline')?`<p class="receipt-tagline">${e(brand.tagline)}</p>`:''}${show('showTaxId')?`<p class="receipt-gstin">${e(bill.taxId??'GSTIN: 10RQNPK2564R1ZX')}</p>`:''}${show('showOrder')?`<p>${e(Cloud.orderLabel(o))}</p>`:''}${show('showDate')?`<p>${e(new Date(o.created_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}))}</p>`:''}${show('showTable')?`<p>${o.table_number==='Counter'?'Counter / takeaway':e(Cloud.tableName(o.table_number))}</p>`:''}${show('showPayment')&&o.payment_method?`<p>${e(bill.paymentLabel??'Paid through')}: ${e(o.payment_method)}</p>`:''}${show('showItems')?`<table><thead><tr><th>${e(bill.itemLabel??'Item')}</th>${show('showQty')?`<th>${e(bill.qtyLabel??'Qty')}</th>`:''}${show('showRate')?`<th>${e(bill.rateLabel??'Rate')}</th>`:''}${show('showLineTotal')?`<th>${e(bill.totalLabel??'Total')}</th>`:''}</tr></thead><tbody>${items.length?items.map(i=>`<tr><td>${e(i.name||i.base_name||'Dish')}</td>${show('showQty')?`<td>${e(i.qty??i.quantity??0)}</td>`:''}${show('showRate')?`<td>${m(i.price??i.unit_price)}</td>`:''}${show('showLineTotal')?`<td>${m(i.subtotal??Number(i.qty??i.quantity)*Number(i.price??i.unit_price))}</td>`:''}</tr>`).join(''):'<tr><td colspan="4">Item details unavailable. Please refresh order records.</td></tr>'}</tbody></table>`:''}<div class="receipt-line"></div>${tax}${show('showTotal')?`<div class="receipt-row receipt-total"><b>${e(bill.totalLabel??'Total')}</b><b>${m(o.total)}</b></div>`:''}${show('showFooter')?`<p>${e(bill.footer??'Thank you for visiting!')}</p>`:''}</div>`;
+ }
+};
