@@ -22,7 +22,7 @@ function download(name,text,type='application/json'){const u=URL.createObjectURL
 async function enterStaff(){
  staffRole=await Cloud.role();
  if(!['admin','manager'].includes(staffRole))throw Error('Admin or manager access required. Waiters should scan the private waiter QR.');
- $('tabManagementBtn').hidden=staffRole!=='admin';$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole!=='manager';$('rotateWaiterButton').hidden=staffRole!=='admin';$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';
+ $('tabManagementBtn').hidden=!['admin','manager'].includes(staffRole);$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole!=='manager';$('rotateWaiterButton').hidden=!['admin','manager'].includes(staffRole);$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';configureManagementAccess();
  BackgroundAlerts.init('kitchen');loggedIn=true;$('loginPanel').hidden=true;$('managerNav').hidden=false;$('staffMain').hidden=false;$('staffSession').hidden=false;
  void window.Custom48?.sync(true);
  $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';KitchenOps.init();$('headerCallWaiter').hidden=false;
@@ -53,7 +53,7 @@ async function retryCloudRequest(work,onRetry=()=>{},attempts=3){
   catch(error){if(attempt>=attempts||!isTemporaryCloudFailure(error))throw error;onRetry();await new Promise(resolve=>setTimeout(resolve,delay));delay=Math.min(delay*2,2000);}
  }
 }
-function refreshCloud(){if(!loggedIn)return Promise.resolve();void refreshBackgroundData();return refreshOrders();}
+function refreshCloud(){if(!loggedIn)return Promise.resolve();return Promise.allSettled([refreshBackgroundData(),refreshOrders()]).then(()=>undefined);}
 function refreshOrders(){
  if(!loggedIn)return Promise.resolve();
  if(orderSyncPromise)return orderSyncPromise;
@@ -101,13 +101,23 @@ function refreshBackgroundData(){
  })().finally(()=>{summarySyncPromise=null;});
  return summarySyncPromise;
 }
+
+function configureManagementAccess(){
+ const section=$('managementSection'),waiter=$('waiterAccessPanel');if(!section||!waiter)return;
+ const manager=staffRole==='manager';
+ for(const child of section.children){if(child.tagName==='H2'||child===waiter)continue;child.hidden=manager;}
+ const permissions=$('waiterPermissionsForm'),note=$('waiterManagerNote');
+ if(permissions)permissions.hidden=manager;
+ if(note)note.hidden=!manager;
+}
+
 function switchTab(tab){
  if(window.Custom48?.sectionHidden(tab)){showToast('This section is hidden by the administrator.');return;}
  if(tab==='stocks'&&YummyStocksSettings.hidden()){showToast('Stocks are hidden. An admin can show them in Management.');return;}
  const tabs=['live','history','dashboard','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
- if(tab==='management'&&staffRole!=='admin'||tab==='devices'&&!canManageCustomerDevices()||tab==='notifications'&&!['admin','manager'].includes(staffRole))return;
+ if(tab==='management'&&!['admin','manager'].includes(staffRole)||tab==='devices'&&!canManageCustomerDevices()||tab==='notifications'&&!['admin','manager'].includes(staffRole))return;
  currentTab=tab;tabs.forEach(t=>{$(t+'Section').hidden=t!==tab;$(t+'Section').style.display=t===tab?'block':'none';$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn').classList.toggle('active',t===tab);});
- if(tab==='billing')YummyBilling.open();if(tab==='management'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(true);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
+ if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(true);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
 }
 function setFilter(f){if(['all','Served'].includes(f)){recordStatusFilter=f==='all'?'All':f;recordOffset=0;$('recordStatusFilter').value=recordStatusFilter;switchTab('history');return;}currentFilter=['active','Pending','Cancelled'].includes(f)?f:'active';if(currentFilter==='Cancelled'){cancelledOffset=0;refreshCancelledOrders();}renderOrders();}
 function statusPill(o){return `<span class="status-pill ${esc(o.status.toLowerCase())}">${esc(o.status)}</span>`;}
@@ -187,7 +197,7 @@ function renderAdminMenu(){
 }
 function filterStaffMenu(){staffMenuQuery=$('staffMenuSearch').value;staffMenuCategory=$('staffMenuCategory').value;staffMenuAvailability=$('staffMenuAvailability').value;renderAdminMenu();}
 function clearStaffMenuFilters(){staffMenuQuery='';staffMenuCategory='All';staffMenuAvailability='all';$('staffMenuSearch').value='';$('staffMenuAvailability').value='all';renderAdminMenu();}
-let pricingVersion=null;
+let pricingVersion=null,pricingSnapshot=null;
 function addPricingSize(key='',label='',price=''){
  const root=$('pricingSizeRows');
  if(root.children.length>=20){$('pricingStatus').textContent='A dish can have up to 20 sizes.';return;}
@@ -197,7 +207,7 @@ function addPricingSize(key='',label='',price=''){
  if(!key)row.querySelector('input').focus();
 }
 function openMenuPricing(id){
- const item=menuItems.find(i=>i.id===id);if(!item)return;pricingMenuId=id;pricingVersion=item.updated_at;
+ const item=menuItems.find(i=>i.id===id);if(!item)return;pricingMenuId=id;pricingVersion=item.updated_at;pricingSnapshot={name:item.name,description:item.description||'',category:item.category,veg:item.veg!==false,sizes_enabled:item.sizes_enabled===true,price:Number(item.price),size_prices:item.size_prices||{},size_labels:item.size_labels||{}};
  $('pricingItemName').textContent=item.name;$('pricingUseSizes').checked=item.sizes_enabled===true;$('pricingBasePrice').value=Number(item.price).toFixed(2);
  $('pricingDishName').value=item.name;$('pricingDescription').value=item.description||'';$('pricingVeg').checked=item.veg!==false;
  $('pricingCategory').replaceChildren(...Cloud.categories.slice(1).map(c=>new Option(c,c)));$('pricingCategory').value=item.category;
@@ -219,7 +229,15 @@ async function saveMenuPricing(event){
  const metadata=staffRole==='admin'?{name:$('pricingDishName').value.trim(),description:$('pricingDescription').value.trim(),category:$('pricingCategory').value,veg:$('pricingVeg').checked}:null;
  if(metadata&&(!metadata.name||metadata.name.length>120)){$('pricingStatus').textContent='Enter a dish name (up to 120 characters).';return;}
  const button=$('pricingSave');button.disabled=true;
- try{await Cloud.rpc('restaurant_menu_customize',{p_id:pricingMenuId,p_sizes_enabled:mode,p_base_price:base,p_size_prices:prices,p_size_labels:labels,p_details:metadata,p_expected_updated_at:pricingVersion},true);$('menuPricingModal').close();await refreshCloud();await window.Custom48?.refreshManagementDishes();showToast('Menu changes saved. Customer menus and waiter billing use the shared menu.');}
+ try{
+  // Re-read just before saving. Ignore unrelated dish changes (photo, availability, badges, stock),
+  // but preserve conflict protection if another manager changed fields this editor controls.
+  const latestRows=await Cloud.menu(true),latest=latestRows.find(i=>i.id===pricingMenuId);
+  if(!latest)throw Error('Menu item not found. Reload the menu.');
+  const latestEditable={name:latest.name,description:latest.description||'',category:latest.category,veg:latest.veg!==false,sizes_enabled:latest.sizes_enabled===true,price:Number(latest.price),size_prices:latest.size_prices||{},size_labels:latest.size_labels||{}};
+  if(JSON.stringify(latestEditable)!==JSON.stringify(pricingSnapshot))throw Error('This dish changed on another device. Close the editor, refresh, then try again.');
+  pricingVersion=latest.updated_at;
+  await Cloud.rpc('restaurant_menu_customize',{p_id:pricingMenuId,p_sizes_enabled:mode,p_base_price:base,p_size_prices:prices,p_size_labels:labels,p_details:metadata,p_expected_updated_at:pricingVersion},true);pricingSnapshot=null;$('menuPricingModal').close();await refreshCloud();await window.Custom48?.refreshManagementDishes();showToast('Menu changes saved. Customer menus and waiter billing use the shared menu.');}
  catch(e){$('pricingStatus').textContent=/restaurant_menu_customize|schema cache/.test(e.message)?'Install SUPABASE/YUMMY-MOMO-36.sql, then refresh this page.':e.message;}
  finally{button.disabled=false;}
 }
@@ -301,7 +319,7 @@ async function exportRecords(){
  const quote=v=>'"'+String(v??'').replace(/^[=+@\-\t\r]/,"'$&").replace(/"/g,'""')+'"',rows=[['Time','Order number','Table','Customer','Items','Items subtotal','Tax','Total','Payment method','Status'],...all.map(o=>[o.created_at,Cloud.orderLabel(o),Cloud.tableName(o.table_number),o.customer_name,o.items.map(i=>i.qty+'x '+i.name+' @ '+money(i.price)+' = '+money(i.subtotal??Number(i.qty)*Number(i.price))).join('; '),o.items_subtotal??o.total,o.tax_amount??0,o.total,o.payment_method||'',o.status])];download('restaurant-orders-'+period+'.csv','\uFEFF'+rows.map(r=>r.map(quote).join(',')).join('\r\n'),'text/csv');showToast('Exported '+all.length+' orders from the selected period.');}
  catch(e){showToast('Export failed: '+e.message);}finally{exportBusy=false;}
 }
-async function toggleRecommended(id,b){const item=menuItems.find(i=>i.id===id);if(!item)return;b.disabled=true;try{await patchMenuOptions(id,{recommended:!item.recommended});await refreshCloud();showToast('Recommendation updated.');}catch(e){showToast(e.message);}finally{b.disabled=false;}}
+async function toggleRecommended(id,b){const item=menuItems.find(i=>i.id===id);if(!item)return;const next=!item.recommended;b.disabled=true;try{const saved=await patchMenuOptions(id,{recommended:next});item.recommended=saved?.recommended===true;renderAdminMenu();await refreshCloud();showToast(next?'Marked Recommended. Customer menus update within 30 seconds.':'Recommended label removed. Customer menus update within 30 seconds.');}catch(e){showToast(/restaurant_manager_menu_flags|recommended|schema cache/i.test(e.message)?'Menu flag setup is missing. Run SUPABASE/UPGRADE-EXISTING-PROJECT.sql, then refresh this page.':e.message);}finally{b.disabled=false;}}
 document.addEventListener('click',event=>{const b=event.target.closest('button');if(!b)return;
  if(b.dataset.filter)setFilter(b.dataset.filter);if(b.dataset.next)setOrderStatus(b.dataset.id,b.dataset.next,b);if(b.dataset.bill)showBillPreview(b.dataset.bill);
  if(b.dataset.pricing)openMenuPricing(b.dataset.pricing);if(b.dataset.priceOnly)changePriceOnly(b.dataset.priceOnly);if(b.dataset.bestSeller)toggleBestSeller(b.dataset.bestSeller,b);if(b.dataset.recommended)toggleRecommended(b.dataset.recommended,b);if(b.dataset.availability)toggleAvailability(b.dataset.availability,b);if(b.dataset.edit)editMenuDetails(b.dataset.edit);if(b.dataset.deleteItem)deleteMenuItem(b.dataset.deleteItem);if(b.dataset.itemPhoto)showItemPhotoModal(b.dataset.itemPhoto);
@@ -319,7 +337,7 @@ async function saveReviewSettings(event){event.preventDefault();const b=$('revie
 
 function reviewSettingsError(e){return /restaurant_review_settings|schema cache/.test(e.message)?'Database setup missing: run SUPABASE/UPGRADE-EXISTING-PROJECT.sql in this shop’s Supabase project, wait a few seconds, then refresh this page.':e.message;}
 
-async function toggleBestSeller(id,b){const item=menuItems.find(i=>i.id===id);if(!item)return;b.disabled=true;try{await patchMenuOptions(id,{best_seller:!item.best_seller});await refreshCloud();showToast(item.best_seller?'Best seller removed.':'Item marked as Best seller.');}catch(e){showToast(/best_seller|schema cache/.test(e.message)?'Run SUPABASE/BEST-SELLER-UPDATE.sql first, then refresh kitchen.':e.message);}finally{b.disabled=false;}}
+async function toggleBestSeller(id,b){const item=menuItems.find(i=>i.id===id);if(!item)return;const next=!item.best_seller;b.disabled=true;try{const saved=await patchMenuOptions(id,{best_seller:next});item.best_seller=saved?.best_seller===true;renderAdminMenu();await refreshCloud();showToast(next?'Marked Best seller. Customer menus update within 30 seconds.':'Best seller label removed. Customer menus update within 30 seconds.');}catch(e){showToast(/restaurant_manager_menu_flags|best_seller|schema cache/i.test(e.message)?'Menu flag setup is missing. Run SUPABASE/UPGRADE-EXISTING-PROJECT.sql, then refresh this page.':e.message);}finally{b.disabled=false;}}
 
 let requestRows=[],lastRequestAlarm=0,reservedSeen=new Set();
 function renderRequestAlerts(rows){rows=rows.filter(r=>r.request_kind!=='Reception'&&r.table_number!=='COUNTER'&&r.table_number!=='RECEPTION');requestRows=rows;const current=rows.filter(r=>r.request_kind==='ReservedScan');const box=$('reservedStaffAlert');box.hidden=!current.length;box.textContent=current.map(r=>'Reserved table QR opened · '+Cloud.tableName(r.table_number)+' — please check seating.').join(' ');if(rows.some(r=>!reservedSeen.has(r.id))){if(current.length)showToast(box.textContent);lastRequestAlarm=0;checkAlarm();}if(!rows.length)stopAlarmSound();reservedSeen=new Set(rows.map(r=>r.id));}
@@ -328,7 +346,7 @@ let staffCallAttempt=null;
 async function openStaffCall(){try{const data=await Cloud.rpc('restaurant_manage_tables',{p_action:'list',p_table:null,p_status:null},true);Cloud.setTableNames(data);$('staffCallTable').innerHTML='<option value="COUNTER">Counter</option>'+data.map(t=>`<option value="${esc(t.table_number)}">${esc(Cloud.tableName(t.table_number))}</option>`).join('');$('staffCallStatus').textContent='';$('staffCallSend').disabled=false;$('staffCallModal').showModal();}catch(e){showToast(e.message);}}
 async function sendStaffCall(event){event.preventDefault();const table=$('staffCallTable').value,b=$('staffCallSend');b.disabled=true;try{if(staffCallAttempt?.table!==table)staffCallAttempt={id:crypto.randomUUID(),table};await Cloud.rpc('restaurant_staff_call',{p_request_id:staffCallAttempt.id,p_table:table},true);staffCallAttempt=null;$('staffCallStatus').textContent=table==='COUNTER'?'Waiter requested at counter.':'Waiter requested for '+Cloud.tableName(table);await kitchenRequests.refresh();}catch(e){$('staffCallStatus').textContent=e.message;}finally{b.disabled=false;}}
 
-function patchMenuOptions(id,patch){if(staffRole==='manager')return Cloud.rpc('restaurant_manager_menu_flags',{p_id:id,p_available:patch.available??null,p_recommended:patch.recommended??null,p_best_seller:patch.best_seller??null},true);return Cloud.patchMenu(id,patch);}
+function patchMenuOptions(id,patch){return Cloud.rpc('restaurant_manager_menu_flags',{p_id:id,p_available:patch.available??null,p_recommended:patch.recommended??null,p_best_seller:patch.best_seller??null},true);}
 
 const requestRing=RequestRing.mount({scope:'kitchen',button:document.getElementById('soundButton'),onActive:()=>orderRing.pause()});
 const orderRing=RequestRing.mount({scope:'kitchen-orders',kind:'order',button:document.getElementById('orderSoundButton'),suppressed:()=>requestRing.enabled&&requestRing.dialog.open});

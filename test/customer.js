@@ -369,7 +369,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   renderOrderLists();if(activeOrder)renderTracking();TableAccess.init().then(()=>{if(TableAccess.canCall()){pollActiveOrder();loadSharedMenu();loadPublicReviewSettings();}});
  }catch(e){message(e.message,true);}
 });
-Cloud.schedule('customer-menu',10000,loadSharedMenu);Cloud.schedule('customer-receipts',10000,pollActiveOrder);
+Cloud.schedule('customer-menu',30000,loadSharedMenu);Cloud.schedule('customer-receipts',10000,pollActiveOrder);
 setInterval(()=>{if(!document.hidden){pruneReceipts();renderOrderLists();updateCancelTimer();}},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadSharedMenu();pollActiveOrder();}});
 

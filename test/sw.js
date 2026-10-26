@@ -36,6 +36,7 @@ self.addEventListener('notificationclick',event=>{
 
 // Public content-addressed catalog photos only. Never cache RPC/Auth/order responses.
 const PHOTO_CACHE='yummy-public-photos-v46';
+const MAX_PUBLIC_MENU_PHOTOS=250; // Enough for a 200-dish menu plus category banners; public content-addressed photos only.
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
  for(const name of await caches.keys())if(name.startsWith('yummy-public-photos-')&&name!==PHOTO_CACHE)await caches.delete(name);
 })()));
@@ -46,7 +47,7 @@ self.addEventListener('fetch',event=>{
   const cache=await caches.open(PHOTO_CACHE),hit=await cache.match(u.href);if(hit)return hit;
   const response=await fetch(u.href,{mode:'cors',credentials:'omit',cache:'default'});
   if(response.ok&&/^image\//.test(response.headers.get('Content-Type')||'')){
-   try{await cache.put(u.href,response.clone());const keys=await cache.keys();for(const old of keys.slice(0,Math.max(0,keys.length-80)))await cache.delete(old);}catch{} // Quota failure does not block an image.
+   try{await cache.put(u.href,response.clone());const keys=await cache.keys();for(const old of keys.slice(0,Math.max(0,keys.length-MAX_PUBLIC_MENU_PHOTOS)))await cache.delete(old);}catch{} // Quota failure does not block an image.
   }
   return response;
  })());
