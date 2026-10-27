@@ -168,12 +168,34 @@ async function refreshRecords(){
  catch(e){showToast('Records could not load: '+e.message);}
  finally{recordsBusy=false;if(recordsPending){recordsPending=false;refreshRecords();}}
 }
+function recordPaymentEditingEnabled(){return window.Custom48?.get?.()?.orderRecordPaymentEdit!==false;}
+function recordPaymentCell(o){
+ if(!recordPaymentEditingEnabled())return esc(o.payment_method||'—');
+ const id=esc(o.id),name='recordPayment_'+String(o.id).replace(/[^a-zA-Z0-9_-]/g,'');
+ return `<div class="record-payment59" role="group" aria-label="Payment method for ${esc(Cloud.orderLabel(o))}"><label><input type="radio" name="${name}" value="Cash" data-record-payment="${id}" ${o.payment_method==='Cash'?'checked':''}> Cash</label><label><input type="radio" name="${name}" value="Online" data-record-payment="${id}" ${o.payment_method==='Online'?'checked':''}> Online</label></div>`;
+}
+const recordPaymentBusy59=new Set();
+document.addEventListener('change',async event=>{
+ const input=event.target.closest?.('input[data-record-payment]');if(!input||!loggedIn||!recordPaymentEditingEnabled())return;
+ const id=input.dataset.recordPayment;if(recordPaymentBusy59.has(id))return;
+ const row=(recordsData?.records||[]).find(o=>o.id===id);if(!row)return;
+ const old=row.payment_method||null,next=input.value;recordPaymentBusy59.add(id);
+ for(const el of document.querySelectorAll(`input[data-record-payment="${CSS.escape(id)}"]`))el.disabled=true;
+ try{
+  const saved=await Cloud.rpc('restaurant_set_record_payment59',{p_order:id,p_payment_method:next},true);
+  if(!saved?.id)throw Error('Payment method was not saved. Run SUPABASE/UPDATE-59-ORDER-RECORD-PAYMENT-EDIT.sql.');
+  row.payment_method=saved.payment_method||next;
+  const live=orders.find(o=>o.id===id);if(live)live.payment_method=row.payment_method;
+  if(analyticsData?.recent){const recent=analyticsData.recent.find(o=>o.id===id);if(recent)recent.payment_method=row.payment_method;}
+  showToast('Payment method changed to '+row.payment_method+'.');
+ }catch(error){row.payment_method=old;showToast(error.message);}finally{recordPaymentBusy59.delete(id);renderHistory();}
+});
 function renderHistory(){
  if(!recordsData)return;const d=recordsData;
  $('statTotalOrders').textContent=d.total_orders;$('statTotalRevenue').textContent=money(d.total_value);$('statCompletedOrders').textContent=d.completed_orders;
  $('recordPeriodLabel').textContent=(recordReference?'Selected ':'Current ')+recordPeriod+' · '+calendarLabel(d.period_start)+' to '+calendarLabel(new Date(new Date(d.period_stop+'T12:00:00Z').getTime()-86400000).toISOString().slice(0,10))+' · India time';
  const expandedItems=new Set([...$('historyTableBody').querySelectorAll('[data-order-items][open]')].map(el=>el.dataset.orderItems));
- $('historyTableBody').innerHTML=d.records.length?d.records.map(o=>`<tr><td data-label="Time">${dateText(o.created_at)}<br>${timeText(o.created_at)}</td><td data-label="Order ID" title="${esc(o.order_id)}">${esc(shortId(o))}</td><td data-label="Table">${esc(Cloud.tableName(o.table_number))}</td><td data-label="Dish amounts">${orderItemBreakdown(o)}</td><td data-label="Notes">${esc(o.kitchen_notes||'—')}</td><td data-label="Order total">${money(o.total)}</td><td data-label="Payment">${esc(o.payment_method||'—')}</td><td data-label="Status">${statusPill(o)}</td><td data-label="Actions"><div class="toolbar">${actionButtons(o,true)}</div></td></tr>`).join(''):'<tr><td colspan="9" class="empty">No orders in this calendar period.</td></tr>';
+ $('historyTableBody').innerHTML=d.records.length?d.records.map(o=>`<tr><td data-label="Time">${dateText(o.created_at)}<br>${timeText(o.created_at)}</td><td data-label="Order ID" title="${esc(o.order_id)}">${esc(shortId(o))}</td><td data-label="Table">${esc(Cloud.tableName(o.table_number))}</td><td data-label="Dish amounts">${orderItemBreakdown(o)}</td><td data-label="Notes">${esc(o.kitchen_notes||'—')}</td><td data-label="Order total">${money(o.total)}</td><td data-label="Payment">${recordPaymentCell(o)}</td><td data-label="Status">${statusPill(o)}</td><td data-label="Actions"><div class="toolbar">${actionButtons(o,true)}</div></td></tr>`).join(''):'<tr><td colspan="9" class="empty">No orders in this calendar period.</td></tr>';
  $('historyTableBody').querySelectorAll('[data-order-items]').forEach(el=>el.open=expandedItems.has(el.dataset.orderItems));
  $('recordsPrevious').disabled=d.offset===0;$('recordsNext').disabled=d.offset+d.records.length>=(d.retained_orders??d.total_orders);
  $('recordsPageLabel').textContent=(d.retained_orders??d.total_orders)?`${d.offset+1}–${d.offset+d.records.length} of ${d.retained_orders??d.total_orders} retained orders`:'0 retained orders';

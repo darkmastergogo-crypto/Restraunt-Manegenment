@@ -61,11 +61,11 @@ const BackgroundAlerts=(()=>{
  async function diagnostics(){
   try{const d=await Cloud.rpc('restaurant_push_diagnostics',{p_kind:role,p_key:role==='waiter'?key:null},role==='kitchen');
    const h=d.sender;let message='Notifications allowed and this device registered. ';
-   if(!d.delivery_configured)message+='Background delivery is NOT configured. Owner: complete PUSH/02-enable-delivery.sql and deploy the Release 39 sender. Foreground fallback remains available.';
+   if(!d.delivery_configured)message+='Background delivery is NOT configured. Owner: complete OWNER-OPTIONAL/PUSH/02-enable-delivery.sql and deploy the Release 39 sender. Foreground fallback remains available.';
    else if(!h?.last_run)message+='Sender configuration found, but no successful Release 39 sender run recorded. Send a real test event and check Edge Function logs.';
    else message+='Last sender run: '+new Date(h.last_run).toLocaleString()+'. Provider accepted: '+h.accepted+'; retry: '+h.retry+'; expired subscriptions: '+h.expired+'. This is not proof of delivery to this device. System volume and Do Not Disturb still apply.';
    text(message,!d.delivery_configured);return d;
-  }catch(e){text('Device registered, but delivery diagnostics failed: '+e.message+'. Run YUMMY-MOMO-39.sql and deploy the sender.',true);return null;}
+  }catch(e){text('Device registered, but delivery diagnostics failed: '+e.message+'. Run SUPABASE/YUMMY-MOMO-39.sql and deploy the sender.',true);return null;}
  }
  async function notifyRows(kind,rows){
   if(!initialized||suspended||!preference()||!supported()||Notification.permission!=='granted')return;
