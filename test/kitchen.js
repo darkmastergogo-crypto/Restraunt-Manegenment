@@ -106,9 +106,9 @@ function configureManagementAccess(){
  const section=$('managementSection'),waiter=$('waiterAccessPanel');if(!section||!waiter)return;
  const manager=staffRole==='manager';
  for(const child of section.children){if(child.tagName==='H2'||child===waiter)continue;child.hidden=manager;}
- const permissions=$('waiterPermissionsForm'),note=$('waiterManagerNote');
+ const permissions=$('waiterPermissionsForm'),songSetting=$('songRequestsSetting');
  if(permissions)permissions.hidden=manager;
- if(note)note.hidden=!manager;
+ if(songSetting)songSetting.hidden=staffRole!=='admin';
 }
 
 function switchTab(tab){
