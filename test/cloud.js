@@ -9,6 +9,35 @@ const Cloud = (() => {
  const configured=publicKey && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) && key.length>20 && !/YOUR_|PASTE_/i.test(key+url);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const safeImage=v=>typeof v==='string' && (/^https:\/\//i.test(v)||/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v))?v:'';
+ // Release58: true deferred public menu images. `data-low-src` never starts a
+ // network request; the real `src` is assigned only as the image approaches
+ // the viewport. This is stricter than native loading=lazy and keeps unseen
+ // category/dish photos at zero image egress for that visit.
+ let lowImageObserver=null;
+ function deferImages(root=document){
+  if(!root)return;
+  const images=[];
+  if(root.matches?.('img[data-low-src]'))images.push(root);
+  if(root.querySelectorAll)images.push(...root.querySelectorAll('img[data-low-src]'));
+  if(!images.length)return;
+  const load=img=>{
+   const source=safeImage(img.dataset.lowSrc||'');
+   if(!source){img.removeAttribute('data-low-src');return;}
+   img.loading='lazy';img.decoding='async';try{img.fetchPriority='low';}catch{}
+   if(img.getAttribute('src')!==source)img.setAttribute('src',source);
+   img.removeAttribute('data-low-src');img.removeAttribute('data-low-observed');
+   lowImageObserver?.unobserve(img);
+  };
+  if(!('IntersectionObserver' in window)){images.forEach(load);return;}
+  if(!lowImageObserver)lowImageObserver=new IntersectionObserver(entries=>{
+   for(const entry of entries)if(entry.isIntersecting)load(entry.target);
+  },{root:null,rootMargin:'160px 0px',threshold:0.01});
+  for(const img of images){
+   img.loading='lazy';img.decoding='async';try{img.fetchPriority='low';}catch{}
+   if(img.dataset.lowObserved==='1')continue;
+   img.dataset.lowObserved='1';lowImageObserver.observe(img);
+  }
+ }
  // Schema46 persistent journals are project-scoped. Adopt legacy state only for the
  // first project using this origin; keep legacy copies for old tabs and rollback.
  let legacyProject='';try{legacyProject=localStorage.getItem('YUMMY46_LEGACY_PROJECT')||url;if(url&&!localStorage.getItem('YUMMY46_LEGACY_PROJECT'))localStorage.setItem('YUMMY46_LEGACY_PROJECT',url);}catch{}
@@ -131,7 +160,7 @@ const Cloud = (() => {
   const epoch=cacheEpoch;const job=rpc('restaurant_table_names',{p_table:table,p_waiter_key:key},staff).then(rows=>{if(epoch===cacheEpoch){setTableNames(rows);tableNamesAt.set(id,Date.now());}return rows;}).finally(()=>tableNamesBusy.delete(id));tableNamesBusy.set(id,job);return job;
  }
  const orderLabel=o=>Number.isSafeInteger(Number(o?.daily_number))&&Number(o.daily_number)>0?'Order no. '+Number(o.daily_number):'Order number pending sync';
- return {cfg,configured,tableName,setTableNames,refreshTableNames,orderLabel,esc,safeImage,read,write,remove,privateKey,sessionRead,sessionWrite,sessionRemove,categories,setCategories,normalizeCategory,menuRow,rpc,request,login,logout,hasSession:()=>!!session,
+ return {cfg,configured,tableName,setTableNames,refreshTableNames,orderLabel,esc,safeImage,deferImages,read,write,remove,privateKey,sessionRead,sessionWrite,sessionRemove,categories,setCategories,normalizeCategory,menuRow,rpc,request,login,logout,hasSession:()=>!!session,
   mfaFactors:async()=>{const user=await request('/auth/v1/user',{staff:true});return (user.factors||[]).filter(f=>f.factor_type==='totp');},
   mfaEnroll:()=>request('/auth/v1/factors',{method:'POST',body:{factor_type:'totp',friendly_name:'Yummy Momo admin '+new Date().toISOString(),issuer:'Yummy Momo'},staff:true}),
   mfaUnenrollPending:id=>request('/auth/v1/factors/'+encodeURIComponent(id),{method:'DELETE',staff:true}),

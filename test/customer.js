@@ -87,7 +87,7 @@ const RECEIPT_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
         const size=item.sizes_enabled?selectedSizes[item.id]:null,key=cartKey(item.id,size),unitPrice=size?Number(item.size_prices[size]):item.price;
         const inCartQty=cart[key]?.qty||0;const sizeAttr=size?' data-size="'+size+'"':'';
         const imgHtml = (window.Custom48?.photoMode()==='dish' && item.image)
-          ? `<img class="item-img" src="${Cloud.esc(Cloud.safeImage(item.image))}" alt="${Cloud.esc(item.name)}" loading="lazy" decoding="async">`
+          ? `<img class="item-img" data-low-src="${Cloud.esc(Cloud.safeImage(item.image))}" alt="${Cloud.esc(item.name)}" loading="lazy" decoding="async" fetchpriority="low">`
           : `<div class="item-img" style="display:flex;align-items:center;justify-content:center;font-size:2.8rem;background:var(--soft);border-radius:12px;"><svg class="ui-icon" aria-hidden="true" style="width:42px;height:42px;color:var(--red)"><use href="icons.svg#momo"></use></svg></div>`;
 
         return `
@@ -122,6 +122,7 @@ const RECEIPT_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
         `;
       }).join('');
       patchMenuCards(container,markup,changedId);
+      Cloud.deferImages?.(container);
       window.Custom48?.renderCategoryPhotos(categoryPhotoItems48);
     }
 
