@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "name": "restaurant-pwa-blob",
+  "version": "64.0.0",
+  "dependencies": {"@vercel/blob": "^2.0.0"}
+}
