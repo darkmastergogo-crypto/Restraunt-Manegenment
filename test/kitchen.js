@@ -78,7 +78,7 @@ function refreshOrders(){
  return orderSyncPromise;
 }
 function refreshBackgroundData(){
- if(!loggedIn)return Promise.resolve();
+ if(!loggedIn||window.Custom48?.sectionHidden(currentTab))return Promise.resolve();
  if(summarySyncPromise)return summarySyncPromise;
  summarySyncPromise=(async()=>{
   const [menuResult,summaryResult,categoriesResult]=await Promise.allSettled([
@@ -112,11 +112,18 @@ function configureManagementAccess(){
 }
 
 function switchTab(tab){
- if(window.Custom48?.sectionHidden(tab)){showToast('This section is hidden by the administrator.');return;}
- if(tab==='stocks'&&YummyStocksSettings.hidden()){showToast('Stocks are hidden. An admin can show them in Management.');return;}
  const tabs=['live','history','dashboard','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
  if(tab==='management'&&!['admin','manager'].includes(staffRole)||tab==='devices'&&!canManageCustomerDevices()||tab==='notifications'&&!['admin','manager'].includes(staffRole))return;
- currentTab=tab;tabs.forEach(t=>{$(t+'Section').hidden=t!==tab;$(t+'Section').style.display=t===tab?'block':'none';$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn').classList.toggle('active',t===tab);});
+ const blocked=$('hiddenByAdminSection');
+ if(window.Custom48?.sectionHidden(tab)){
+  currentTab=tab;
+  tabs.forEach(t=>{const section=$(t+'Section');if(section){section.hidden=true;section.style.display='none';}const button=$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn');if(button)button.classList.toggle('active',t===tab);});
+  if(blocked){const label=$('tab'+tab[0].toUpperCase()+tab.slice(1)+'Btn')?.innerText?.replace(/\s*\(\d+\)\s*$/,'').trim()||'This tab';$('hiddenByAdminTabName').textContent=label;blocked.hidden=false;blocked.style.display='grid';}
+  return;
+ }
+ if(blocked){blocked.hidden=true;blocked.style.display='none';}
+ if(tab==='stocks'&&YummyStocksSettings.hidden()){showToast('Stocks are hidden. An admin can show them in Management.');return;}
+ currentTab=tab;tabs.forEach(t=>{const section=$(t+'Section');if(section){section.hidden=t!==tab;section.style.display=t===tab?'block':'none';}const button=$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn');if(button)button.classList.toggle('active',t===tab);});
  if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(true);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
 }
 function setFilter(f){if(['all','Served'].includes(f)){recordStatusFilter=f==='all'?'All':f;recordOffset=0;$('recordStatusFilter').value=recordStatusFilter;switchTab('history');return;}currentFilter=['active','Pending','Cancelled'].includes(f)?f:'active';if(currentFilter==='Cancelled'){cancelledOffset=0;refreshCancelledOrders();}renderOrders();}
@@ -155,7 +162,7 @@ async function setOrderStatus(id,next,button){
 let recordStatusFilter='All';
 function selectRecordStatus(){recordStatusFilter=$('recordStatusFilter').value;recordOffset=0;refreshRecords();}
 function fetchRecordPage(period,reference,offset,limit,status=recordStatusFilter){return Cloud.rpc('restaurant_filtered_records',{p_period:period,p_reference:reference||null,p_offset:offset,p_limit:limit,p_status:status},true);}
-let recordPeriod='day',recordReference=null,recordOffset=0,recordsData=null,recordsBusy=false,recordsPending=false,daySummary=null;
+let recordPeriod='day',recordReference=null,recordOffset=0,recordsData=null,recordsBusy=false,recordsPending=false,daySummary=null,recordsServerOffset61=0,recordPaymentExpiryTimer61=null;
 function calendarLabel(value){return new Date(value+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'});}
 function setRecordPeriod(period){if(!['day','month'].includes(period))return;recordPeriod=period;recordReference=null;recordOffset=0;$('recordDate').type=period==='day'?'date':period==='month'?'month':'number';$('recordDate').value='';if(period==='year'){$('recordDate').min='2000';$('recordDate').max='2100';$('recordDate').placeholder='2026';}['day','month'].forEach(p=>$('period'+p[0].toUpperCase()+p.slice(1)).className=p===period?'primary-btn':'secondary-btn');refreshRecords();}
 function selectRecordDate(){const value=$('recordDate').value;if(recordPeriod==='year'&&value&&!/^(20[0-9]{2}|2100)$/.test(value)){showToast('Choose a year from 2000 to 2100.');return;}recordReference=value?(recordPeriod==='day'?value:recordPeriod==='month'?value+'-01':value+'-01-01'):null;recordOffset=0;refreshRecords();}
@@ -164,31 +171,47 @@ function changeRecordPage(delta){recordOffset=Math.max(0,recordOffset+delta*50);
 async function refreshRecords(){
  if(!loggedIn)return;if(recordsBusy){recordsPending=true;return;}recordsBusy=true;
  const key=[recordPeriod,recordReference,recordOffset,recordStatusFilter].join('|');
- try{const result=await fetchRecordPage(recordPeriod,recordReference,recordOffset,50);if(key!==[recordPeriod,recordReference,recordOffset,recordStatusFilter].join('|'))return;recordsData=result;await refreshOrderDeviceStates();renderHistory();if(recordsView==='dishes')await refreshDishSales();}
+ try{const result=await fetchRecordPage(recordPeriod,recordReference,recordOffset,50);if(key!==[recordPeriod,recordReference,recordOffset,recordStatusFilter].join('|'))return;recordsData=result;const serverMs=Date.parse(result?.server_now);recordsServerOffset61=Number.isFinite(serverMs)?serverMs-Date.now():0;await refreshOrderDeviceStates();renderHistory();if(recordsView==='dishes')await refreshDishSales();}
  catch(e){showToast('Records could not load: '+e.message);}
  finally{recordsBusy=false;if(recordsPending){recordsPending=false;refreshRecords();}}
 }
 function recordPaymentEditingEnabled(){return window.Custom48?.get?.()?.orderRecordPaymentEdit!==false;}
+function recordPaymentWindowMinutes61(){const raw=Number(window.Custom48?.get?.()?.orderRecordPaymentEditMinutes);return Number.isFinite(raw)?Math.max(5,Math.min(1440,Math.round(raw))):120;}
+function recordPaymentNow61(){return Date.now()+recordsServerOffset61;}
+function recordPaymentIsQr61(o){return o?.order_source!=='manual'&&!String(o?.order_id||'').startsWith('MAN-');}
+function recordPaymentExpiresAt61(o){const created=Date.parse(o?.created_at);return Number.isFinite(created)?created+recordPaymentWindowMinutes61()*60000:NaN;}
 function recordPaymentCell(o){
- if(!recordPaymentEditingEnabled())return esc(o.payment_method||'—');
+ const saved=o.payment_method||'';
+ if(!recordPaymentIsQr61(o)||!recordPaymentEditingEnabled()||saved)return `<span class="record-payment-readonly61">${esc(saved||'Not recorded')}</span>`;
+ const expires=recordPaymentExpiresAt61(o);
+ if(!Number.isFinite(expires)||recordPaymentNow61()>=expires)return '<span class="record-payment-readonly61">Not recorded</span>';
  const id=esc(o.id),name='recordPayment_'+String(o.id).replace(/[^a-zA-Z0-9_-]/g,'');
- return `<div class="record-payment59" role="group" aria-label="Payment method for ${esc(Cloud.orderLabel(o))}"><label><input type="radio" name="${name}" value="Cash" data-record-payment="${id}" ${o.payment_method==='Cash'?'checked':''}> Cash</label><label><input type="radio" name="${name}" value="Online" data-record-payment="${id}" ${o.payment_method==='Online'?'checked':''}> Online</label></div>`;
+ return `<div class="record-payment59" role="group" aria-label="Set payment method for ${esc(Cloud.orderLabel(o))}"><label><input type="radio" name="${name}" value="Cash" data-record-payment="${id}"> Cash</label><label><input type="radio" name="${name}" value="Online" data-record-payment="${id}"> Online</label></div>`;
+}
+function scheduleRecordPaymentExpiry61(){
+ clearTimeout(recordPaymentExpiryTimer61);recordPaymentExpiryTimer61=null;
+ if(!recordPaymentEditingEnabled()||!recordsData?.records?.length)return;
+ const now=recordPaymentNow61(),future=recordsData.records.filter(o=>recordPaymentIsQr61(o)&&!o.payment_method).map(recordPaymentExpiresAt61).filter(t=>Number.isFinite(t)&&t>now);
+ if(!future.length)return;
+ const wait=Math.min(2147480000,Math.max(50,Math.min(...future)-now+50));
+ recordPaymentExpiryTimer61=setTimeout(()=>{recordPaymentExpiryTimer61=null;if(recordsData)renderHistory();},wait);
 }
 const recordPaymentBusy59=new Set();
 document.addEventListener('change',async event=>{
  const input=event.target.closest?.('input[data-record-payment]');if(!input||!loggedIn||!recordPaymentEditingEnabled())return;
  const id=input.dataset.recordPayment;if(recordPaymentBusy59.has(id))return;
- const row=(recordsData?.records||[]).find(o=>o.id===id);if(!row)return;
- const old=row.payment_method||null,next=input.value;recordPaymentBusy59.add(id);
+ const row=(recordsData?.records||[]).find(o=>o.id===id);if(!row||!recordPaymentIsQr61(row)||row.payment_method)return;
+ const expires=recordPaymentExpiresAt61(row);if(!Number.isFinite(expires)||recordPaymentNow61()>=expires){renderHistory();showToast('The payment edit window for this QR order has expired.');return;}
+ const next=input.value;recordPaymentBusy59.add(id);
  for(const el of document.querySelectorAll(`input[data-record-payment="${CSS.escape(id)}"]`))el.disabled=true;
  try{
   const saved=await Cloud.rpc('restaurant_set_record_payment59',{p_order:id,p_payment_method:next},true);
-  if(!saved?.id)throw Error('Payment method was not saved. Run SUPABASE/UPDATE-59-ORDER-RECORD-PAYMENT-EDIT.sql.');
+  if(!saved?.id)throw Error('Payment method was not saved. Run SUPABASE/UPDATE-61-QR-PAYMENT-LOCK.sql.');
   row.payment_method=saved.payment_method||next;
   const live=orders.find(o=>o.id===id);if(live)live.payment_method=row.payment_method;
   if(analyticsData?.recent){const recent=analyticsData.recent.find(o=>o.id===id);if(recent)recent.payment_method=row.payment_method;}
-  showToast('Payment method changed to '+row.payment_method+'.');
- }catch(error){row.payment_method=old;showToast(error.message);}finally{recordPaymentBusy59.delete(id);renderHistory();}
+  showToast('Payment method saved permanently as '+row.payment_method+'.');
+ }catch(error){showToast(error.message);}finally{recordPaymentBusy59.delete(id);renderHistory();}
 });
 function renderHistory(){
  if(!recordsData)return;const d=recordsData;
@@ -199,10 +222,11 @@ function renderHistory(){
  $('historyTableBody').querySelectorAll('[data-order-items]').forEach(el=>el.open=expandedItems.has(el.dataset.orderItems));
  $('recordsPrevious').disabled=d.offset===0;$('recordsNext').disabled=d.offset+d.records.length>=(d.retained_orders??d.total_orders);
  $('recordsPageLabel').textContent=(d.retained_orders??d.total_orders)?`${d.offset+1}–${d.offset+d.records.length} of ${d.retained_orders??d.total_orders} retained orders`:'0 retained orders';
+ scheduleRecordPaymentExpiry61();
 }
 function renderDashboard(){
  $('statActiveOrders').textContent=orders.filter(o=>o.status==='Pending').length;$('statInKitchen').textContent=orders.filter(o=>['Accepted','Cooking','Ready'].includes(o.status)).length;
- $('adminDate').textContent=dateText(new Date());$('adminTime').textContent=timeText(new Date());if(currentTab==='dashboard')refreshSalesAnalytics();
+ $('adminDate').textContent=dateText(new Date());$('adminTime').textContent=timeText(new Date());if(currentTab==='dashboard'&&!window.Custom48?.sectionHidden('dashboard'))refreshSalesAnalytics();
 }
 function renderAdminMenu(){
  const category=$('staffMenuCategory');if(category){const names=['All',...Cloud.categories.slice(1)];if(!names.includes(staffMenuCategory))staffMenuCategory='All';category.replaceChildren(...names.map(c=>new Option(c==='All'?'All categories':c,c)));category.value=staffMenuCategory;}
@@ -381,7 +405,7 @@ document.addEventListener('restaurant-table-names',()=>{
  if(typeof deviceData!=='undefined'&&deviceData)renderCustomerDevices();
  if(currentBillSnapshot&&$('billModal').open)$('billPreview').innerHTML=receiptHtml(currentBillSnapshot);
  const select=$('staffCallTable');if(select)for(const option of select.options)if(option.value!=='COUNTER')option.textContent=Cloud.tableName(option.value);
- if(currentTab==='tables'&&!document.querySelector('.table-name-form input[data-dirty="true"]'))void refreshTables();
+ if(currentTab==='tables'&&!window.Custom48?.sectionHidden('tables')&&!document.querySelector('.table-name-form input[data-dirty="true"]'))void refreshTables();
 });
 
 // Release46: one lightweight pulse drives background revisions and alerts.
@@ -401,14 +425,15 @@ function refreshStaffPulse46(){
    backgroundUnread46[key]=pulse[key].unread;BackgroundAlerts.notifyRows(kind,pulse[key].notifications);RestaurantAlerts.observeNotifications(pulse[key].notifications);
   }
   paintNotificationsBadge();
-  if(currentTab==='requests'&&(old.calls!==rev.calls||reconcile))await kitchenRequests?.refresh();
-  if(currentTab==='notifications'){
+  const currentTabHidden=window.Custom48?.sectionHidden(currentTab);
+  if(!currentTabHidden&&currentTab==='requests'&&(old.calls!==rev.calls||reconcile))await kitchenRequests?.refresh();
+  if(!currentTabHidden&&currentTab==='notifications'){
    if(old.stock_notices!==rev.stock_notices||reconcile)await refreshStockNotifications();
    if(old.security_notices!==rev.security_notices||old.permissions!==rev.permissions||reconcile)await refreshSecurityNotifications();
   }
-  if(currentTab==='history'&&(old.history!==rev.history||reconcile))await refreshRecords();
-  if(currentTab==='live'&&currentFilter==='Cancelled'&&(old.history!==rev.history||reconcile))await refreshCancelledOrders();
-  if(['menu','stocks','billing'].includes(currentTab)&&(old.catalog!==rev.catalog||old.stock!==rev.stock||old.config!==rev.config))await refreshBackgroundData();
+  if(!currentTabHidden&&currentTab==='history'&&(old.history!==rev.history||reconcile))await refreshRecords();
+  if(!currentTabHidden&&currentTab==='live'&&currentFilter==='Cancelled'&&(old.history!==rev.history||reconcile))await refreshCancelledOrders();
+  if(!currentTabHidden&&['menu','stocks','billing'].includes(currentTab)&&(old.catalog!==rev.catalog||old.stock!==rev.stock||old.config!==rev.config))await refreshBackgroundData();
   if(old.devices!==rev.devices||old.permissions!==rev.permissions)await refreshOrderDeviceStates();
   staffPulse46=rev;if(reconcile)staffPulseClock46=now;
  }catch(e){setConnection('Reconnecting…');cloudError('Updates could not refresh: '+e.message);if(!isTemporaryCloudFailure(e)){requestRing.disable();orderRing.disable();Cloud.clearPrivate();orders=[];menuItems=[];$('staffMain').hidden=true;$('managerNav').hidden=true;$('loginPanel').hidden=false;$('loginStatus').textContent='Staff access could not be verified. Reload or sign in again. '+e.message;loggedIn=false;}}

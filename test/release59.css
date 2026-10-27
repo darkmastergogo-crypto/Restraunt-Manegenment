@@ -9,3 +9,10 @@
 .record-payment-option59 input{width:18px;height:18px;min-height:18px;margin:0;accent-color:#e23744}
 .record-payment-option59 .hint{margin:6px 0 0 27px}
 @media(max-width:760px){.record-payment59{min-width:0}.record-payment59 label{padding:6px 8px}}
+
+/* Release61: one-time QR payment selection and configurable timeout. */
+.record-payment-readonly61{font-weight:700;white-space:nowrap}
+.record-payment-option59 .timeout-row61{display:grid;grid-template-columns:minmax(180px,1fr) minmax(90px,130px);align-items:center;gap:10px;margin:12px 0 0 27px}
+.record-payment-option59 .timeout-row61 label{font-weight:600}
+.record-payment-option59 .timeout-row61 input{width:100%;min-height:40px;margin:0;padding:8px 10px}
+@media(max-width:620px){.record-payment-option59 .timeout-row61{grid-template-columns:1fr;margin-left:0}}
