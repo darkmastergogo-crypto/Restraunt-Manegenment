@@ -124,7 +124,7 @@ function switchTab(tab){
  if(blocked){blocked.hidden=true;blocked.style.display='none';}
  if(tab==='stocks'&&YummyStocksSettings.hidden()){showToast('Stocks are hidden. An admin can show them in Management.');return;}
  currentTab=tab;tabs.forEach(t=>{const section=$(t+'Section');if(section){section.hidden=t!==tab;section.style.display=t===tab?'block':'none';}const button=$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn');if(button)button.classList.toggle('active',t===tab);});
- if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(true);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
+ if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(false);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
 }
 function setFilter(f){if(['all','Served'].includes(f)){recordStatusFilter=f==='all'?'All':f;recordOffset=0;$('recordStatusFilter').value=recordStatusFilter;switchTab('history');return;}currentFilter=['active','Pending','Cancelled'].includes(f)?f:'active';if(currentFilter==='Cancelled'){cancelledOffset=0;refreshCancelledOrders();}renderOrders();}
 function statusPill(o){return `<span class="status-pill ${esc(o.status.toLowerCase())}">${esc(o.status)}</span>`;}
@@ -278,7 +278,7 @@ async function saveMenuPricing(event){
  try{
   // Re-read just before saving. Ignore unrelated dish changes (photo, availability, badges, stock),
   // but preserve conflict protection if another manager changed fields this editor controls.
-  const latestRows=await Cloud.menu(true),latest=latestRows.find(i=>i.id===pricingMenuId);
+  const latest=await Cloud.rpc('restaurant_staff_menu_item63',{p_id:pricingMenuId},true);
   if(!latest)throw Error('Menu item not found. Reload the menu.');
   const latestEditable={name:latest.name,description:latest.description||'',category:latest.category,veg:latest.veg!==false,sizes_enabled:latest.sizes_enabled===true,price:Number(latest.price),size_prices:latest.size_prices||{},size_labels:latest.size_labels||{}};
   if(JSON.stringify(latestEditable)!==JSON.stringify(pricingSnapshot))throw Error('This dish changed on another device. Close the editor, refresh, then try again.');
@@ -351,7 +351,7 @@ async function shareWaiterLink(rotate=false){
 }
 async function copyWaiterLink(){if(!privateWaiterUrl)return;try{await navigator.clipboard.writeText(privateWaiterUrl);showToast('Waiter pairing link copied.');}catch{$('waiterLink').select();showToast('Copy the selected link manually.');}}
 async function shareLinkNative(){if(!privateWaiterUrl)return;try{if(navigator.share)await navigator.share({title:config.restaurantName?config.restaurantName+' · waiter pairing QR':'Waiter pairing QR',url:privateWaiterUrl});else await copyWaiterLink();}catch(e){if(e.name!=='AbortError')showToast('Use Copy link instead.');}}
-function findOrder(id){return orders.find(x=>x.id===id)||orderUndoReceipts.get(id)||cancelledOrdersData?.records.find(x=>x.id===id)||analyticsData?.recent.find(x=>x.id===id)||recordsData?.records.find(x=>x.id===id);}
+function findOrder(id){return orders.find(x=>x.id===id)||orderUndoReceipts.get(id)||cancelledOrdersData?.records.find(x=>x.id===id)||analyticsData?.recent?.find(x=>x.id===id)||recordsData?.records.find(x=>x.id===id);}
 let currentBillSnapshot=null;
 function receiptHtml(o){return YummyReceipt.html(o);}
 function showBillPreview(id){const o=findOrder(id);if(!o){showToast('Bill not found. Refresh records and try again.');return;}currentBillOrderId=id;currentBillSnapshot=structuredClone(o);$('billPreview').innerHTML=receiptHtml(currentBillSnapshot);if(!$('billModal').open)$('billModal').showModal();}
@@ -371,6 +371,95 @@ document.addEventListener('click',event=>{const b=event.target.closest('button')
  if(b.dataset.pricing)openMenuPricing(b.dataset.pricing);if(b.dataset.priceOnly)changePriceOnly(b.dataset.priceOnly);if(b.dataset.bestSeller)toggleBestSeller(b.dataset.bestSeller,b);if(b.dataset.recommended)toggleRecommended(b.dataset.recommended,b);if(b.dataset.availability)toggleAvailability(b.dataset.availability,b);if(b.dataset.edit)editMenuDetails(b.dataset.edit);if(b.dataset.deleteItem)deleteMenuItem(b.dataset.deleteItem);if(b.dataset.itemPhoto)showItemPhotoModal(b.dataset.itemPhoto);
 
 });
+
+// Release63: staff-heavy tabs load only when opened, then fetch small pages near the scroll edge.
+const renderAdminMenuBefore63=renderAdminMenu;
+let staffMenuTotal63=0,staffMenuHasMore63=false,staffMenuBusy63=false,staffMenuStarted63=false,staffMenuRequest63=0,staffMenuSearchTimer63=null,staffMenuReloadQueued63=false;
+function updateStaffMenuSentinel63(){
+ const el=$('staffMenuSentinel63');if(!el)return;
+ if(staffMenuBusy63)el.textContent='Loading more dishes…';
+ else if(!staffMenuStarted63)el.textContent='Open Menu to load dishes.';
+ else if(staffMenuHasMore63)el.textContent='Scroll to load more dishes';
+ else el.textContent=staffMenuTotal63?'All matching dishes loaded':'No matching dishes';
+}
+async function loadStaffMenuPage63(reset=false){
+ if(!loggedIn||currentTab!=='menu')return;if(staffMenuBusy63){if(reset)staffMenuReloadQueued63=true;return;}
+ const request=++staffMenuRequest63;if(reset){menuItems=[];staffMenuTotal63=0;staffMenuHasMore63=false;staffMenuStarted63=true;renderAdminMenuBefore63();}
+ staffMenuBusy63=true;updateStaffMenuSentinel63();
+ try{
+  const data=await Cloud.rpc('restaurant_staff_menu_page63',{p_query:staffMenuQuery,p_category:staffMenuCategory,p_availability:staffMenuAvailability,p_offset:reset?0:menuItems.length,p_limit:15},true);
+  if(request!==staffMenuRequest63||currentTab!=='menu'||!data)return;
+  if(Array.isArray(data.categories))Cloud.setCategories(data.categories);
+  const incoming=Array.isArray(data.items)?data.items:[];
+  if(reset)menuItems=incoming;else{const ids=new Set(menuItems.map(i=>i.id));for(const item of incoming)if(!ids.has(item.id)){ids.add(item.id);menuItems.push(item);}}
+  staffMenuTotal63=Number(data.total)||0;staffMenuHasMore63=menuItems.length<staffMenuTotal63&&incoming.length>0;staffMenuStarted63=true;renderAdminMenu();
+ }catch(e){if(reset&&!menuItems.length)staffMenuStarted63=false;showToast(/restaurant_staff_menu_page63|schema cache/i.test(e.message)?'Run RUN-THIS-RELEASE63.sql in Supabase, then refresh.':e.message);}
+ finally{staffMenuBusy63=false;updateStaffMenuSentinel63();if(staffMenuReloadQueued63){staffMenuReloadQueued63=false;void loadStaffMenuPage63(true);}}
+}
+function loadMoreStaffMenu63(){if(currentTab==='menu'&&staffMenuHasMore63&&!staffMenuBusy63)void loadStaffMenuPage63(false);}
+renderAdminMenu=function(){
+ renderAdminMenuBefore63();
+ if($('staffMenuCount'))$('staffMenuCount').textContent=staffMenuStarted63?`${menuItems.length} of ${staffMenuTotal63} matching dishes loaded`:'Dishes load when this tab opens.';
+ updateStaffMenuSentinel63();
+};
+filterStaffMenu=function(){
+ staffMenuQuery=$('staffMenuSearch').value;staffMenuCategory=$('staffMenuCategory').value;staffMenuAvailability=$('staffMenuAvailability').value;
+ clearTimeout(staffMenuSearchTimer63);$('staffMenuCount').textContent='Searching…';staffMenuSearchTimer63=setTimeout(()=>void loadStaffMenuPage63(true),250);
+};
+clearStaffMenuFilters=function(){
+ staffMenuQuery='';staffMenuCategory='All';staffMenuAvailability='all';$('staffMenuSearch').value='';$('staffMenuAvailability').value='all';$('staffMenuCategory').value='All';clearTimeout(staffMenuSearchTimer63);void loadStaffMenuPage63(true);
+};
+
+let recordsHasMore63=false,recordsGeneration63=0;
+function updateRecordsSentinel63(){
+ const el=$('recordsSentinel63');if(!el)return;
+ if(recordsBusy)el.textContent='Loading more order records…';
+ else if(!recordsData)el.textContent='Open Order Records to load recent records.';
+ else if(recordsHasMore63)el.textContent='Scroll to load more order records';
+ else el.textContent=recordsData.records?.length?'All matching order records loaded':'No order records in this period';
+}
+async function loadRecordPage63(reset=false){
+ if(!loggedIn||currentTab!=='history'||recordsView!=='orders')return;
+ if(recordsBusy){recordsPending=reset||recordsPending;return;}
+ if(reset){recordsGeneration63++;recordsData=null;recordOffset=0;recordsHasMore63=false;$('historyTableBody').innerHTML='<tr><td colspan="9" class="empty">Loading order records…</td></tr>';}
+ const generation=recordsGeneration63,offset=reset?0:(recordsData?.records?.length||0),queryKey=[recordPeriod,recordReference,recordStatusFilter,generation].join('|');recordsBusy=true;updateRecordsSentinel63();
+ try{
+  const page=await fetchRecordPage(recordPeriod,recordReference,offset,15);
+  if(generation!==recordsGeneration63||queryKey!==[recordPeriod,recordReference,recordStatusFilter,generation].join('|'))return;
+  const previous=reset?[]:(recordsData?.records||[]),seen=new Set(previous.map(o=>o.id)),merged=[...previous];for(const row of page.records||[])if(!seen.has(row.id)){seen.add(row.id);merged.push(row);}
+  recordsData={...page,offset:0,records:merged};recordOffset=merged.length;const total=Number(page.retained_orders??page.total_orders??0);recordsHasMore63=merged.length<total&&(page.records||[]).length>0;
+  const serverMs=Date.parse(page?.server_now);recordsServerOffset61=Number.isFinite(serverMs)?serverMs-Date.now():0;await refreshOrderDeviceStates();renderHistory();
+ }catch(e){showToast(/restaurant_filtered_records|schema cache/i.test(e.message)?'Order Records setup is missing. Run the supplied database updates.':'Records could not load: '+e.message);}
+ finally{recordsBusy=false;updateRecordsSentinel63();if(recordsPending){recordsPending=false;void loadRecordPage63(true);}}
+}
+refreshRecords=function(){return recordsView==='dishes'?refreshDishSales():loadRecordPage63(true);};
+changeRecordPage=function(delta){if(delta>0)return loadRecordPage63(false);if(delta<0)return loadRecordPage63(true);};
+function loadMoreRecords63(){if(currentTab==='history'&&recordsView==='orders'&&recordsHasMore63&&!recordsBusy)void loadRecordPage63(false);}
+
+// Replace the old background screen sync. Heavy tabs now own their lazy reads.
+refreshBackgroundData=function(){
+ if(!loggedIn||window.Custom48?.sectionHidden(currentTab))return Promise.resolve();
+ if(summarySyncPromise)return summarySyncPromise;
+ summarySyncPromise=(async()=>{
+  if(currentTab==='menu'&&!staffMenuStarted63)await loadStaffMenuPage63(true);
+  if(currentTab==='dashboard')await refreshSalesAnalytics(false);
+  if(currentTab==='stocks')await refreshStocks();
+  if(currentTab==='management')void YummyStocksSettings.sync();
+ })().finally(()=>{summarySyncPromise=null;});
+ return summarySyncPromise;
+};
+refreshCloud=function(){
+ if(!loggedIn)return Promise.resolve();
+ const jobs=[refreshOrders()];
+ if(currentTab==='menu')jobs.push(loadStaffMenuPage63(true));else jobs.push(refreshBackgroundData());
+ return Promise.allSettled(jobs).then(()=>undefined);
+};
+
+const lazyObserver63='IntersectionObserver' in window?new IntersectionObserver(entries=>{
+ for(const entry of entries)if(entry.isIntersecting){if(entry.target.id==='staffMenuSentinel63')loadMoreStaffMenu63();if(entry.target.id==='recordsSentinel63')loadMoreRecords63();}
+},{root:null,rootMargin:'180px 0px',threshold:0}):null;
+if(lazyObserver63){if($('staffMenuSentinel63'))lazyObserver63.observe($('staffMenuSentinel63'));if($('recordsSentinel63'))lazyObserver63.observe($('recordsSentinel63'));}
+
 setConnection('Sign in');StaffAuth.start(enterStaff);
 setInterval(()=>{checkAlarm();if(loggedIn&&currentTab==='live'&&!document.hidden&&[...orderUndoReceipts.values()].some(o=>o.status==='Rejected'))renderOrders();},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&loggedIn)renderOrders();});
@@ -433,7 +522,7 @@ function refreshStaffPulse46(){
   }
   if(!currentTabHidden&&currentTab==='history'&&(old.history!==rev.history||reconcile))await refreshRecords();
   if(!currentTabHidden&&currentTab==='live'&&currentFilter==='Cancelled'&&(old.history!==rev.history||reconcile))await refreshCancelledOrders();
-  if(!currentTabHidden&&['menu','stocks','billing'].includes(currentTab)&&(old.catalog!==rev.catalog||old.stock!==rev.stock||old.config!==rev.config))await refreshBackgroundData();
+  if(!currentTabHidden&&['menu','stocks','billing'].includes(currentTab)&&(old.catalog!==rev.catalog||old.stock!==rev.stock||old.config!==rev.config)){if(currentTab==='menu')await loadStaffMenuPage63(true);else if(currentTab==='billing')await YummyBilling.open();else await refreshBackgroundData();}
   if(old.devices!==rev.devices||old.permissions!==rev.permissions)await refreshOrderDeviceStates();
   staffPulse46=rev;if(reconcile)staffPulseClock46=now;
  }catch(e){setConnection('Reconnecting…');cloudError('Updates could not refresh: '+e.message);if(!isTemporaryCloudFailure(e)){requestRing.disable();orderRing.disable();Cloud.clearPrivate();orders=[];menuItems=[];$('staffMain').hidden=true;$('managerNav').hidden=true;$('loginPanel').hidden=false;$('loginStatus').textContent='Staff access could not be verified. Reload or sign in again. '+e.message;loggedIn=false;}}
