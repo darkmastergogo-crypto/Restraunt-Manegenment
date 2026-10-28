@@ -71,10 +71,11 @@ const Cloud = (() => {
  // Caches are memory-only and partitioned by project, account and capability scope.
  // No receipt tokens or staff responses enter public HTTP/Service Worker caches.
  const menuCache=new Map();let orderCache=null;let cacheEpoch=0;
+ let sharedImageLibrary=null,sharedImageLibraryAt=0,sharedImageLibraryPromise=null;
  const pendingReads=new Map(),failures=new Map();
  const readRPC=new Set(['restaurant_menu_sync47','restaurant_active_sync47','restaurant_receipt_sync47','restaurant_staff_pulse47','restaurant_waiter_sync47','restaurant_table_names','restaurant_get_device_orders','restaurant_order_loyalty','restaurant_staff_menu','restaurant_customer_menu','restaurant_open_device_visit','restaurant_requests_page47','restaurant_manual_menu','restaurant_sales_analytics','restaurant_recent_cancelled','restaurant_dish_sales','restaurant_filtered_records','restaurant_records','restaurant_waiter_public56','restaurant_staff_menu_page63','restaurant_staff_menu_item63','restaurant_manual_menu_page63','restaurant_sales_analytics_section63']);
  function scope(){return url+'|'+(session?.user?.id||'customer');}
- function clearPrivate(){cacheEpoch++;menuCache.clear();orderCache=null;pendingReads.clear();failures.clear();tableNames.clear();tableNamesAt.clear();}
+ function clearPrivate(){cacheEpoch++;menuCache.clear();orderCache=null;sharedImageLibrary=null;sharedImageLibraryAt=0;sharedImageLibraryPromise=null;pendingReads.clear();failures.clear();tableNames.clear();tableNamesAt.clear();}
  function request(path,options={}){
   const endpoint=path.split('/').at(-1),args=options.body||{};
   const configRead=['restaurant_manager_permissions','restaurant_alert_settings','restaurant_stock_visibility'].includes(endpoint)&&Object.values(args).every(v=>v===null);
@@ -151,6 +152,34 @@ const Cloud = (() => {
   if(!/^https:\/\//i.test(result.url||''))throw Error('Upload did not return a valid image URL.');
   return result.url;
  }
+ async function sharedDishImages(){
+  if(sharedImageLibrary&&Date.now()-sharedImageLibraryAt<300000)return sharedImageLibrary;
+  if(sharedImageLibraryPromise)return sharedImageLibraryPromise;
+  const epoch=cacheEpoch;
+  const job=(async()=>{
+   if(!session)throw Error('Admin sign-in is required to search shared dish photos.');
+   if(session.expires_at*1000<Date.now()+60000)await refresh();
+   const tenantId=String(cfg.restaurantId||'').trim();
+   if(!/^[a-z0-9][a-z0-9_-]{2,63}$/.test(tenantId))throw Error('Image storage is not configured. Set a unique restaurantId in config.js.');
+   const serviceUrl=String(cfg.imageUploadServiceUrl||'').replace(/\/+$/,'');
+   if(!serviceUrl)throw Error('Central image upload service is not configured in config.js.');
+   let service;
+   try{service=new URL(serviceUrl);}catch{throw Error('Central image upload service URL is invalid.');}
+   if(service.protocol!=='https:'||service.username||service.password||service.pathname!=='/'||service.search||service.hash)throw Error('Central image upload service URL must be an HTTPS origin without a path.');
+   const endpoint=new URL('/library',service.origin);endpoint.searchParams.set('tenant',tenantId);
+   const response=await fetch(endpoint.href,{method:'GET',mode:'cors',credentials:'omit',headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok)throw Error(result.error||'Shared dish image library could not be loaded.');
+   if(epoch!==cacheEpoch)throw Error('Account changed. Please retry.');
+   if(!Array.isArray(result.images))throw Error('Shared dish image library returned an invalid response.');
+   const images=result.images.filter(item=>item&&typeof item.name==='string'&&/^https:\/\//i.test(item.url||'')).map(item=>({name:item.name,url:item.url}));
+   sharedImageLibrary={images,truncated:result.truncated===true};
+   sharedImageLibraryAt=Date.now();
+   return sharedImageLibrary;
+  })();
+  sharedImageLibraryPromise=job;
+  try{return await job;}finally{if(sharedImageLibraryPromise===job)sharedImageLibraryPromise=null;}
+ }
  const rpc=(name,body,staff=false)=>request('/rest/v1/rpc/'+name,{method:'POST',body,staff});
  const categories=[...(cfg.categories||['All','Steamed Momos','Fried Momos','Kurkure Momos','Tandoori Momos','Chutney & Dips','Drinks','Desserts'])];
  const normalizeCategory=v=>String(v||'').trim();
@@ -178,7 +207,7 @@ const Cloud = (() => {
    saveSession(tokens);
   },
   role:async()=>{const data=await request('/rest/v1/staff_users?select=role&user_id=eq.'+session.user.id,{staff:true});if(!data[0])throw Error('This account has no staff access. Ask the owner to add it to staff_users.');return data[0].role;},
-  menu,syncMenu,schedule,uploadMenuImage,clearPrivate,
+  menu,syncMenu,schedule,uploadMenuImage,sharedDishImages,clearPrivate,
   saveMenu:async rows=>{const prepared=[];for(const row of rows)prepared.push({...row,image:await uploadMenuImage(row.image)});return request('/rest/v1/menu_items?on_conflict=id',{method:'POST',body:prepared,staff:true,headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});},
   patchMenu:async(id,body)=>{if(Object.hasOwn(body,'image'))body={...body,image:await uploadMenuImage(body.image)};return request('/rest/v1/menu_items?id=eq.'+encodeURIComponent(id),{method:'PATCH',body,staff:true,headers:{Prefer:'return=minimal'}});},
   deleteMenu:id=>request('/rest/v1/menu_items?id=eq.'+encodeURIComponent(id),{method:'DELETE',staff:true}),

@@ -9,6 +9,7 @@ const staffSizeLabel=(size,item)=>MenuOptions.label(item,size);
 const staffDisplayedPrice=item=>{if(!item.sizes_enabled)return item.price;const offered=MenuOptions.keys(item).filter(size=>Object.prototype.hasOwnProperty.call(item.size_prices||{},size)&&!(item.size_stock?.[size]?.tracked&&item.size_stock[size].remaining<=0));return offered.length?Math.min(...offered.map(size=>Number(item.size_prices[size]))):item.price;};
 let staffRole=null,orders=[],menuItems=[],currentTab='live',currentFilter='active',currentBillOrderId=null,currentTableId=null;
 const photoSelections={new:0,edit:0};
+const dishImageLibrarySearch={new:{timer:null,sequence:0},edit:{timer:null,sequence:0}};
 let state=Cloud.read('KITCHEN_ADMIN_STATE_v1',{}),tables=[],photoDrafts={new:{data:''},edit:{data:''}},editingPhotoItemId=null;
 let soundEnabled=false,audioContext=null,alarmNodes=[],alarmIds=[],alarmState=Cloud.read('RESTAURANT_ALARMS_v2',{}),toastTimer,pollTimer=null,summaryPollTimer=null;
 let scannerStream=null,scannerFrame=null,wakeLock=null,loggedIn=false,orderSyncPromise=null,summarySyncPromise=null;
@@ -294,11 +295,11 @@ async function editMenuDetails(id){
  if(!name.trim()||name.length>120||!Number.isFinite(Number(price))||Number(price)<0||Number(price)>100000||description.length>1000){showToast('Enter a valid name, price and description.');return;}
  try{await Cloud.patchMenu(id,{name:name.trim(),price:Number(price),description,updated_at:new Date().toISOString()});await refreshCloud();}catch(e){showToast(e.message);}
 }
-async function showAddItemModal(){try{await loadStaffCategories();if(!$('addItemModal').open)$('addItemModal').showModal();}catch(e){showToast('Categories could not load: '+e.message);}}
-function closeAddItemModal(){$('addItemModal').close();}
+async function showAddItemModal(){try{await loadStaffCategories();if(!$('addItemModal').open)$('addItemModal').showModal();const name=$('newItemName').value.trim();$('newItemImageSearch').value=name;searchDishPhotoLibrary('new',name);}catch(e){showToast('Categories could not load: '+e.message);}}
+function closeAddItemModal(){dishImageLibrarySearch.new.sequence++;clearTimeout(dishImageLibrarySearch.new.timer);$('addItemModal').close();}
 async function addMenuItem(){
  const b=$('addItemSaveButton');b.disabled=true;
- try{const row=Cloud.menuRow({id:crypto.randomUUID(),name:$('newItemName').value.trim(),price:$('newItemPrice').value,category:$('newItemCategory').value,description:$('newItemDesc').value,image:photoDrafts.new.data,veg:$('newItemVeg').checked,available:true});await Cloud.saveMenu([row]);closeAddItemModal();$('addItemModal').querySelector('form').reset();photoDrafts.new={data:''};$('newItemPhotoPreview').hidden=true;await refreshCloud();showToast('Item added to the shared menu.');}catch(e){showToast(e.message);}finally{b.disabled=false;}
+ try{const row=Cloud.menuRow({id:crypto.randomUUID(),name:$('newItemName').value.trim(),price:$('newItemPrice').value,category:$('newItemCategory').value,description:$('newItemDesc').value,image:photoDrafts.new.data,veg:$('newItemVeg').checked,available:true});await Cloud.saveMenu([row]);closeAddItemModal();$('addItemModal').querySelector('form').reset();photoDrafts.new={data:''};$('newItemPhotoPreview').hidden=true;$('newItemImageResults').replaceChildren();$('newItemLibraryStatus').textContent='Type at least 2 characters to search.';await refreshCloud();showToast('Item added to the shared menu.');}catch(e){showToast(e.message);}finally{b.disabled=false;}
 }
 async function deleteMenuItem(id){if(!confirm('Delete this dish from every customer menu? Existing order records are kept.'))return;try{await Cloud.deleteMenu(id);await refreshCloud();}catch(e){showToast(e.message);}}
 async function chooseMenuPhoto(kind,input){
@@ -308,9 +309,58 @@ async function chooseMenuPhoto(kind,input){
  try{const image=await YummyCrop.open(f);if(image&&selection===photoSelections[kind]){photoDrafts[kind]={data:image};$(target+'PhotoImage').src=image;$(target+'PhotoPreview').hidden=false;showToast('Square photo ready · save to publish.');}}
  catch(e){showToast(e.message);}finally{input.value='';if(selection===photoSelections[kind])button.disabled=false;}
 }
-function removePhotoDraft(kind){photoSelections[kind]++;$(kind==='new'?'addItemSaveButton':'saveItemPhotoButton').disabled=false;photoDrafts[kind]={data:''};$(kind==='new'?'newItemPhotoPreview':'editItemPhotoPreview').hidden=true;}
-function showItemPhotoModal(id){photoSelections.edit++;$('saveItemPhotoButton').disabled=false;const i=menuItems.find(x=>x.id===id);if(!i)return;editingPhotoItemId=id;photoDrafts.edit={data:i.image};$('photoModalItemName').textContent=i.name;$('editItemPhotoPreview').hidden=!i.image;if(i.image)$('editItemPhotoImage').src=Cloud.safeImage(i.image);$('itemPhotoModal').showModal();}
-function closeItemPhotoModal(){$('itemPhotoModal').close();}
+function removePhotoDraft(kind){photoSelections[kind]++;$(kind==='new'?'addItemSaveButton':'saveItemPhotoButton').disabled=false;photoDrafts[kind]={data:''};$(kind==='new'?'newItemPhotoPreview':'editItemPhotoPreview').hidden=true;$(kind==='new'?'newItemPhotoStatus':'editItemPhotoStatus').textContent='';for(const button of $(kind==='new'?'newItemImageResults':'editItemImageResults').querySelectorAll('.image-library-card'))button.classList.remove('is-selected');}
+function normalizeDishImageSearch(value){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\.(webp|png|jpe?g)$/i,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function stemDishImageWord(word){if(word.length>4&&word.endsWith('ies'))return word.slice(0,-3)+'y';if(word.length>4&&word.endsWith('es'))return word.slice(0,-2);if(word.length>3&&word.endsWith('s'))return word.slice(0,-1);return word;}
+function selectSharedDishPhoto(kind,image){
+ const safe=Cloud.safeImage(image?.url||'');if(!safe)return;
+ photoSelections[kind]++;$(kind==='new'?'addItemSaveButton':'saveItemPhotoButton').disabled=false;
+ photoDrafts[kind]={data:safe};
+ const target=kind==='new'?'newItem':'editItem';
+ $(target+'PhotoImage').src=safe;$(target+'PhotoPreview').hidden=false;
+ $(kind==='new'?'newItemPhotoStatus':'editItemPhotoStatus').textContent='Shared image selected. It will be reused without uploading another copy.';
+ const results=$(kind==='new'?'newItemImageResults':'editItemImageResults');
+ for(const button of results.querySelectorAll('.image-library-card'))button.classList.toggle('is-selected',button.dataset.imageUrl===safe);
+}
+function searchDishPhotoLibrary(kind,query,fromDishName=false){
+ const searchId=kind==='new'?'newItemImageSearch':'editItemImageSearch';
+ const resultsId=kind==='new'?'newItemImageResults':'editItemImageResults';
+ const statusId=kind==='new'?'newItemLibraryStatus':'editItemLibraryStatus';
+ if(fromDishName)$(searchId).value=String(query||'');
+ const text=String($(searchId).value||'').trim(),normalized=normalizeDishImageSearch(text);
+ const state=dishImageLibrarySearch[kind];clearTimeout(state.timer);const sequence=++state.sequence;
+ const root=$(resultsId),status=$(statusId);root.replaceChildren();
+ if(normalized.length<2){status.textContent='Type at least 2 characters to search.';return;}
+ status.textContent='Searching the shared image library…';
+ state.timer=setTimeout(async()=>{
+  try{
+   const library=await Cloud.sharedDishImages();if(sequence!==state.sequence)return;
+   const queryWords=normalized.split(/\s+/).map(stemDishImageWord).filter(Boolean);
+   const matches=(library.images||[]).map(image=>{
+    const label=normalizeDishImageSearch(image.name),words=label.split(/\s+/).map(stemDishImageWord);
+    let score=0;
+    if(label===normalized)score=100;
+    else if(label.includes(normalized))score=80;
+    else if(queryWords.length&&queryWords.every(word=>words.some(candidate=>candidate===word||candidate.includes(word)||word.includes(candidate))))score=60;
+    else if(queryWords.some(word=>words.some(candidate=>candidate.includes(word)||word.includes(candidate))))score=20;
+    return {image,score};
+   }).filter(row=>row.score>0).sort((a,b)=>b.score-a.score||a.image.name.localeCompare(b.image.name));
+   const shown=matches.slice(0,24);
+   for(const {image} of shown){
+    const button=document.createElement('button');button.type='button';button.className='image-library-card';button.dataset.imageUrl=image.url;
+    if(photoDrafts[kind].data===image.url)button.classList.add('is-selected');
+    button.setAttribute('aria-label','Use shared photo: '+image.name);
+    const img=document.createElement('img');img.src=Cloud.safeImage(image.url);img.alt='';img.loading='lazy';img.decoding='async';
+    const name=document.createElement('span');name.textContent=image.name;
+    button.append(img,name);button.addEventListener('click',()=>selectSharedDishPhoto(kind,image));root.append(button);
+   }
+   if(!matches.length)status.textContent='No matching filenames. You can upload a custom photo below.';
+   else status.textContent=`Showing ${shown.length} of ${matches.length} matching shared photos.${matches.length>shown.length?' Refine your search to narrow the results.':''}${library.truncated?' The library listing is over 1,000 files; only the first 1,000 are searchable.':''}`;
+  }catch(error){if(sequence===state.sequence)status.textContent='Shared library unavailable: '+error.message+' You can still upload a custom photo below.';}
+ },220);
+}
+function showItemPhotoModal(id){photoSelections.edit++;$('saveItemPhotoButton').disabled=false;const i=menuItems.find(x=>x.id===id);if(!i)return;editingPhotoItemId=id;photoDrafts.edit={data:i.image};$('photoModalItemName').textContent=i.name;$('editItemPhotoPreview').hidden=!i.image;if(i.image)$('editItemPhotoImage').src=Cloud.safeImage(i.image);$('editItemImageSearch').value=i.name;$('editItemImageResults').replaceChildren();$('itemPhotoModal').showModal();searchDishPhotoLibrary('edit',i.name);}
+function closeItemPhotoModal(){dishImageLibrarySearch.edit.sequence++;clearTimeout(dishImageLibrarySearch.edit.timer);$('itemPhotoModal').close();}
 async function saveItemPhoto(){const b=$('saveItemPhotoButton');b.disabled=true;try{await Cloud.patchMenu(editingPhotoItemId,{image:photoDrafts.edit.data||'',updated_at:new Date().toISOString()});closeItemPhotoModal();await refreshCloud();}catch(e){showToast(e.message);}finally{b.disabled=false;}}
 function stopAlarmSound(){alarmNodes.forEach(n=>{try{n.stop();n.disconnect();}catch{}});alarmNodes=[];}
 function playLoudAlarm(){
