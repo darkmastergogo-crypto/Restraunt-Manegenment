@@ -82,7 +82,7 @@ const BackgroundAlerts=(()=>{
     else if(kind==='stock'){title='Low stock · '+r.dish_name;body=r.remaining+' of '+r.baseline+' left. Check Stocks.';screen='notifications';}
     else if(kind==='security'){title='Blocked browser scanned · '+Cloud.tableName(r.table_number);body='Open Notifications to review this QR scan.';screen='notifications';}
     else{title=r.request_kind==='ReservedScan'?'Reserved table QR opened · '+Cloud.tableName(r.table_number):'Waiter requested · '+(r.request_kind==='Reception'?'Counter':Cloud.tableName(r.table_number));body='Open Requests to respond.';}
-    await reg.showNotification(title,{body,tag:'restaurant-event-'+kind+'-'+r.id,silent:false,renotify:false,requireInteraction:true,vibrate:[500,150,500],data:{kind:role,screen}});remember(id);
+    await reg.showNotification(title,{body,tag:'restaurant-event-'+kind+'-'+r.id,silent:false,renotify:false,requireInteraction:true,vibrate:kind==='order'?[900,180,900,180,900]:[500,150,500],data:{kind:role,screen}});remember(id);
    }catch(e){text('Foreground notification failed: '+e.message,true);}finally{pending.delete(id);}},enabled?6500:0);
   }
  }

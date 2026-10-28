@@ -16,7 +16,7 @@ self.addEventListener('push',event=>{
    timestamp:Date.parse(data.createdAt)||Date.now(),
    data:{url:path,kind:data.kind,screen:data.screen},
    // No silent:true. Sound/vibration depend on Android/Windows/browser notification settings.
-   vibrate:[500,150,500,150,500],
+   vibrate:eventKind==='order'?[900,180,900,180,900]:[500,150,500,150,500],
   });
   clients.forEach(c=>c.postMessage({type:'restaurant-push-delivered',kind:data.kind,event_key:eventKey}));
  })());

@@ -41,7 +41,7 @@ function setConnection(label){
 async function signOutStaff(){
  if(orderActionsBusy.size){showToast('Wait for the saving action to finish.');return;}RestaurantAlerts.stop();await KitchenOps.stop();RestaurantAlerts.stopVolumeTest();
  try{await BackgroundAlerts.disableForSignOut();}catch(e){if(!confirm('Could not disable background alerts on this device. If you sign out now, alerts may continue. Turn off this site’s notifications in browser settings to stop them. Sign out anyway?'))return;}
- requestRing.disable();orderRing.disable();orderUndoReceipts.clear();persistUndoActions();loggedIn=false;if(typeof pollTimer==='function')pollTimer();if(typeof summaryPollTimer==='function')summaryPollTimer();stopAlarmSound();closeAlarm();soundEnabled=false;$('soundButton').textContent='Enable request sound';orders=[];menuItems=[];
+ requestRing.disable();orderRing.disable();loggedIn=false;if(typeof pollTimer==='function')pollTimer();if(typeof summaryPollTimer==='function')summaryPollTimer();stopAlarmSound();closeAlarm();soundEnabled=false;$('soundButton').textContent='Enable request sound';orders=[];menuItems=[];
  if(wakeLock){await wakeLock.release().catch(()=>{});wakeLock=null;}
  try{await Cloud.logout();}catch{}location.reload();
 }
@@ -64,7 +64,7 @@ function refreshOrders(){
    if(!loggedIn)return;
    orders=rows;lastSuccessfulSync=Date.now();try{sessionStorage.setItem(lastSyncStorageKey,String(lastSuccessfulSync));}catch{}
    setConnection('Live');cloudError('');
-   observeUndoActions(rows);RestaurantAlerts.observeOrders(rows);orderRing.update(rows.filter(o=>o.status==='Pending'));
+   RestaurantAlerts.observeOrders(rows);orderRing.update(rows.filter(o=>o.status==='Pending'));
    renderOrders();renderDashboard();checkAlarm();
    void MonthlyLoyalty.refresh(rows).then(()=>{if(loggedIn)renderOrders();});
    void refreshOrderDeviceStates().then(()=>{if(loggedIn){renderOrders();if(recordsData)renderHistory();}});
@@ -141,9 +141,9 @@ function renderOrders(){
  const active=orders.filter(o=>!terminal(o.status));$('activeOrdersBadge').textContent=active.filter(o=>o.status==='Pending').length;
  const filters=[['active','All open'],['Pending','Pending orders'],['Cancelled','Cancelled']];
  const filterHTML=filters.map(([k,v])=>`<button class="nav-tab-btn ${currentFilter===k?'active':''}" data-filter="${k}">${v}</button>`).join('');if($('orderFilters').innerHTML!==filterHTML)$('orderFilters').innerHTML=filterHTML;
- paintCancelledView();const filtered=currentFilter==='Cancelled'?cancelledRows():currentFilter==='active'?active:orders.filter(o=>o.status===currentFilter);const shown=currentFilter==='Cancelled'?filtered:[...filtered,...[...orderUndoReceipts.values()].filter(o=>!filtered.some(x=>x.id===o.id))];
+ paintCancelledView();const filtered=currentFilter==='Cancelled'?cancelledRows():currentFilter==='active'?active:orders.filter(o=>o.status===currentFilter);const shown=filtered;
  const ordersHTML=shown.length?shown.map(o=>`<article class="order-card status-${esc(o.status.toLowerCase())} ${MonthlyLoyalty.star(o.id)?'monthly-regular':''}">
- <div class="order-header"><div><div class="table-title">${esc(Cloud.tableName(o.table_number))}</div><div class="order-time" title="${esc(o.order_id)}">${esc(shortId(o))} · ${timeText(o.created_at)}</div></div><div class="order-card-tools">${undoButton(o)}${statusPill(o)}</div></div>
+ <div class="order-header"><div><div class="table-title">${esc(Cloud.tableName(o.table_number))}</div><div class="order-time" title="${esc(o.order_id)}">${esc(shortId(o))} · ${timeText(o.created_at)}</div></div><div class="order-card-tools">${statusPill(o)}</div></div>
  <div class="order-body"><div class="cust-info">${MonthlyLoyalty.badge(o.id)}Guest: <b>${esc(o.customer_name||'Guest')}</b></div>
  <ul class="items-list">${o.items.map(i=>`<li class="item-entry"><span><b class="item-qty">${Number(i.qty)}×</b> ${esc(i.name)}</span><span>${money(i.subtotal)}</span></li>`).join('')}</ul>
  ${o.kitchen_notes?`<div class="kitchen-notes-box">${esc(o.kitchen_notes)}</div>`:''}
@@ -156,7 +156,7 @@ async function setOrderStatus(id,next,button){
  let reason='';if(next==='Rejected'){reason=prompt('Reason shown to the customer:','Items unavailable');if(reason===null)return;}
  if(orderActionsBusy.has(id))return;orderActionsBusy.add(id);renderOrders();
  if(button)button.disabled=true;
- try{const saved=await Cloud.rpc('restaurant_staff_status',{p_id:id,p_expected:o.status,p_next:next,p_reason:reason},true);if(saved.undo_token)orderUndoReceipts.set(id,saved);else orderUndoReceipts.delete(id);persistUndoActions();Cloud.invalidateOrders();showToast('Order '+saved.status.toLowerCase()+'.');await refreshCloud();}
+ try{const saved=await Cloud.rpc('restaurant_staff_status',{p_id:id,p_expected:o.status,p_next:next,p_reason:reason},true);Cloud.invalidateOrders();showToast('Order '+saved.status.toLowerCase()+'.');await refreshCloud();}
  catch(e){showToast(/This status change is not allowed/.test(e.message)?'Database upgrade required: run SUPABASE/UPGRADE-EXISTING-PROJECT.sql, then refresh kitchen.':e.message);await refreshCloud();}finally{orderActionsBusy.delete(id);if(button)button.disabled=false;renderOrders();}
 }
 let recordStatusFilter='All';
@@ -351,7 +351,7 @@ async function shareWaiterLink(rotate=false){
 }
 async function copyWaiterLink(){if(!privateWaiterUrl)return;try{await navigator.clipboard.writeText(privateWaiterUrl);showToast('Waiter pairing link copied.');}catch{$('waiterLink').select();showToast('Copy the selected link manually.');}}
 async function shareLinkNative(){if(!privateWaiterUrl)return;try{if(navigator.share)await navigator.share({title:config.restaurantName?config.restaurantName+' · waiter pairing QR':'Waiter pairing QR',url:privateWaiterUrl});else await copyWaiterLink();}catch(e){if(e.name!=='AbortError')showToast('Use Copy link instead.');}}
-function findOrder(id){return orders.find(x=>x.id===id)||orderUndoReceipts.get(id)||cancelledOrdersData?.records.find(x=>x.id===id)||analyticsData?.recent?.find(x=>x.id===id)||recordsData?.records.find(x=>x.id===id);}
+function findOrder(id){return orders.find(x=>x.id===id)||cancelledOrdersData?.records.find(x=>x.id===id)||analyticsData?.recent?.find(x=>x.id===id)||recordsData?.records.find(x=>x.id===id);}
 let currentBillSnapshot=null;
 function receiptHtml(o){return YummyReceipt.html(o);}
 function showBillPreview(id){const o=findOrder(id);if(!o){showToast('Bill not found. Refresh records and try again.');return;}currentBillOrderId=id;currentBillSnapshot=structuredClone(o);$('billPreview').innerHTML=receiptHtml(currentBillSnapshot);if(!$('billModal').open)$('billModal').showModal();}
@@ -461,7 +461,7 @@ const lazyObserver63='IntersectionObserver' in window?new IntersectionObserver(e
 if(lazyObserver63){if($('staffMenuSentinel63'))lazyObserver63.observe($('staffMenuSentinel63'));if($('recordsSentinel63'))lazyObserver63.observe($('recordsSentinel63'));}
 
 setConnection('Sign in');StaffAuth.start(enterStaff);
-setInterval(()=>{checkAlarm();if(loggedIn&&currentTab==='live'&&!document.hidden&&[...orderUndoReceipts.values()].some(o=>o.status==='Rejected'))renderOrders();},1000);
+setInterval(()=>{checkAlarm();},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&loggedIn)renderOrders();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&loggedIn){refreshCloud();keepScreenAwake();}else stopAlarmSound();});
 
