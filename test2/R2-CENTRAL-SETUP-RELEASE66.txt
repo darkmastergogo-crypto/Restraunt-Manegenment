@@ -1,0 +1,68 @@
+RELEASE 66 — ONE SHARED CLOUDFLARE R2 ACCOUNT FOR ALL RESTAURANTS
+
+ARCHITECTURE
+- Keep every restaurant's separate GitHub repository, Vercel deployment, and Supabase project as you do now.
+- Create one R2 bucket in SHOI SYSTEMS' Cloudflare account.
+- Deploy the small central Worker in ../CLOUDFLARE-R2-CENTRAL once.
+- The Worker verifies an admin's bearer token against the correct restaurant's Supabase RPC, then writes only under restaurants/<tenant-id>/.
+- Client website copies contain only the central Worker URL and that restaurant's public tenant ID. They contain no R2 credentials.
+- Customers read images directly from the configured R2 custom domain. The website itself stays on Vercel.
+
+PART A — CREATE SHARED R2 STORAGE
+1. In Cloudflare Dashboard > R2, create one STANDARD bucket named shoi-restaurant-images (or change wrangler.toml to your chosen name).
+2. Connect a production custom domain to that bucket, e.g. https://images.shoisystems.com. This domain must actually serve bucket objects. Replace PUBLIC_BASE_URL in wrangler.toml if you use another domain.
+3. Do not use the temporary r2.dev development URL for production delivery. Do not use the S3 API endpoint as the public image URL.
+
+PART B — DEPLOY THE CENTRAL IMAGE SERVICE ONCE
+Requirements: Node.js/npm and Wrangler CLI. This is an API Worker, NOT your restaurant website; keep the websites on Vercel.
+1. Open a terminal in the CLOUDFLARE-R2-CENTRAL folder.
+2. Install Wrangler if needed: npm install --save-dev wrangler
+3. Log in: npx wrangler login
+4. Create the D1 tenant registry: npx wrangler d1 create shoi-image-tenants
+5. Copy the returned database_id into wrangler.toml, replacing REPLACE_WITH_D1_DATABASE_ID.
+6. Create the R2 bucket if it does not already exist: npx wrangler r2 bucket create shoi-restaurant-images
+7. Create the registry table: npx wrangler d1 execute shoi-image-tenants --remote --file=./schema.sql
+8. Confirm PUBLIC_BASE_URL in wrangler.toml matches the R2 bucket's configured custom domain exactly, without a trailing slash.
+9. Run the included local tests: npm test
+10. Deploy the Worker: npx wrangler deploy
+11. Note the deployed Worker URL printed by Wrangler, such as https://shoi-central-image-upload.YOUR-SUBDOMAIN.workers.dev. This is the API URL, not the public image domain.
+
+PART C — REGISTER EACH RESTAURANT ONCE
+Each restaurant needs its own unique stable ID, its own Supabase project URL/public anon-or-publishable key, and its own allowed production website origin.
+1. Copy register-tenant.example.sql to a new file, e.g. register-restaurant-001.sql.
+2. Replace all placeholders:
+   - tenant_id: a unique ID such as restaurant-001 (lowercase letters, digits, hyphens/underscores only; 3–64 characters).
+   - supabase_url: this restaurant's own https://PROJECT_REF.supabase.co URL.
+   - supabase_anon_key: this restaurant's public anon/publishable key ONLY. NEVER use a service_role key.
+   - allowed_origins_json: JSON array containing exact HTTPS origins, with no trailing slash. Include the production *.vercel.app origin and any custom domain used by this restaurant.
+3. Execute the registration: npx wrangler d1 execute shoi-image-tenants --remote --file=./register-restaurant-001.sql
+4. Repeat for every restaurant. A tenant ID must never be reused for a different restaurant/Supabase project. If a restaurant changes Supabase project or website origin, update its registry row.
+5. The central Worker deliberately rejects origins that are not registered, and rejects uploads unless that tenant's restaurant_admin_auth_status RPC confirms role=admin, verified=true, mfa_required=true, verification_method=totp.
+
+PART D — CONFIGURE EACH WEBSITE COPY
+In each restaurant's WEBSITE/config.js set:
+  restaurantId: "restaurant-001",
+  imageUploadServiceUrl: "https://shoi-central-image-upload.YOUR-SUBDOMAIN.workers.dev",
+Use the same central Worker URL for every restaurant, but a different restaurantId for each one. Set the restaurantId to exactly the ID inserted in D1.
+Keep that website's own supabaseUrl and supabaseAnonKey as they are today. Change only the usual restaurant-specific name/logo/branding plus restaurantId. Deploy the website to that client's Vercel project as usual.
+
+PART E — TEST
+1. Visit https://YOUR-WORKER-URL/health; expect {"ok":true,"service":"shoi-central-image-upload"}.
+2. Sign in to one restaurant as its admin and complete TOTP MFA.
+3. Upload/replace a sample dish image; verify the returned URL starts with the configured public image domain and includes /restaurants/<that-tenant-id>/menu-images/.
+4. Open the URL publicly in a browser; the image should display.
+5. Test a manager/non-admin upload; expect HTTP 403.
+6. Try a different restaurant's token with the first restaurant ID; it must fail.
+7. Test from an unregistered origin; it must fail.
+8. Test customer menu, category banners, order placement, kitchen display, billing and mobile layout.
+
+IMPORTANT SECURITY NOTES
+- Do NOT add R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, or an R2 S3 token to any restaurant's Vercel environment variables or browser code. The Worker uses the R2 bucket binding.
+- Never use Supabase service_role keys in the tenant registry. Public anon/publishable keys are intended for client use; the Worker stores them centrally only to call the restaurant's auth-status RPC.
+- The central D1 registry is a trusted configuration database. Restrict who can change it and back it up. A wrong tenant-to-Supabase mapping can block uploads or associate a website with the wrong tenant.
+- Each restaurant's Supabase project must have the current restaurant_admin_auth_status() RPC and TOTP MFA enforcement used by this release. If an older database returns different fields, the Worker fails closed and rejects uploads; update that project's approved SQL migration before enabling uploads.
+- Public image URLs are intentionally readable by anyone who knows them. Authorization protects upload/replace actions, not public viewing.
+- R2 images from old Release 65 URLs and old Supabase/Vercel Blob URLs are not automatically migrated. Existing URLs remain usable as long as the old objects and public access remain available. Do not delete old objects until you have copied them and updated stored URLs.
+- New images are stored under restaurants/<tenant-id>/menu-images/<UUID>.<type> and receive long-lived immutable cache headers. A replacement gets a fresh URL.
+- This release removes the per-client /api/menu-image-upload function and its AWS SDK dependency. Client Vercel projects no longer need R2 credentials.
+- If an admin upload returns 403, check tenant registration, exact allowed origin, the selected tenant's Supabase URL/key, the admin session, and the TOTP RPC response.

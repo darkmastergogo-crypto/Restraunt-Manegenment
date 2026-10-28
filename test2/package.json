@@ -1,8 +1,5 @@
 {
   "private": true,
-  "name": "restaurant-pwa-r2",
-  "version": "65.0.0",
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.800.0"
-  }
+  "name": "restaurant-pwa-central-r2",
+  "version": "66.0.0"
 }

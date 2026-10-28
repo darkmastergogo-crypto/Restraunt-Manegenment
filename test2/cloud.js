@@ -133,10 +133,19 @@ const Cloud = (() => {
   const match=/^data:image\/(webp|png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(data);
   if(!match)throw Error('Unsupported image. Choose WebP, PNG or JPEG.');
   const bytes=Uint8Array.from(atob(match[2]),c=>c.charCodeAt(0));if(bytes.length>1048576)throw Error('Photo must be under 1 MB.');
-  // Admin-only API: server validates Supabase admin role and MFA before uploading.
+  // Central SHOI SYSTEMS service validates this restaurant's Supabase admin + TOTP status.
+  // Shared R2 credentials stay only in the central Cloudflare Worker, never in client deployments.
   if(!session)throw Error('Admin sign-in is required to upload images.');
   if(session.expires_at*1000<Date.now()+60000)await refresh();
-  const response=await fetch('/api/menu-image-upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({image:data}),cache:'no-store'});
+  const tenantId=String(cfg.restaurantId||'').trim();
+  if(!/^[a-z0-9][a-z0-9_-]{2,63}$/.test(tenantId))throw Error('Image storage is not configured. Set a unique restaurantId in config.js.');
+  const serviceUrl=String(cfg.imageUploadServiceUrl||'').replace(/\/+$/,'');
+  if(!serviceUrl)throw Error('Central image upload service is not configured in config.js.');
+  let service;
+  try{service=new URL(serviceUrl);}catch{throw Error('Central image upload service URL is invalid.');}
+  if(service.protocol!=='https:'||service.username||service.password||service.pathname!=='/'||service.search||service.hash)throw Error('Central image upload service URL must be an HTTPS origin without a path.');
+  const endpoint=new URL('/upload',service.origin);endpoint.searchParams.set('tenant',tenantId);
+  const response=await fetch(endpoint.href,{method:'POST',mode:'cors',credentials:'omit',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({image:data}),cache:'no-store'});
   const result=await response.json().catch(()=>({}));
   if(!response.ok)throw Error(result.error||'Image upload failed.');
   if(!/^https:\/\//i.test(result.url||''))throw Error('Upload did not return a valid image URL.');

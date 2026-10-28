@@ -1,57 +1,7 @@
-RELEASE 65 — CLOUDFLARE R2 IMAGES + EAGER CUSTOMER MENU IMAGES
+RELEASE 65 DIRECT-R2 SETUP IS SUPERSEDED.
 
-WHAT CHANGED
-- Image uploads now use Cloudflare R2 instead of Vercel Blob.
-- Customer dish photos and category banners begin downloading immediately (no
-  viewport IntersectionObserver and no native lazy loading for customer menu).
-- The whole customer dish catalog was already returned in one menu-sync RPC;
-  this release does not change menu data loading, customer order logic or SQL.
-- Other staff/admin/billing/history lazy loading is unchanged.
-- Images still have a 1 MB upload limit and admin + TOTP checks.
-- Existing URLs (Supabase Storage and Vercel Blob) remain usable. This release
-  does not automatically copy/decommission previously uploaded objects.
+For the multi-restaurant SHOI SYSTEMS architecture, follow:
+R2-CENTRAL-SETUP-RELEASE66.txt
 
-DEPLOYMENT
-1. Keep hosting the WEBSITE folder on Vercel and keep your Supabase database.
-   You do NOT need to move your site to Cloudflare Pages.
-2. In Cloudflare Dashboard > R2, create a STANDARD storage bucket, e.g.
-   shoi-restaurant-images. Enable public access with a custom domain such as
-   https://images.your-restaurant-domain.com; make sure this domain actually
-   serves objects from the bucket. Do NOT use an S3 API endpoint as the public
-   URL. The temporary r2.dev development URL is not recommended for production.
-3. Create an R2 S3 API token with Object Read & Write limited to this bucket.
-   Copy the Access Key ID and Secret Access Key.
-4. In Vercel > Project Settings > Environment Variables, set SERVER-SIDE:
-   SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-   SUPABASE_ANON_KEY=YOUR_PUBLIC_SUPABASE_ANON_OR_PUBLISHABLE_KEY
-   R2_ACCOUNT_ID=YOUR_32_HEX_CHARACTER_CLOUDFLARE_ACCOUNT_ID
-   R2_ACCESS_KEY_ID=YOUR_R2_ACCESS_KEY_ID
-   R2_SECRET_ACCESS_KEY=YOUR_R2_SECRET_ACCESS_KEY
-   R2_BUCKET_NAME=shoi-restaurant-images
-   R2_PUBLIC_BASE_URL=https://images.your-restaurant-domain.com
-   (No trailing slash is required.)
-   Do not put R2 credentials in config.js, client JavaScript, or the Git repo.
-5. Vercel installs package.json dependencies (@aws-sdk/client-s3).
-   Redeploy after setting environment variables. You can remove the old
-   BLOB_READ_WRITE_TOKEN only AFTER verifying old image URLs remain accessible.
-6. Sign in as an admin and verify TOTP. Upload and replace a sample photo.
-   Check it is visible in R2 and in the customer menu. Confirm upload by a
-   manager without admin MFA fails with HTTP 403.
-7. Test menu scrolling, category banners, order placement and slow-network
-   performance on mobile. Eager loading sends requests for all displayed photos;
-   it can increase data usage/load time if there are hundreds of images.
-8. Existing Supabase/Blob image URLs DO NOT automatically migrate. Don't delete
-   old bucket/blob objects or disable old public access until those URLs have
-   been copied to R2 and updated in Supabase/menu customization records.
-
-NOTES
-- Supabase authorization for menu writes is unchanged.
-- No separate Cloudflare hosting or Worker is necessary.
-- The server requires valid R2 configuration; absent configuration image
-  uploads return HTTP 503, while existing images and menu data still work.
-- New image URLs include a UUID; replacing a photo creates a fresh URL for
-  long-lived caching. CDN public custom-domain setup is needed for delivery.
-- The service worker still supports caching older Supabase Storage/Vercel Blob
-  photo URLs. New R2 photos use Cloudflare CDN and standard browser caching.
-- Uploaded objects are not deleted when their menu record is removed/replaced.
-- No SQL changes required from this release.
+Do NOT add R2 account/access/secret credentials to each restaurant's Vercel project.
+Release 66 uses one central Cloudflare Worker and one R2 bucket for all restaurants.
