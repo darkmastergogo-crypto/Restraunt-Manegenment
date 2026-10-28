@@ -5,8 +5,8 @@ const RESTAURANT_CONFIG = {
   tagline: "Yummy in your tummy",
   currency: "₹",
   // Use this shop's OWN Supabase project, not another restaurant's project.
-  supabaseUrl: "https://ibqubjavznusojfgmllp.supabase.co",
-  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicXViamF2em51c29qZmdtbGxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4MTI5NTUsImV4cCI6MjEwODM4ODk1NX0.0b74X84l-A9MeXnKJSofs6QIqzBDAxQN5giJZg_YVxQ",
+  supabaseUrl: "https://luvfnrmagdwcsjvbfkmk.supabase.co",
+  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1dmZucm1hZ2R3Y3NqdmJma21rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNzQ0OTEsImV4cCI6MjEwODc1MDQ5MX0.GJx1iNXgWS9xsWou-PilBZ7kZ2jMxfAjfqVEQaLZGR8",
   // Optional: this shop's Google review link. Blank disables the review prompt.
   googleReviewUrl: "",
   categories: ["All", "Steamed Momos", "Fried Momos", "Kurkure Momos", "Tandoori Momos", "Chutney & Dips", "Drinks", "Desserts"],
