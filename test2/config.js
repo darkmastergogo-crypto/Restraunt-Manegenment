@@ -5,7 +5,7 @@ const RESTAURANT_CONFIG = {
   tagline: "Yummy in your tummy",
   currency: "₹",
   // Shared SHOI SYSTEMS image service. Set a UNIQUE ID for each restaurant deployment.
-  restaurantId: "", // e.g. "restaurant-001"; must also be registered in the central service.
+  restaurantId: "restraunt-00001", // e.g. "restaurant-001"; must also be registered in the central service.
   imageUploadServiceUrl: "https://shoi-central-image-upload.darkmastergogo.workers.dev",
   // Use this shop's OWN Supabase project, not another restaurant's project.
   supabaseUrl: "https://ibqubjavznusojfgmllp.supabase.co",
