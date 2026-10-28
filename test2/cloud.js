@@ -9,12 +9,10 @@ const Cloud = (() => {
  const configured=publicKey && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) && key.length>20 && !/YOUR_|PASTE_/i.test(key+url);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const safeImage=v=>typeof v==='string' && (/^https:\/\//i.test(v)||/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v))?v:'';
- // Release58: true deferred public menu images. `data-low-src` never starts a
- // network request; the real `src` is assigned only as the image approaches
- // the viewport. This is stricter than native loading=lazy and keeps unseen
- // category/dish photos at zero image egress for that visit.
+ // Staff previews can still defer photos. Customer-facing menu images are loaded
+ // immediately (eager=true) so scrolling never gates image availability.
  let lowImageObserver=null;
- function deferImages(root=document){
+ function deferImages(root=document,eager=false){
   if(!root)return;
   const images=[];
   if(root.matches?.('img[data-low-src]'))images.push(root);
@@ -23,12 +21,12 @@ const Cloud = (() => {
   const load=img=>{
    const source=safeImage(img.dataset.lowSrc||'');
    if(!source){img.removeAttribute('data-low-src');return;}
-   img.loading='lazy';img.decoding='async';try{img.fetchPriority='low';}catch{}
+   img.loading=eager?'eager':'lazy';img.decoding='async';try{img.fetchPriority=eager?'auto':'low';}catch{}
    if(img.getAttribute('src')!==source)img.setAttribute('src',source);
    img.removeAttribute('data-low-src');img.removeAttribute('data-low-observed');
    lowImageObserver?.unobserve(img);
   };
-  if(!('IntersectionObserver' in window)){images.forEach(load);return;}
+  if(eager||!('IntersectionObserver' in window)){images.forEach(load);return;}
   if(!lowImageObserver)lowImageObserver=new IntersectionObserver(entries=>{
    for(const entry of entries)if(entry.isIntersecting)load(entry.target);
   },{root:null,rootMargin:'160px 0px',threshold:0.01});

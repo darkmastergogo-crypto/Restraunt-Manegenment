@@ -35,7 +35,7 @@ self.addEventListener('notificationclick',event=>{
 });
 
 // Public content-addressed catalog photos only. Never cache RPC/Auth/order responses.
-const PHOTO_CACHE='yummy-public-photos-v64';
+const PHOTO_CACHE='yummy-public-photos-v65';
 const MAX_PUBLIC_MENU_PHOTOS=250; // Enough for a 200-dish menu plus category banners; public content-addressed photos only.
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
  for(const name of await caches.keys())if(name.startsWith('yummy-public-photos-')&&name!==PHOTO_CACHE)await caches.delete(name);

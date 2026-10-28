@@ -1,6 +1,8 @@
 {
   "private": true,
-  "name": "restaurant-pwa-blob",
-  "version": "64.0.0",
-  "dependencies": {"@vercel/blob": "^2.0.0"}
+  "name": "restaurant-pwa-r2",
+  "version": "65.0.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.800.0"
+  }
 }

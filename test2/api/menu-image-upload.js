@@ -1,5 +1,5 @@
-// Vercel serverless function. Never expose BLOB_READ_WRITE_TOKEN to browsers.
-const { put } = require('@vercel/blob');
+// Vercel serverless function; Cloudflare R2 credentials never reach the browser.
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { randomUUID } = require('node:crypto');
 
 module.exports = async function handler(req, res) {
@@ -10,7 +10,21 @@ module.exports = async function handler(req, res) {
   if (!token) return res.status(401).json({error:'Admin sign-in required'});
   const supabaseUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey || !process.env.BLOB_READ_WRITE_TOKEN) return res.status(503).json({error:'Server storage configuration missing'});
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const bucket = process.env.R2_BUCKET_NAME;
+  const publicBase = (process.env.R2_PUBLIC_BASE_URL || '').replace(/\/$/, '');
+  // Reject malformed configuration instead of forming an arbitrary endpoint or public URL.
+  let publicUrl;
+  try { publicUrl = new URL(publicBase); } catch { /* handled below */ }
+  if (!supabaseUrl || !anonKey || !/^[a-f0-9]{32}$/i.test(accountId || '') ||
+      !accessKeyId || !secretAccessKey || !/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucket || '') ||
+      !publicUrl || publicUrl.protocol !== 'https:' || !publicUrl.hostname ||
+      publicUrl.username || publicUrl.password || publicUrl.search || publicUrl.hash ||
+      publicUrl.hostname.endsWith('.r2.cloudflarestorage.com')) {
+    return res.status(503).json({error:'Server R2 storage configuration missing or invalid'});
+  }
   try {
     // RPC must independently verify the caller's admin role AND MFA assurance.
     // Do not trust client-supplied role or user metadata.
@@ -33,8 +47,15 @@ module.exports = async function handler(req, res) {
     if (!signatures[match[1]]) return res.status(400).json({error:'Image content does not match its type'});
     // Fresh UUID per upload guarantees a new URL even when replacing with identical bytes.
     const name = `menu-images/${randomUUID()}.${match[1]}`;
-    const blob = await put(name, bytes, {access:'public',contentType:`image/${match[1]}`,addRandomSuffix:false,cacheControlMaxAge:31536000});
-    return res.status(200).json({url:blob.url});
+    const client = new S3Client({
+      region:'auto', endpoint:`https://${accountId}.r2.cloudflarestorage.com`,
+      credentials:{accessKeyId,secretAccessKey},
+    });
+    await client.send(new PutObjectCommand({
+      Bucket:bucket, Key:name, Body:bytes, ContentType:`image/${match[1]}`,
+      CacheControl:'public, max-age=31536000, immutable',
+    }));
+    return res.status(200).json({url:publicBase + '/' + name});
   } catch (e) {
     console.error('Menu image upload failed:', e);
     return res.status(500).json({error:'Image upload failed. Check server configuration and logs.'});

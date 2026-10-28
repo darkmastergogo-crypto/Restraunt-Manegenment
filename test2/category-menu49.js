@@ -51,14 +51,14 @@ window.CategoryMenu49=(()=>{
   const old=new Map([...container.querySelectorAll(':scope > .category-section49')].map(el=>[el.dataset.category49,el]));
   const next=[];let bannerCount=0;for(const [category,dishes]of groups){let section=old.get(category);if(!section){section=document.createElement('section');section.className='category-section49';section.dataset.category49=category;section.id=id(category);section.innerHTML='<div class="category-header49"></div><div class="category-rows49"></div>';}
    const candidate=settings.photoMode!=='none'&&settings.showCategoryImages!==false&&settings.categoryOptions?.[category]?.showImage!==false?Cloud.safeImage(settings.categoryPhotos?.[category]):'';const url=candidate&&bannerCount<20?(bannerCount++,candidate):'';
-   const transform=imageTransform(category),head=section.querySelector('.category-header49'),header=`${url?`<figure class="category-banner49 category-photo48"><img data-low-src="${e(url)}" alt="${e(label(category))} dishes" width="1600" height="300" loading="lazy" decoding="async" fetchpriority="low" style="object-position:${transform.x}% ${transform.y}%;transform:scale(${transform.zoom});transform-origin:${transform.x}% ${transform.y}%"></figure>`:''}<div class="category-title49"><h2 tabindex="-1">${e(label(category))}</h2><small>${dishes.length} ${dishes.length===1?'dish':'dishes'}</small></div>`;
+   const transform=imageTransform(category),head=section.querySelector('.category-header49'),header=`${url?`<figure class="category-banner49 category-photo48"><img src="${e(url)}" alt="${e(label(category))} dishes" width="1600" height="300" loading="eager" decoding="async" fetchpriority="auto" style="object-position:${transform.x}% ${transform.y}%;transform:scale(${transform.zoom});transform-origin:${transform.x}% ${transform.y}%"></figure>`:''}<div class="category-title49"><h2 tabindex="-1">${e(label(category))}</h2><small>${dishes.length} ${dishes.length===1?'dish':'dishes'}</small></div>`;
    if(head._markup!==header){head.innerHTML=header;head._markup=header;}
    const root=section.querySelector('.category-rows49'),rows=new Map([...root.children].map(el=>[el.dataset.menuId,el])),wanted=[];
    for(const item of dishes){const html=row(item);let node=rows.get(String(item.id));if(!node||node._markup!==html){const template=document.createElement('template');template.innerHTML=html;const replacement=template.content.firstElementChild;if(node)node.replaceWith(replacement);node=replacement;node._markup=html;}wanted.push(node);}
    for(const child of [...root.children])if(!wanted.includes(child))child.remove();for(const [i,node]of wanted.entries())if(root.children[i]!==node)root.insertBefore(node,root.children[i]||null);next.push(section);
   }
   for(const child of [...container.children])if(!next.includes(child))child.remove();for(const [i,node]of next.entries())if(container.children[i]!==node)container.insertBefore(node,container.children[i]||null);
-  Cloud.deferImages?.(container);
+  Cloud.deferImages?.(container,true);
  }
  return {enabled,nav,jump,render};
 })();
