@@ -1,7 +1,0 @@
-RELEASE 65 DIRECT-R2 SETUP IS SUPERSEDED.
-
-For the multi-restaurant SHOI SYSTEMS architecture, follow:
-R2-CENTRAL-SETUP-RELEASE66.txt
-
-Do NOT add R2 account/access/secret credentials to each restaurant's Vercel project.
-Release 66 uses one central Cloudflare Worker and one R2 bucket for all restaurants.
