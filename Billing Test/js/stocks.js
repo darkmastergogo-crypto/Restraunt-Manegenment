@@ -27,10 +27,10 @@ const Stocks = (() => {
       const st = Number(i.stock), lim = Number(i.low_stock_at), state = !i.track_stock ? '' : st <= 0 ? 'out' : st <= lim ? 'low' : 'ok';
       const fill = !i.track_stock ? 0 : Math.min(100, lim > 0 ? st / (lim * 3) * 100 : (st > 0 ? 100 : 0));
       return `<tr data-id="${esc(i.id)}" class="${i.active ? '' : 'is-muted'}">
-        <td><b>${esc(i.name)}</b><small>${esc(i.category)}${i.active ? '' : ' · hidden from billing'}</small></td>
-        <td>${i.track_stock ? `<div class="level level-${state}"><b>${Fmt.qty(st)}</b> <small>${esc(i.unit)}</small><span class="meter"><i style="width:${fill.toFixed(0)}%"></i></span></div>` : '<span class="muted">Not tracked</span>'}</td>
-        <td class="num">${i.track_stock ? `${Fmt.qty(lim)} <small>${esc(i.unit)}</small>` : '—'}</td>
-        <td class="num">${i.track_stock ? Fmt.money(Math.max(0, st) * Number(i.cost_price ?? i.price)) : '—'}</td>
+        <td data-label="Item"><b>${esc(i.name)}</b><small>${esc(i.category)}${i.active ? '' : ' · hidden from billing'}</small></td>
+        <td data-label="In stock">${i.track_stock ? `<div class="level level-${state}"><b>${Fmt.qty(st)}</b> <small>${esc(i.unit)}</small><span class="meter"><i style="width:${fill.toFixed(0)}%"></i></span></div>` : '<span class="muted">Not tracked</span>'}</td>
+        <td class="num" data-label="Warn at">${i.track_stock ? `${Fmt.qty(lim)} <small>${esc(i.unit)}</small>` : '—'}</td>
+        <td class="num" data-label="Value">${i.track_stock ? Fmt.money(Math.max(0, st) * Number(i.cost_price ?? i.price)) : '—'}</td>
         <td class="row-act">${i.track_stock
           ? `<button type="button" class="btn btn-sm" data-act="in">${Icon('plus')} Add</button><button type="button" class="btn btn-sm btn-ghost" data-act="out">Remove</button><button type="button" class="btn btn-sm btn-ghost" data-act="set">Set count</button><button type="button" class="icon-btn" data-act="hist" aria-label="History of ${esc(i.name)}" title="History">${Icon('history')}</button>`
           : `<button type="button" class="btn btn-sm" data-act="set">Start tracking</button>`}</td></tr>`;
@@ -87,7 +87,7 @@ const Stocks = (() => {
           <select id="sCat" aria-label="Category"></select>
           <div class="seg" id="sShow">${[['tracked', 'Tracked'], ['low', 'Running low'], ['out', 'Out of stock'], ['untracked', 'Not tracked'], ['all', 'All']].map(([k, l]) => `<button type="button" data-s="${k}" class="${show === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         </div>
-        <div class="table-wrap"><table class="table"><thead><tr><th>Item</th><th>In stock</th><th class="num">Warn at</th><th class="num">Value</th><th></th></tr></thead><tbody id="sBody"></tbody></table></div>
+        <div class="table-wrap"><table class="table cards-on-mobile"><thead><tr><th>Item</th><th>In stock</th><th class="num">Warn at</th><th class="num">Value</th><th></th></tr></thead><tbody id="sBody"></tbody></table></div>
       </div>
       <div id="sMoves" hidden></div></div>`;
     $('#sTabs', view).onclick = e => { const b = e.target.closest('[data-t]'); if (b) { movesItem = null; movesOffset = 0; setTab(b.dataset.t); } };

@@ -10,7 +10,7 @@ const ROLE_LABEL = { superadmin: 'Admin', owner: 'Owner', manager: 'Manager', ca
 const PERMISSIONS = [
   ['Screens', [['billing', 'Billing counter'], ['records', 'Records (today)'], ['records_all', 'Records (any date)'], ['dashboard', 'Dashboard'], ['items', 'Items'], ['stocks', 'Stocks']]],
   ['Billing', [['discount', 'Give discounts'], ['short_cash', 'Accept less cash than the total'], ['cancel_bills', 'Cancel bills'], ['export', 'Export records to CSV']]],
-  ['Settings', [['settings_shop', 'Shop details'], ['settings_tax', 'Billing & tax'], ['settings_design', 'Bill design'], ['settings_contact', 'Shop contact info'], ['staff', 'Staff & logins'], ['reset', 'Delete all bills']]]
+  ['Settings', [['settings_shop', 'Shop details'], ['settings_tax', 'Billing (tax, payments, stock)'], ['settings_design', 'Bill design & extras'], ['settings_contact', 'Shop contact info'], ['staff', 'Staff & logins'], ['roles_manager', 'Change what managers can do'], ['roles_cashier', 'Change what cashiers can do'], ['reset', 'Delete all bills']]]
 ];
 
 const Store = {
@@ -22,13 +22,19 @@ const Store = {
   get sys() { return this.me?.system || App.publicInfo || {}; },
   get role() { return this.me?.role || ''; },
   get isAdmin() { return this.role === 'superadmin'; },
-  feature(name) { return this.sys.features?.[name] !== false; },
+  feature(name) { const f = this.sys.features || {}; return name in f ? f[name] !== false : !['customer_details', 'customer_address'].includes(name); },
   can(perm) {
     const p = this.me?.perms || [];
-    if (perm === 'settings') return ['settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'reset'].some(x => p.includes(x));
+    if (perm === 'settings') return ['settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'reset', 'roles_manager', 'roles_cashier'].some(x => p.includes(x));
+    if (perm === 'stocks') return p.includes('stocks') && this.stockShown();
     return p.includes(perm);
   },
   payments() { const p = this.sys.payments || {}; return ['Cash', 'UPI', 'Card'].filter(m => p[m] !== false); },
+  /* Stock can be hidden by the owner/manager; Admin always sees it. */
+  stockShown() { return this.isAdmin || !this.settings.stock_hidden; },
+  /* Optional item fields switched on in Settings → Billing. HSN is on by default; others off. */
+  itemField(k) { const f = this.settings.item_fields || {}; return k in f ? !!f[k] : k === 'hsn'; },
+  invoice() { return this.settings.invoice || {}; },
   async loadItems(force = false) {
     if (!force && this.itemsLoadedAt && Date.now() - this.itemsLoadedAt < 15000) return this.items;
     const data = await Cloud.rpc('shop_items_list');
@@ -85,12 +91,19 @@ function periodRange(key, from, to) {
 }
 const PERIODS = [['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'Last 7 days'], ['month', 'This month'], ['lastmonth', 'Last month'], ['year', 'This year'], ['custom', 'Custom']];
 
+/* Toasts never pile up: the same message just stays up longer, and at most 3 show at once. */
 function toast(message, kind = 'info', ms = 3600) {
   let host = $('#toasts');
   if (!host) { host = document.createElement('div'); host.id = 'toasts'; host.setAttribute('aria-live', 'polite'); document.body.append(host); }
-  const t = document.createElement('div'); t.className = 'toast toast-' + kind; t.textContent = message; host.append(t);
-  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, ms);
+  let t = [...host.children].find(x => x.textContent === message && !x.classList.contains('out'));
+  if (t) { clearTimeout(t._timer); t.classList.remove('bump'); void t.offsetWidth; t.classList.add('bump'); }
+  else {
+    t = document.createElement('div'); t.className = 'toast toast-' + kind; t.textContent = message; host.append(t);
+    while (host.children.length > 3) host.firstElementChild.remove();
+  }
+  t._timer = setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, ms);
 }
+const isTouch = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 /* Promise-based dialog. Returns the input value (or true) on confirm, null on cancel. */
 function ask({ title, body = '', confirm = 'OK', cancel = 'Cancel', danger = false, input = null }) {
@@ -173,7 +186,11 @@ const ICONS = {
   refresh: '<path d="M20 11a8 8 0 0 0-14.9-3M4 13a8 8 0 0 0 14.9 3"/><path d="M4 4v4h4M20 20v-4h-4"/>', keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
   wifi: '<path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0"/><circle cx="12" cy="19.5" r=".8"/>', check: '<path d="M5 12l5 5L20 7"/>',
   rupee: '<path d="M6 4h12M6 9h12M6 4c7 0 7 9 0 9l8 7"/>',
-  power: '<path d="M12 3v8"/><path d="M6.3 6.6a8 8 0 1 0 11.4 0"/>',
+  store: '<path d="M4 9l1.5-5h13L20 9"/><path d="M4 9h16v2a3 3 0 0 1-5.3 1.9A3 3 0 0 1 12 14a3 3 0 0 1-2.7-1.1A3 3 0 0 1 4 11z"/><path d="M5 13.5V20h14v-6.5M10 20v-4h4v4"/>',
+  qr: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 14h2M14 18h2M18 18h2v2M16 16h2v2"/>',
+  up: '<path d="M12 19V5M6 11l6-6 6 6"/>', down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
+  layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+    power: '<path d="M12 3v8"/><path d="M6.3 6.6a8 8 0 1 0 11.4 0"/>',
   shield: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
   palette: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4.1-4-7.6-9-7.6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',

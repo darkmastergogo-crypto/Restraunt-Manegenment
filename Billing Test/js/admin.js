@@ -7,7 +7,8 @@ const Admin = (() => {
     ['access', 'System on / off', 'power', 'Shut down for everyone except admin'],
     ['support', 'Support contact', 'phone', 'Who shops call for help'],
     ['brand', 'Branding', 'palette', 'Name, colours and sign-in screen'],
-    ['billing', 'Payments & billing', 'card', 'Payment methods, features and limits'],
+    ['appearance', 'Appearance', 'palette', '20 themes for everyone or each role'],
+    ['billing', 'Limits', 'sliders', 'Biggest discount and short cash'],
     ['roles', 'Roles & permissions', 'users', 'What owner, manager and cashier can do'],
     ['admins', 'Admin logins', 'shield', 'Who can open this page']
   ];
@@ -84,21 +85,32 @@ const Admin = (() => {
       <label class="field"><span>App name <em>browser tab title</em></span><input name="app_title" maxlength="40" value="${esc(b.app_title)}" placeholder="Shop Billing"></label>
       <label class="field span-2"><span>Sign-in message</span><input name="signin_message" maxlength="120" value="${esc(b.signin_message)}"></label>
       <div class="span-2 switches">${sw('show_on_bill', b.show_on_bill !== false, 'Print “Billing software by …” on bills')}${sw('show_on_signin', b.show_on_signin !== false, 'Show company name on the sign-in screen')}</div>
-      <fieldset class="span-2 swatches"><legend>App colour</legend>${Object.entries(App.ACCENTS).map(([k, a]) => `<label class="swatch"><input type="radio" name="accent" value="${k}" ${(b.accent || 'blue') === k ? 'checked' : ''}><span style="--c:${a.l[0]}"></span><small>${k[0].toUpperCase() + k.slice(1)}</small></label>`).join('')}</fieldset>
+      <p class="hint span-2">Colours and themes are in Admin → Appearance.</p>
       <div class="form-actions span-2"><button class="btn btn-primary">Save branding</button></div></form>`;
   }
 
   function billingSection() {
-    const p = sys().payments || {}, f = sys().features || {}, l = sys().limits || {};
+    const l = sys().limits || {};
     return `<form id="aBilling" class="admin-stack">
-      <section class="card"><header class="card-head"><h2>Payment methods</h2><p class="hint">Only the methods turned on appear on the billing screen. Keep at least one on.</p></header>
-        <div class="pay-toggles">${['Cash', 'UPI', 'Card'].map(m => sw('pay_' + m, p[m] !== false, m)).join('')}</div></section>
-      <section class="card"><header class="card-head"><h2>Billing screen</h2><p class="hint">Turn parts of the billing screen on or off for everyone.</p></header>
-        <div class="switches two">${FEATURES.map(([k, t, d]) => sw('f_' + k, f[k] !== false, t, d)).join('')}</div></section>
-      <section class="card form-grid"><header class="span-2 card-head"><h2>Limits</h2><p class="hint">Admin is never limited. Owner, manager and cashier are.</p></header>
+      <section class="card form-grid"><header class="span-2 card-head"><h2>Limits</h2><p class="hint">Admin is never limited. Owner, manager and cashier are — the server enforces these.</p></header>
         <label class="field"><span>Biggest discount allowed (%)</span><input name="max_discount_percent" type="number" min="0" max="100" step="0.5" value="${Number(l.max_discount_percent ?? 100)}"></label>
-        <label class="field"><span>Most cash a customer can pay short (${esc(Fmt.cur())})</span><input name="max_short_amount" type="number" min="0" max="100000" step="1" value="${Number(l.max_short_amount ?? 0)}"><small class="hint">When cash received is less than the total, the bill is reduced to what was paid — up to this amount.</small></label></section>
-      <div class="form-actions sticky-save"><button class="btn btn-primary btn-lg">Save payments & billing</button></div></form>`;
+        <label class="field"><span>Most cash a customer can pay short (${esc(Fmt.cur())})</span><input name="max_short_amount" type="number" min="0" max="100000" step="1" value="${Number(l.max_short_amount ?? 0)}"><small class="hint">When cash received is less than the total, the bill is reduced to what was paid — up to this amount.</small></label>
+        <div class="form-actions span-2"><button class="btn btn-primary">Save limits</button></div></section>
+      <section class="card"><header class="card-head"><h2>Payment methods & billing screen</h2><p class="hint">These are in <a href="#/settings">Settings → Billing</a>, where managers can change them too — unless you take away their “Billing” permission in Roles & permissions.</p></header></section></form>`;
+  }
+
+  function appearanceSection() {
+    const a = sys().appearance || {}, roles = ['owner', 'manager', 'cashier'];
+    const opts = sel => Themes.list.map(t => `<option value="${t.id}" ${sel === t.id ? 'selected' : ''}>${esc(t.name)} (${t.mode})</option>`).join('');
+    return `<form id="aLook" class="admin-stack">
+      <section class="card"><header class="card-head"><h2>Theme for everyone</h2><p class="hint">Changes the whole app — sidebar, screens and buttons — for every login in this shop.</p></header>
+        <div class="theme-grid">${Themes.list.map(t => `<label class="theme-card"><input type="radio" name="theme" value="${t.id}" ${(a.theme || 'ledger') === t.id ? 'checked' : ''}>${Themes.swatch(t, a.accent)}<b>${esc(t.name)}</b><small>${t.mode === 'dark' ? 'Dark' : 'Light'}</small></label>`).join('')}</div></section>
+      <section class="card form-grid"><header class="span-2 card-head"><h2>Different theme for a role</h2><p class="hint">Optional. For example a dark theme for cashiers at a dim counter.</p></header>
+        ${roles.map(r => `<label class="field"><span>${ROLE_LABEL[r]}</span><select name="role_${r}"><option value="">Same as everyone</option>${opts(a[r])}</select></label>`).join('')}</section>
+      <section class="card form-grid"><header class="span-2 card-head"><h2>Brand colour</h2><p class="hint">Replace the theme’s button colour with your own.</p></header>
+        <div class="field span-2"><div class="color-row">${sw('accent_on', !!a.accent, 'Use my own colour')}<label class="color-custom"><input type="color" name="accent" value="${esc(a.accent || '#1f5fbf')}" aria-label="Brand colour"><span class="mono">${esc(a.accent || '#1f5fbf')}</span></label></div></div>
+        <div class="span-2">${sw('allow_personal', !!a.allow_personal, 'Let staff choose their own theme', 'Adds a Theme button for everyone. Their choice only changes their own device.')}</div></section>
+      <div class="form-actions sticky-save"><button class="btn btn-primary btn-lg">Save appearance</button></div></form>`;
   }
 
   function rolesSection() {
@@ -137,7 +149,14 @@ const Admin = (() => {
     section = sec;
     $$('#adminNav button', root).forEach(b => b.classList.toggle('on', b.dataset.s === sec));
     const body = $('#adminBody2', root);
-    body.innerHTML = { access: accessSection, support: supportSection, brand: brandSection, billing: billingSection, roles: rolesSection, admins: adminsSection }[sec]();
+    body.innerHTML = { access: accessSection, support: supportSection, brand: brandSection, appearance: appearanceSection, billing: billingSection, roles: rolesSection, admins: adminsSection }[sec]();
+    if (sec === 'appearance') {
+      const f = $('#aLook', root);
+      const read = () => ({ theme: f.theme.value || 'ledger', owner: f.role_owner.value, manager: f.role_manager.value, cashier: f.role_cashier.value, accent: f.accent_on.checked ? f.accent.value : '', allow_personal: f.allow_personal.checked });
+      const preview = () => { const v = read(); Themes.apply(v.theme, v.accent); f.accent.nextElementSibling.textContent = f.accent.value; };
+      f.addEventListener('change', preview); f.addEventListener('input', e => { if (e.target.name === 'accent') { f.accent_on.checked = true; preview(); } });
+      f.onsubmit = e => { e.preventDefault(); save({ appearance: read() }, e.submitter, 'Appearance saved. Everyone sees the new theme the next time they open the app.').then(() => App.applyTheme()); };
+    }
     if (sec === 'access') {
       const f = $('#aAccess', root);
       f.onsubmit = e => { e.preventDefault(); save({ access: { message: f.message.value.trim() } }, e.submitter, 'Message saved.'); };
@@ -155,17 +174,13 @@ const Admin = (() => {
     }
     if (sec === 'brand') {
       const f = $('#aBrand', root);
-      f.addEventListener('change', e => { if (e.target.name === 'accent') { Store.me.system.brand = { ...sys().brand, accent: e.target.value }; App.applyBrand(); } });
-      f.onsubmit = e => { e.preventDefault(); save({ brand: { software_name: f.software_name.value.trim(), app_title: f.app_title.value.trim() || 'Shop Billing', signin_message: f.signin_message.value.trim(), show_on_bill: f.show_on_bill.checked, show_on_signin: f.show_on_signin.checked, accent: f.accent.value } }, e.submitter, 'Branding saved.'); };
+      f.onsubmit = e => { e.preventDefault(); save({ brand: { software_name: f.software_name.value.trim(), app_title: f.app_title.value.trim() || 'Shop Billing', signin_message: f.signin_message.value.trim(), show_on_bill: f.show_on_bill.checked, show_on_signin: f.show_on_signin.checked } }, e.submitter, 'Branding saved.'); };
     }
     if (sec === 'billing') {
       const f = $('#aBilling', root);
       f.onsubmit = e => {
         e.preventDefault();
-        const payments = Object.fromEntries(['Cash', 'UPI', 'Card'].map(m => [m, f['pay_' + m].checked]));
-        if (!Object.values(payments).some(Boolean)) return toast('Keep at least one payment method turned on.', 'warn');
-        save({ payments, features: Object.fromEntries(FEATURES.map(([k]) => [k, f['f_' + k].checked])),
-               limits: { max_discount_percent: Number(f.max_discount_percent.value) || 0, max_short_amount: Number(f.max_short_amount.value) || 0 } }, e.submitter, 'Payments & billing saved.').then(paintHeader);
+        save({ limits: { max_discount_percent: Number(f.max_discount_percent.value) || 0, max_short_amount: Number(f.max_short_amount.value) || 0 } }, e.submitter, 'Limits saved.').then(paintHeader);
       };
     }
     if (sec === 'roles') {
@@ -178,8 +193,8 @@ const Admin = (() => {
       };
       $('#aRolesReset', root).onclick = async () => {
         if (!(await ask({ title: 'Reset permissions?', body: 'Owner, manager and cashier go back to the standard permissions.', confirm: 'Reset' }))) return;
-        const def = { owner: ['billing', 'records', 'records_all', 'dashboard', 'items', 'stocks', 'settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'discount', 'short_cash', 'cancel_bills', 'export', 'reset'],
-          manager: ['billing', 'records', 'records_all', 'dashboard', 'items', 'stocks', 'discount', 'short_cash', 'cancel_bills', 'export'], cashier: ['billing', 'records', 'discount', 'short_cash'] };
+        const def = { owner: ['billing', 'records', 'records_all', 'dashboard', 'items', 'stocks', 'settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'roles_manager', 'roles_cashier', 'discount', 'short_cash', 'cancel_bills', 'export', 'reset'],
+          manager: ['billing', 'records', 'records_all', 'dashboard', 'items', 'stocks', 'settings_tax', 'roles_cashier', 'discount', 'short_cash', 'cancel_bills', 'export'], cashier: ['billing', 'records', 'discount', 'short_cash'] };
         if (await save({ roles: def }, null, 'Permissions reset.')) show('roles');
       };
     }
@@ -225,5 +240,5 @@ const Admin = (() => {
     $('#adminNav', view).onclick = e => { const b = e.target.closest('[data-s]'); if (b) show(b.dataset.s); };
     paintHeader(); show(section);
   }
-  return { mount, unmount() { root = null; } };
+  return { mount, unmount() { root = null; App.applyTheme(); } };
 })();

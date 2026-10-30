@@ -10,32 +10,37 @@ const App = (() => {
     settings: { label: 'Settings', icon: 'gear', perm: 'settings', mod: () => Settings },
     admin: { label: 'Admin', icon: 'shield', perm: 'admin', mod: () => Admin }
   };
-  const ACCENTS = {
-    blue:   { l: ['#1f5fbf', '#194f9f', '#e4edfa'], d: ['#5b93e6', '#7aa8ec', '#1d2c44'] },
-    green:  { l: ['#13795b', '#0f6149', '#e1f3ec'], d: ['#4cc38a', '#6fd3a3', '#16302a'] },
-    purple: { l: ['#6d3fc0', '#5a32a3', '#efe8fb'], d: ['#a585ec', '#b9a0f1', '#2a2142'] },
-    orange: { l: ['#c2541d', '#a54616', '#fcebe1'], d: ['#ef8a55', '#f3a378', '#3a2419'] },
-    teal:   { l: ['#0f766e', '#0b5f58', '#dff3f1'], d: ['#3cc2b6', '#62d0c6', '#13302e'] },
-    red:    { l: ['#b42318', '#951d14', '#fbe7e5'], d: ['#ef6b62', '#f38b84', '#3a1f1f'] }
-  };
   let current = null;
   const app = () => $('#app');
 
-  /* ---------- theme & accent ---------- */
-  function theme(next) {
-    let t; try { t = next || localStorage.getItem('SHOPBILL_THEME') || 'light'; if (next) localStorage.setItem('SHOPBILL_THEME', next); } catch { t = next || 'light'; }
-    document.documentElement.dataset.theme = t;
-    const b = $('#themeBtn'); if (b) b.innerHTML = Icon(t === 'dark' ? 'sun' : 'moon') + `<span>${t === 'dark' ? 'Light mode' : 'Dark mode'}</span>`;
+  /* ---------- themes ---------- */
+  const personalKey = () => 'SHOPBILL_MY_THEME:' + Cloud.cfg.supabaseUrl + ':' + Cloud.userEmail;
+  const canPickTheme = () => !!Store.me && (Store.isAdmin || !!Store.sys.appearance?.allow_personal);
+  function myTheme() {
+    const a = Store.sys.appearance || {};
+    let id = a.theme || 'ledger';
+    if (Store.me && a[Store.role]) id = a[Store.role];
+    if (canPickTheme()) { try { id = localStorage.getItem(personalKey()) || id; } catch { /* ignore */ } }
+    return id;
   }
-  function accent(name) {
-    const a = ACCENTS[name] || ACCENTS.blue;
-    let st = $('#accentStyle'); if (!st) { st = document.createElement('style'); st.id = 'accentStyle'; document.head.append(st); }
-    const vars = ([p, h, s]) => `--primary:${p};--primary-hover:${h};--primary-soft:${s};`;
-    st.textContent = `:root{${vars(a.l)}--focus:0 0 0 3px ${a.l[0]}59}:root[data-theme="dark"]{${vars(a.d)}--focus:0 0 0 3px ${a.d[0]}73}`;
+  function applyTheme() {
+    const t = Themes.apply(myTheme(), Store.sys.appearance?.accent);
+    const b = $('#themeBtn'); if (b) { b.hidden = !canPickTheme(); b.innerHTML = Icon('palette') + `<span>Theme · ${esc(t.name)}</span>`; }
+  }
+  function themePicker() {
+    const cur = myTheme(), a = Store.sys.appearance || {};
+    const d = modal('Choose a theme', `<p class="hint">Only changes this device. ${Store.isAdmin ? 'To change it for the whole shop, use Admin → Appearance.' : ''}</p>
+      <div class="theme-grid">${Themes.list.map(t => `<button type="button" class="theme-card ${t.id === cur ? 'on' : ''}" data-theme-id="${t.id}">${Themes.swatch(t, a.accent)}<b>${esc(t.name)}</b><small>${t.mode === 'dark' ? 'Dark' : 'Light'}</small></button>`).join('')}</div>
+      <div class="modal-actions"><button type="button" class="btn btn-ghost" data-reset>Use the shop’s theme</button><button type="button" class="btn btn-primary" data-close>Done</button></div>`, { size: 'modal-lg' });
+    d.addEventListener('click', e => {
+      const c = e.target.closest('[data-theme-id]');
+      if (c) { try { localStorage.setItem(personalKey(), c.dataset.themeId); } catch { /* ignore */ } applyTheme(); $$('.theme-card', d).forEach(x => x.classList.toggle('on', x === c)); }
+      if (e.target.closest('[data-reset]')) { try { localStorage.removeItem(personalKey()); } catch { /* ignore */ } applyTheme(); d.close(); }
+    });
   }
   function applyBrand() {
     const b = Store.sys.brand || {};
-    accent(b.accent);
+    applyTheme();
     document.title = (Store.settings.shop_name || App.publicInfo?.shop_name || 'Shop') + ' · ' + (b.app_title || 'Billing');
   }
 
@@ -92,7 +97,7 @@ const App = (() => {
     app().className = 'shell';
     app().innerHTML = `<aside class="side" id="side">
         <div class="side-brand"><div class="logo-chip" id="shopLogo"></div><div><b id="shopName"></b><small id="shopTag"></small></div></div>
-        <nav class="side-nav" aria-label="Main">${nav.map(([k, r]) => `<a href="#/${k}" data-route="${k}" class="${k === 'admin' ? 'nav-admin' : ''}">${Icon(r.icon)}<span>${r.label}</span>${k === 'billing' ? '<kbd>F2</kbd>' : ''}</a>`).join('')}</nav>
+        <nav class="side-nav" aria-label="Main">${nav.map(([k, r]) => `<a href="#/${k}" data-route="${k}" class="${k === 'admin' ? 'nav-admin' : ''}">${Icon(r.icon)}<span>${r.label}</span>${k === 'billing' && !isTouch() ? '<kbd>F2</kbd>' : ''}</a>`).join('')}</nav>
         <div class="side-foot">
           <button type="button" class="side-btn" data-help>${Icon('help')}<span>Help & contact</span></button>
           <button type="button" class="side-btn" id="themeBtn"></button>
@@ -112,8 +117,8 @@ const App = (() => {
         <main id="view" tabindex="-1"></main>
       </div>
       <div class="scrim" id="scrim"></div>`;
-    applyShop(); theme();
-    $('#themeBtn').onclick = () => theme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    applyShop();
+    $('#themeBtn').onclick = themePicker;
     $('#logoutBtn').onclick = async () => { if (await ask({ title: 'Sign out?', body: 'You will need your email and password to sign in again on this device.', confirm: 'Sign out' })) { await Cloud.logout(); Store.me = null; location.hash = ''; loginView(); } };
     $('#menuBtn').onclick = () => document.body.classList.add('nav-open');
     $('#scrim').onclick = () => document.body.classList.remove('nav-open');
@@ -187,7 +192,7 @@ const App = (() => {
       ${shopContact ? `<section class="help-card"><h3>Shop contact</h3>${s.contact_name ? `<p><b>${esc(s.contact_name)}</b></p>` : ''}
         ${s.contact_phone ? `<div class="toolbar"><a class="btn" href="tel:${esc(tel(s.contact_phone))}">${Icon('phone')} ${esc(s.contact_phone)}</a><button type="button" class="btn btn-ghost" data-copy="${esc(s.contact_phone)}">${Icon('copy')} Copy</button></div>` : ''}
         ${s.contact_details ? `<p class="pre">${esc(s.contact_details)}</p>` : ''}</section>` : ''}
-      ${Store.me ? `<section class="help-card span-2"><h3>Keyboard shortcuts on the billing screen</h3><dl class="keys">
+      ${Store.me && !isTouch() ? `<section class="help-card span-2"><h3>Keyboard shortcuts on the billing screen</h3><dl class="keys">
         <dt><kbd>F2</kbd></dt><dd>Search or scan an item</dd><dt><kbd>Enter</kbd></dt><dd>Add the highlighted item (barcode scanners do this for you)</dd>
         <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move through search results</dd><dt><kbd>F4</kbd></dt><dd>Change payment method</dd>
         <dt><kbd>F8</kbd></dt><dd>Save bill</dd><dt><kbd>F9</kbd></dt><dd>Save and print bill</dd><dt><kbd>Alt</kbd>+<kbd>X</kbd></dt><dd>Add an item that isn’t in the list</dd><dt><kbd>Alt</kbd>+<kbd>N</kbd></dt><dd>Clear the bill</dd></dl></section>` : ''}
@@ -215,7 +220,7 @@ const App = (() => {
   }
 
   async function boot() {
-    theme();
+    try { const [id, ac] = JSON.parse(localStorage.getItem('SHOPBILL_LAST_THEME') || '[]'); if (id) Themes.apply(id, ac); else Themes.apply('ledger'); } catch { Themes.apply('ledger'); }
     addEventListener('hashchange', route);
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
     if (Cloud.signedIn) return start();
@@ -224,6 +229,7 @@ const App = (() => {
     // repaint the sign-in card with the shop name and support details, keeping anything already typed
     if (!Store.me && $('#loginForm')) { const f = $('#loginForm'), em = f.email.value, pw = f.password.value; loginView(); $('#loginForm').email.value = em; $('#loginForm').password.value = pw; }
   }
-  return { boot, applyShop, applyBrand, help, refreshMe, start, paintLock, ACCENTS, publicInfo: null };
+  function rebuildNav() { if (!Store.me) return; shell(); route(); }
+  return { boot, applyShop, applyBrand, applyTheme, help, refreshMe, start, paintLock, rebuildNav, publicInfo: null };
 })();
 App.boot();

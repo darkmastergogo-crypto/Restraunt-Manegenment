@@ -25,13 +25,13 @@ const Records = (() => {
     $('#rStatus', root).textContent = data.total ? `${data.total} bill${data.total === 1 ? '' : 's'} · ${label}` : '';
     const body = $('#rBody', root);
     body.innerHTML = data.rows.length ? data.rows.map(b => `<tr data-id="${esc(b.id)}" tabindex="0" class="${b.status === 'Cancelled' ? 'is-void' : ''}">
-        <td><b class="mono">${esc(b.bill_no)}</b></td>
-        <td>${esc(data.from === data.to ? Fmt.time(b.created_at) : Fmt.dateTime(b.created_at))}</td>
-        <td>${esc(b.customer_name || b.customer_phone || '—')}</td>
-        <td class="num">${(b.items || []).length}</td>
-        <td><span class="pm pm-${esc(b.payment_method.toLowerCase())}">${esc(b.payment_method)}</span></td>
-        <td class="num"><b>${Fmt.money(b.total)}</b></td>
-        <td>${b.status === 'Cancelled' ? '<span class="badge badge-red">Cancelled</span>' : '<span class="badge badge-green">Paid</span>'}</td>
+        <td data-label="Bill no"><b class="mono">${esc(b.bill_no)}</b></td>
+        <td data-label="Time">${esc(data.from === data.to ? Fmt.time(b.created_at) : Fmt.dateTime(b.created_at))}</td>
+        <td data-label="Customer" class="${b.customer_name || b.customer_phone ? '' : 'm-hide'}">${esc(b.customer_name || b.customer_phone || '—')}</td>
+        <td class="num" data-label="Lines">${(b.items || []).length}</td>
+        <td data-label="Payment"><span class="pm pm-${esc(b.payment_method.toLowerCase())}">${esc(b.payment_method)}</span></td>
+        <td class="num" data-label="Total"><b>${Fmt.money(b.total)}</b></td>
+        <td data-label="Status">${b.status === 'Cancelled' ? '<span class="badge badge-red">Cancelled</span>' : '<span class="badge badge-green">Paid</span>'}</td>
         <td class="row-act"><button type="button" class="btn btn-sm btn-ghost" data-open>View</button></td></tr>`).join('')
       : `<tr><td colspan="8"><div class="empty"><h3>No bills here</h3><p>${f.q ? 'Nothing matches that search. Try a bill number, name or phone.' : all ? 'No bills in this period. Pick another date range.' : 'No bills yet today.'}</p></div></td></tr>`;
     $('#rPrev', root).disabled = offset === 0;
@@ -104,7 +104,7 @@ const Records = (() => {
       </div>
       <div class="summary" id="rSummary"></div>
       <p class="status-line" id="rStatus" role="status"></p>
-      <div class="table-wrap"><table class="table"><thead><tr><th>Bill no</th><th>Time</th><th>Customer</th><th class="num">Lines</th><th>Payment</th><th class="num">Total</th><th>Status</th><th></th></tr></thead><tbody id="rBody"></tbody></table></div>
+      <div class="table-wrap"><table class="table cards-on-mobile"><thead><tr><th>Bill no</th><th>Time</th><th>Customer</th><th class="num">Lines</th><th>Payment</th><th class="num">Total</th><th>Status</th><th></th></tr></thead><tbody id="rBody"></tbody></table></div>
       <div class="pager"><button type="button" class="btn btn-sm" id="rPrev">Previous</button><span id="rPage"></span><button type="button" class="btn btn-sm" id="rNext">Next</button></div>
     </div>`;
     const t = Fmt.today();
