@@ -504,6 +504,10 @@
     <button type="button" id="kitchenNavToggle" class="kitchen-nav-toggle nav-menu-toggle nav-toggle-hidden" aria-label="Open navigation" aria-haspopup="true" aria-expanded="false" aria-controls="managerNav"><span></span><span></span><span></span></button>
     <div class="nav-drawer-overlay" id="kitchenNavOverlay"></div>
     <nav class="nav-tabs" id="managerNav" aria-label="Staff navigation" hidden>
+      <div class="nav-drawer-status"><span class="nav-drawer-status-dot"></span><span id="navDrawerSync">Sign in</span></div>
+      <button type="button" class="nav-drawer-item" id="navDrawerCallWaiter" hidden><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#bell"></use></svg><span>Call waiter</span></button>
+      <button type="button" class="nav-drawer-item" id="navDrawerAccount"><span class="account-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3Z"/></svg></span><span><strong id="navDrawerAccountRole">Admin</strong> · Signed in</span></button>
+      <div class="nav-drawer-divider"></div>
       <button class="nav-tab-btn active" id="tabLiveBtn" onclick="switchTab('live')"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#clipboard"></use></svg><span>Pending Orders (<span id="activeOrdersBadge">0</span>)</span></button>
       <button class="nav-tab-btn" id="tabBillingBtn" onclick="switchTab('billing')">Billing</button><button class="nav-tab-btn" id="tabHistoryBtn" onclick="switchTab('history')"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#history"></use></svg>Order Records</button>
       <button class="nav-tab-btn" id="tabDashboardBtn" onclick="switchTab('dashboard')"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#grid"></use></svg>Dashboard</button>
@@ -699,5 +703,6 @@
   <script src="alert-device.js?v=yummy-46"></script><script src="push-config.js?v=yummy-46"></script><script src="background-alerts.js?v=yummy-65"></script>
   <script src="tables.js?v=yummy-51"></script><script src="device-management.js?v=yummy-46"></script><script src="call-requests.js?v=yummy-56"></script><script src="admin-controls.js?v=yummy-54"></script><script src="monthly-loyalty.js?v=yummy-46"></script><script src="request-ring.js?v=yummy-64"></script><script src="waiter-access.js?v=yummy-62"></script><script src="security-controls.js?v=yummy-46"></script><script src="alert-audio.js?v=yummy-64"></script><script src="staff-extras.js?v=yummy-64"></script><script src="stocks.js?v=yummy-46"></script><script src="dish-sales.js?v=yummy-46"></script><script src="kitchen-ops.js?v=yummy-49"></script><script src="operations-analytics.js?v=yummy-63"></script><script src="kitchen.js?v=yummy-64"></script>
 <script src="kitchen-nav.js?v=1" defer></script>
+<script src="nav-drawer-mirror.js?v=1" defer></script>
 <script src="custom48.js?v=61"></script></body>
 </html>

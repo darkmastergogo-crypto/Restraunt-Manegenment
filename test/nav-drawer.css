@@ -225,3 +225,38 @@
 }
 .kitchen-nav-toggle { display: none; }
 .kitchen-nav-toggle.nav-toggle-hidden { display: none !important; }
+
+/* ---- Call waiter / account / sync status mirrored into the kitchen drawer ---- */
+.nav-drawer-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 12px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #71717a;
+}
+.nav-drawer-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+}
+header .nav-tabs#managerNav .nav-drawer-item {
+  width: 100% !important;
+  justify-content: flex-start;
+  text-align: left;
+}
+header .nav-tabs#managerNav .nav-drawer-item .account-avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: #fff1eb;
+  color: #e23744;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+header .nav-tabs#managerNav .nav-drawer-item .account-avatar svg { width: 16px; height: 16px; }
