@@ -9,7 +9,6 @@ const staffSizeLabel=(size,item)=>MenuOptions.label(item,size);
 const staffDisplayedPrice=item=>{if(!item.sizes_enabled)return item.price;const offered=MenuOptions.keys(item).filter(size=>Object.prototype.hasOwnProperty.call(item.size_prices||{},size)&&!(item.size_stock?.[size]?.tracked&&item.size_stock[size].remaining<=0));return offered.length?Math.min(...offered.map(size=>Number(item.size_prices[size]))):item.price;};
 let staffRole=null,orders=[],menuItems=[],currentTab='live',currentFilter='active',currentBillOrderId=null,currentTableId=null;
 const photoSelections={new:0,edit:0};
-const dishImageLibrarySearch={new:{timer:null,sequence:0},edit:{timer:null,sequence:0}};
 let state=Cloud.read('KITCHEN_ADMIN_STATE_v1',{}),tables=[],photoDrafts={new:{data:''},edit:{data:''}},editingPhotoItemId=null;
 let soundEnabled=false,audioContext=null,alarmNodes=[],alarmIds=[],alarmState=Cloud.read('RESTAURANT_ALARMS_v2',{}),toastTimer,pollTimer=null,summaryPollTimer=null;
 let scannerStream=null,scannerFrame=null,wakeLock=null,loggedIn=false,orderSyncPromise=null,summarySyncPromise=null;
@@ -42,7 +41,7 @@ function setConnection(label){
 async function signOutStaff(){
  if(orderActionsBusy.size){showToast('Wait for the saving action to finish.');return;}RestaurantAlerts.stop();await KitchenOps.stop();RestaurantAlerts.stopVolumeTest();
  try{await BackgroundAlerts.disableForSignOut();}catch(e){if(!confirm('Could not disable background alerts on this device. If you sign out now, alerts may continue. Turn off this site’s notifications in browser settings to stop them. Sign out anyway?'))return;}
- requestRing.disable();orderRing.disable();orderUndoReceipts.clear();persistUndoActions();loggedIn=false;if(typeof pollTimer==='function')pollTimer();if(typeof summaryPollTimer==='function')summaryPollTimer();stopAlarmSound();closeAlarm();soundEnabled=false;$('soundButton').textContent='Enable request sound';orders=[];menuItems=[];
+ requestRing.disable();orderRing.disable();loggedIn=false;if(typeof pollTimer==='function')pollTimer();if(typeof summaryPollTimer==='function')summaryPollTimer();stopAlarmSound();closeAlarm();soundEnabled=false;$('soundButton').textContent='Enable request sound';orders=[];menuItems=[];
  if(wakeLock){await wakeLock.release().catch(()=>{});wakeLock=null;}
  try{await Cloud.logout();}catch{}location.reload();
 }
@@ -65,7 +64,7 @@ function refreshOrders(){
    if(!loggedIn)return;
    orders=rows;lastSuccessfulSync=Date.now();try{sessionStorage.setItem(lastSyncStorageKey,String(lastSuccessfulSync));}catch{}
    setConnection('Live');cloudError('');
-   observeUndoActions(rows);RestaurantAlerts.observeOrders(rows);orderRing.update(rows.filter(o=>o.status==='Pending'));
+   RestaurantAlerts.observeOrders(rows);orderRing.update(rows.filter(o=>o.status==='Pending'));
    renderOrders();renderDashboard();checkAlarm();
    void MonthlyLoyalty.refresh(rows).then(()=>{if(loggedIn)renderOrders();});
    void refreshOrderDeviceStates().then(()=>{if(loggedIn){renderOrders();if(recordsData)renderHistory();}});
@@ -142,9 +141,9 @@ function renderOrders(){
  const active=orders.filter(o=>!terminal(o.status));$('activeOrdersBadge').textContent=active.filter(o=>o.status==='Pending').length;
  const filters=[['active','All open'],['Pending','Pending orders'],['Cancelled','Cancelled']];
  const filterHTML=filters.map(([k,v])=>`<button class="nav-tab-btn ${currentFilter===k?'active':''}" data-filter="${k}">${v}</button>`).join('');if($('orderFilters').innerHTML!==filterHTML)$('orderFilters').innerHTML=filterHTML;
- paintCancelledView();const filtered=currentFilter==='Cancelled'?cancelledRows():currentFilter==='active'?active:orders.filter(o=>o.status===currentFilter);const shown=currentFilter==='Cancelled'?filtered:[...filtered,...[...orderUndoReceipts.values()].filter(o=>!filtered.some(x=>x.id===o.id))];
+ paintCancelledView();const filtered=currentFilter==='Cancelled'?cancelledRows():currentFilter==='active'?active:orders.filter(o=>o.status===currentFilter);const shown=filtered;
  const ordersHTML=shown.length?shown.map(o=>`<article class="order-card status-${esc(o.status.toLowerCase())} ${MonthlyLoyalty.star(o.id)?'monthly-regular':''}">
- <div class="order-header"><div><div class="table-title">${esc(Cloud.tableName(o.table_number))}</div><div class="order-time" title="${esc(o.order_id)}">${esc(shortId(o))} · ${timeText(o.created_at)}</div></div><div class="order-card-tools">${undoButton(o)}${statusPill(o)}</div></div>
+ <div class="order-header"><div><div class="table-title">${esc(Cloud.tableName(o.table_number))}</div><div class="order-time" title="${esc(o.order_id)}">${esc(shortId(o))} · ${timeText(o.created_at)}</div></div><div class="order-card-tools">${statusPill(o)}</div></div>
  <div class="order-body"><div class="cust-info">${MonthlyLoyalty.badge(o.id)}Guest: <b>${esc(o.customer_name||'Guest')}</b></div>
  <ul class="items-list">${o.items.map(i=>`<li class="item-entry"><span><b class="item-qty">${Number(i.qty)}×</b> ${esc(i.name)}</span><span>${money(i.subtotal)}</span></li>`).join('')}</ul>
  ${o.kitchen_notes?`<div class="kitchen-notes-box">${esc(o.kitchen_notes)}</div>`:''}
@@ -157,7 +156,7 @@ async function setOrderStatus(id,next,button){
  let reason='';if(next==='Rejected'){reason=prompt('Reason shown to the customer:','Items unavailable');if(reason===null)return;}
  if(orderActionsBusy.has(id))return;orderActionsBusy.add(id);renderOrders();
  if(button)button.disabled=true;
- try{const saved=await Cloud.rpc('restaurant_staff_status',{p_id:id,p_expected:o.status,p_next:next,p_reason:reason},true);if(saved.undo_token)orderUndoReceipts.set(id,saved);else orderUndoReceipts.delete(id);persistUndoActions();Cloud.invalidateOrders();showToast('Order '+saved.status.toLowerCase()+'.');await refreshCloud();}
+ try{const saved=await Cloud.rpc('restaurant_staff_status',{p_id:id,p_expected:o.status,p_next:next,p_reason:reason},true);Cloud.invalidateOrders();showToast('Order '+saved.status.toLowerCase()+'.');await refreshCloud();}
  catch(e){showToast(/This status change is not allowed/.test(e.message)?'Database upgrade required: run SUPABASE/UPGRADE-EXISTING-PROJECT.sql, then refresh kitchen.':e.message);await refreshCloud();}finally{orderActionsBusy.delete(id);if(button)button.disabled=false;renderOrders();}
 }
 let recordStatusFilter='All';
@@ -236,7 +235,7 @@ function renderAdminMenu(){
  const q=staffMenuQuery.toLowerCase().trim(),list=menuItems.filter(i=>(staffMenuCategory==='All'||i.category===staffMenuCategory)&&(staffMenuAvailability==='all'||(staffMenuAvailability==='available'?i.available:!i.available))&&(!q||[i.name,i.category,i.description].some(v=>String(v||'').toLowerCase().includes(q))));
  $('staffMenuCount').textContent=list.length+' of '+menuItems.length+' dishes';
  root.innerHTML=list.length?list.map(i=>`<article class="menu-row organized-menu-row" data-menu-id="${esc(i.id)}">
- <div class="staff-dish-header"><div class="menu-emoji">${['dish','both'].includes(window.Custom48?.photoMode())&&Cloud.safeImage(i.image)?`<img class="menu-photo" src="${esc(Cloud.safeImage(i.image))}" alt="${esc(i.name)}" loading="lazy">`:'🍽️'}</div><div class="menu-copy"><h4>${esc(i.name)}</h4><p class="muted">${esc(i.category)}</p></div><div class="staff-dish-price"><b>${i.sizes_enabled?'From ':''}${money(staffDisplayedPrice(i))}</b><span class="staff-availability">${i.stock_sold_out?'Sold out':i.available?'Available':'Unavailable · hidden'}</span></div></div>
+ <div class="staff-dish-header"><div class="menu-emoji">${window.Custom48?.photoMode()==='dish'&&Cloud.safeImage(i.image)?`<img class="menu-photo" src="${esc(Cloud.safeImage(i.image))}" alt="${esc(i.name)}" loading="lazy">`:'🍽️'}</div><div class="menu-copy"><h4>${esc(i.name)}</h4><p class="muted">${esc(i.category)}</p></div><div class="staff-dish-price"><b>${i.sizes_enabled?'From ':''}${money(staffDisplayedPrice(i))}</b><span class="staff-availability">${i.stock_sold_out?'Sold out':i.available?'Available':'Unavailable · hidden'}</span></div></div>
  ${i.description?`<p class="staff-dish-description">${esc(i.description)}</p>`:''}
  ${i.sizes_enabled?`<div class="staff-size-summary">${MenuOptions.keys(i).map(size=>`<span>${esc(staffSizeLabel(size,i))} <b>${money(i.size_prices[size])}</b>${i.size_stock?.[size]?.tracked?' · '+(i.size_stock[size].remaining===0?'Sold out':i.size_stock[size].remaining+' left'):''}</span>`).join('')}</div>`:''}
  <div class="staff-menu-actions"><button class="primary-btn" data-pricing="${esc(i.id)}">Prices &amp; sizes</button>${staffRole==='manager'&&!i.sizes_enabled?`<button class="secondary-btn" data-price-only="${esc(i.id)}">Change price</button>`:''}<button class="secondary-btn availability" data-availability="${esc(i.id)}" aria-pressed="${i.manual_available??i.available}">${(i.manual_available??i.available)?(i.stock_sold_out?'Listed · hide manually':'Available ✓ · set unavailable'):'Hidden · show manually'}</button><button class="secondary-btn" data-recommended="${esc(i.id)}" aria-pressed="${i.recommended===true}">${i.recommended?'Recommended ✓ · remove':'Mark recommended'}</button><button class="secondary-btn" data-best-seller="${esc(i.id)}" aria-pressed="${i.best_seller===true}">${i.best_seller?'Best seller ✓ · remove':'Mark best seller'}</button></div>
@@ -295,11 +294,11 @@ async function editMenuDetails(id){
  if(!name.trim()||name.length>120||!Number.isFinite(Number(price))||Number(price)<0||Number(price)>100000||description.length>1000){showToast('Enter a valid name, price and description.');return;}
  try{await Cloud.patchMenu(id,{name:name.trim(),price:Number(price),description,updated_at:new Date().toISOString()});await refreshCloud();}catch(e){showToast(e.message);}
 }
-async function showAddItemModal(){try{await loadStaffCategories();if(!$('addItemModal').open)$('addItemModal').showModal();const name=$('newItemName').value.trim();$('newItemImageSearch').value=name;searchDishPhotoLibrary('new',name);}catch(e){showToast('Categories could not load: '+e.message);}}
-function closeAddItemModal(){dishImageLibrarySearch.new.sequence++;clearTimeout(dishImageLibrarySearch.new.timer);$('addItemModal').close();}
+async function showAddItemModal(){try{await loadStaffCategories();if(!$('addItemModal').open)$('addItemModal').showModal();}catch(e){showToast('Categories could not load: '+e.message);}}
+function closeAddItemModal(){$('addItemModal').close();}
 async function addMenuItem(){
  const b=$('addItemSaveButton');b.disabled=true;
- try{const row=Cloud.menuRow({id:crypto.randomUUID(),name:$('newItemName').value.trim(),price:$('newItemPrice').value,category:$('newItemCategory').value,description:$('newItemDesc').value,image:photoDrafts.new.data,veg:$('newItemVeg').checked,available:true});await Cloud.saveMenu([row]);closeAddItemModal();$('addItemModal').querySelector('form').reset();photoDrafts.new={data:''};$('newItemPhotoPreview').hidden=true;$('newItemImageResults').replaceChildren();$('newItemLibraryStatus').textContent='Type at least 2 characters to search.';await refreshCloud();showToast('Item added to the shared menu.');}catch(e){showToast(e.message);}finally{b.disabled=false;}
+ try{const row=Cloud.menuRow({id:crypto.randomUUID(),name:$('newItemName').value.trim(),price:$('newItemPrice').value,category:$('newItemCategory').value,description:$('newItemDesc').value,image:photoDrafts.new.data,veg:$('newItemVeg').checked,available:true});await Cloud.saveMenu([row]);closeAddItemModal();$('addItemModal').querySelector('form').reset();photoDrafts.new={data:''};$('newItemPhotoPreview').hidden=true;await refreshCloud();showToast('Item added to the shared menu.');}catch(e){showToast(e.message);}finally{b.disabled=false;}
 }
 async function deleteMenuItem(id){if(!confirm('Delete this dish from every customer menu? Existing order records are kept.'))return;try{await Cloud.deleteMenu(id);await refreshCloud();}catch(e){showToast(e.message);}}
 async function chooseMenuPhoto(kind,input){
@@ -309,58 +308,9 @@ async function chooseMenuPhoto(kind,input){
  try{const image=await YummyCrop.open(f);if(image&&selection===photoSelections[kind]){photoDrafts[kind]={data:image};$(target+'PhotoImage').src=image;$(target+'PhotoPreview').hidden=false;showToast('Square photo ready · save to publish.');}}
  catch(e){showToast(e.message);}finally{input.value='';if(selection===photoSelections[kind])button.disabled=false;}
 }
-function removePhotoDraft(kind){photoSelections[kind]++;$(kind==='new'?'addItemSaveButton':'saveItemPhotoButton').disabled=false;photoDrafts[kind]={data:''};$(kind==='new'?'newItemPhotoPreview':'editItemPhotoPreview').hidden=true;$(kind==='new'?'newItemPhotoStatus':'editItemPhotoStatus').textContent='';for(const button of $(kind==='new'?'newItemImageResults':'editItemImageResults').querySelectorAll('.image-library-card'))button.classList.remove('is-selected');}
-function normalizeDishImageSearch(value){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\.(webp|png|jpe?g)$/i,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
-function stemDishImageWord(word){if(word.length>4&&word.endsWith('ies'))return word.slice(0,-3)+'y';if(word.length>4&&word.endsWith('es'))return word.slice(0,-2);if(word.length>3&&word.endsWith('s'))return word.slice(0,-1);return word;}
-function selectSharedDishPhoto(kind,image){
- const safe=Cloud.safeImage(image?.url||'');if(!safe)return;
- photoSelections[kind]++;$(kind==='new'?'addItemSaveButton':'saveItemPhotoButton').disabled=false;
- photoDrafts[kind]={data:safe};
- const target=kind==='new'?'newItem':'editItem';
- $(target+'PhotoImage').src=safe;$(target+'PhotoPreview').hidden=false;
- $(kind==='new'?'newItemPhotoStatus':'editItemPhotoStatus').textContent='Shared image selected. It will be reused without uploading another copy.';
- const results=$(kind==='new'?'newItemImageResults':'editItemImageResults');
- for(const button of results.querySelectorAll('.image-library-card'))button.classList.toggle('is-selected',button.dataset.imageUrl===safe);
-}
-function searchDishPhotoLibrary(kind,query,fromDishName=false){
- const searchId=kind==='new'?'newItemImageSearch':'editItemImageSearch';
- const resultsId=kind==='new'?'newItemImageResults':'editItemImageResults';
- const statusId=kind==='new'?'newItemLibraryStatus':'editItemLibraryStatus';
- if(fromDishName)$(searchId).value=String(query||'');
- const text=String($(searchId).value||'').trim(),normalized=normalizeDishImageSearch(text);
- const state=dishImageLibrarySearch[kind];clearTimeout(state.timer);const sequence=++state.sequence;
- const root=$(resultsId),status=$(statusId);root.replaceChildren();
- if(normalized.length<2){status.textContent='Type at least 2 characters to search.';return;}
- status.textContent='Searching the shared image library…';
- state.timer=setTimeout(async()=>{
-  try{
-   const library=await Cloud.sharedDishImages();if(sequence!==state.sequence)return;
-   const queryWords=normalized.split(/\s+/).map(stemDishImageWord).filter(Boolean);
-   const matches=(library.images||[]).map(image=>{
-    const label=normalizeDishImageSearch(image.name),words=label.split(/\s+/).map(stemDishImageWord);
-    let score=0;
-    if(label===normalized)score=100;
-    else if(label.includes(normalized))score=80;
-    else if(queryWords.length&&queryWords.every(word=>words.some(candidate=>candidate===word||candidate.includes(word)||word.includes(candidate))))score=60;
-    else if(queryWords.some(word=>words.some(candidate=>candidate.includes(word)||word.includes(candidate))))score=20;
-    return {image,score};
-   }).filter(row=>row.score>0).sort((a,b)=>b.score-a.score||a.image.name.localeCompare(b.image.name));
-   const shown=matches.slice(0,24);
-   for(const {image} of shown){
-    const button=document.createElement('button');button.type='button';button.className='image-library-card';button.dataset.imageUrl=image.url;
-    if(photoDrafts[kind].data===image.url)button.classList.add('is-selected');
-    button.setAttribute('aria-label','Use shared photo: '+image.name);
-    const img=document.createElement('img');img.src=Cloud.safeImage(image.url);img.alt='';img.loading='lazy';img.decoding='async';
-    const name=document.createElement('span');name.textContent=image.name;
-    button.append(img,name);button.addEventListener('click',()=>selectSharedDishPhoto(kind,image));root.append(button);
-   }
-   if(!matches.length)status.textContent='No matching filenames. You can upload a custom photo below.';
-   else status.textContent=`Showing ${shown.length} of ${matches.length} matching shared photos.${matches.length>shown.length?' Refine your search to narrow the results.':''}${library.truncated?' The library listing is over 1,000 files; only the first 1,000 are searchable.':''}`;
-  }catch(error){if(sequence===state.sequence)status.textContent='Shared library unavailable: '+error.message+' You can still upload a custom photo below.';}
- },220);
-}
-function showItemPhotoModal(id){photoSelections.edit++;$('saveItemPhotoButton').disabled=false;const i=menuItems.find(x=>x.id===id);if(!i)return;editingPhotoItemId=id;photoDrafts.edit={data:i.image};$('photoModalItemName').textContent=i.name;$('editItemPhotoPreview').hidden=!i.image;if(i.image)$('editItemPhotoImage').src=Cloud.safeImage(i.image);$('editItemImageSearch').value=i.name;$('editItemImageResults').replaceChildren();$('itemPhotoModal').showModal();searchDishPhotoLibrary('edit',i.name);}
-function closeItemPhotoModal(){dishImageLibrarySearch.edit.sequence++;clearTimeout(dishImageLibrarySearch.edit.timer);$('itemPhotoModal').close();}
+function removePhotoDraft(kind){photoSelections[kind]++;$(kind==='new'?'addItemSaveButton':'saveItemPhotoButton').disabled=false;photoDrafts[kind]={data:''};$(kind==='new'?'newItemPhotoPreview':'editItemPhotoPreview').hidden=true;}
+function showItemPhotoModal(id){photoSelections.edit++;$('saveItemPhotoButton').disabled=false;const i=menuItems.find(x=>x.id===id);if(!i)return;editingPhotoItemId=id;photoDrafts.edit={data:i.image};$('photoModalItemName').textContent=i.name;$('editItemPhotoPreview').hidden=!i.image;if(i.image)$('editItemPhotoImage').src=Cloud.safeImage(i.image);$('itemPhotoModal').showModal();}
+function closeItemPhotoModal(){$('itemPhotoModal').close();}
 async function saveItemPhoto(){const b=$('saveItemPhotoButton');b.disabled=true;try{await Cloud.patchMenu(editingPhotoItemId,{image:photoDrafts.edit.data||'',updated_at:new Date().toISOString()});closeItemPhotoModal();await refreshCloud();}catch(e){showToast(e.message);}finally{b.disabled=false;}}
 function stopAlarmSound(){alarmNodes.forEach(n=>{try{n.stop();n.disconnect();}catch{}});alarmNodes=[];}
 function playLoudAlarm(){
@@ -401,7 +351,7 @@ async function shareWaiterLink(rotate=false){
 }
 async function copyWaiterLink(){if(!privateWaiterUrl)return;try{await navigator.clipboard.writeText(privateWaiterUrl);showToast('Waiter pairing link copied.');}catch{$('waiterLink').select();showToast('Copy the selected link manually.');}}
 async function shareLinkNative(){if(!privateWaiterUrl)return;try{if(navigator.share)await navigator.share({title:config.restaurantName?config.restaurantName+' · waiter pairing QR':'Waiter pairing QR',url:privateWaiterUrl});else await copyWaiterLink();}catch(e){if(e.name!=='AbortError')showToast('Use Copy link instead.');}}
-function findOrder(id){return orders.find(x=>x.id===id)||orderUndoReceipts.get(id)||cancelledOrdersData?.records.find(x=>x.id===id)||analyticsData?.recent?.find(x=>x.id===id)||recordsData?.records.find(x=>x.id===id);}
+function findOrder(id){return orders.find(x=>x.id===id)||cancelledOrdersData?.records.find(x=>x.id===id)||analyticsData?.recent?.find(x=>x.id===id)||recordsData?.records.find(x=>x.id===id);}
 let currentBillSnapshot=null;
 function receiptHtml(o){return YummyReceipt.html(o);}
 function showBillPreview(id){const o=findOrder(id);if(!o){showToast('Bill not found. Refresh records and try again.');return;}currentBillOrderId=id;currentBillSnapshot=structuredClone(o);$('billPreview').innerHTML=receiptHtml(currentBillSnapshot);if(!$('billModal').open)$('billModal').showModal();}
@@ -511,7 +461,7 @@ const lazyObserver63='IntersectionObserver' in window?new IntersectionObserver(e
 if(lazyObserver63){if($('staffMenuSentinel63'))lazyObserver63.observe($('staffMenuSentinel63'));if($('recordsSentinel63'))lazyObserver63.observe($('recordsSentinel63'));}
 
 setConnection('Sign in');StaffAuth.start(enterStaff);
-setInterval(()=>{checkAlarm();if(loggedIn&&currentTab==='live'&&!document.hidden&&[...orderUndoReceipts.values()].some(o=>o.status==='Rejected'))renderOrders();},1000);
+setInterval(()=>{checkAlarm();},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&loggedIn)renderOrders();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&loggedIn){refreshCloud();keepScreenAwake();}else stopAlarmSound();});
 

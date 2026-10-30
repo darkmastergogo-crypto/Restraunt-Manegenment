@@ -1,5 +1,8 @@
 {
+  "name": "restaurant-website",
   "private": true,
-  "name": "restaurant-pwa-central-r2",
-  "version": "66.0.0"
+  "description": "QR menu / billing website. The only dependency is for the /api/r2-upload-url serverless function that presigns Cloudflare R2 uploads.",
+  "dependencies": {
+    "aws4fetch": "^1.0.17"
+  }
 }

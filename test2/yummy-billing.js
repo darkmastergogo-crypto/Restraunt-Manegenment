@@ -31,6 +31,28 @@ const YummyBilling=(()=>{
   if('IntersectionObserver' in window){observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting&&hasMore&&!pageBusy)loadPage(false);},{root:null,rootMargin:'180px 0px',threshold:0});observer.observe(el('manualMenuSentinel63'));}else el('manualLoadMore63').hidden=false;
  }
  function options(){return menu.flatMap(m=>{if(!m.available)return [];return (m.sizes_enabled?MenuOptions.keys(m):[null]).map(size=>{const stock=size?m.size_stock?.[size]:m.stock;return {id:m.id,size,key:JSON.stringify([m.id,size]),name:m.name+(size?' — '+MenuOptions.label(m,size):''),category:m.category,price:Number(size?m.size_prices[size]:m.price),veg:m.veg!==false,stock,available:!stock?.tracked||stock.remaining>0};});});}
+ async function refreshSelectedMenuLines(){
+  const removed=[],selected=[...cart.entries()].filter(([,line])=>!line.custom);
+  try{
+   for(const [key,line] of selected){
+    const known=menu.find(item=>String(item.id)===String(line.id));
+    const query=known?.name||String(line.name||'').replace(/\s+—\s+[^—]+$/,'').trim();
+    const data=await rpc('restaurant_manual_menu_page63',{p_query:query,p_category:'All',p_offset:0,p_limit:40});
+    const item=(data?.items||[]).find(candidate=>String(candidate.id)===String(line.id));
+    let option=null;
+    if(item?.available!==false){
+     const size=line.size??null,hasSize=item.sizes_enabled&&size&&MenuOptions.keys(item).includes(size)&&Object.prototype.hasOwnProperty.call(item.size_prices||{},size);
+     if((item.sizes_enabled&&hasSize)||(!item.sizes_enabled&&!size)){
+      const stock=size?item.size_stock?.[size]:item.stock,price=Number(size?item.size_prices[size]:item.price);
+      if(Number.isFinite(price)&&price>=0&&(!stock?.tracked||Number(stock.remaining)>0))option={name:item.name+(size?' — '+MenuOptions.label(item,size):''),price,veg:item.veg!==false};
+     }
+    }
+    if(!option){cart.delete(key);removed.push(line.name);}
+    else cart.set(key,{...line,...option});
+   }
+   return removed;
+  }catch{return null;}
+ }
  function addCustomItem(){
   if(pending||saving)return;const name=el('manualCustomName').value.trim(),price=Number(el('manualCustomPrice').value),qty=Number(el('manualCustomQty').value);
   if(!name||name.length>120){el('manualCustomName').setCustomValidity('Enter an item name up to 120 characters.');el('manualCustomName').reportValidity();return;}el('manualCustomName').setCustomValidity('');
@@ -77,7 +99,18 @@ const YummyBilling=(()=>{
   }
   saving=true;render();el('manualStatus').textContent='Confirming bill and deducting tracked menu stock…';
   try{const order=await rpc('restaurant_manual_order',{p_request_id:pending.id,...pending.payload});lastOrder=order;pending=null;paymentMethod=null;storePending();cart.clear();el('manualLastBill').hidden=false;el('manualStatus').textContent='Done · '+Cloud.orderLabel(order)+' · '+money(order.total);showReceipt(order);if(!isWaiter()){Cloud.invalidateOrders();refreshCloud();}loaded=false;}
-  catch(error){if(error.httpStatus>=400&&error.httpStatus<500){pending=null;storePending();el('manualStatus').textContent=error.message+' Refresh menu, review the bill, then tap Done again.';}else el('manualStatus').textContent='Confirmation could not be verified: '+error.message+' Tap Check / retry Done. Do not create another bill for this customer.';}
+  catch(error){
+   if(error.httpStatus>=400&&error.httpStatus<500){
+    pending=null;storePending();
+    if(/unavailable/i.test(error.message)){
+     const removed=await refreshSelectedMenuLines(),hasCustom=[...cart.values()].some(line=>line.custom);
+     if(removed?.length)el('manualStatus').textContent=`Removed unavailable menu item${removed.length===1?'':'s'}: ${removed.join(', ')}. Review the remaining bill and tap Done again.${hasCustom?' Custom bill items remain on the bill.':''}`;
+     else if(hasCustom&&removed===null)el('manualStatus').textContent='Required billing database setup is missing. Run SUPABASE/UPDATE-57-CUSTOM-BILLING.sql and RUN-THIS-RELEASE63.sql in Supabase, refresh this page, and retry the bill.';
+     else if(removed&&hasCustom)el('manualStatus').textContent='Custom billing is not installed on this shop database. Run SUPABASE/UPDATE-57-CUSTOM-BILLING.sql in Supabase, refresh this page, and retry the bill.';
+     else el('manualStatus').textContent=error.message+' Refresh the menu, review the bill, then tap Done again.';
+    }else el('manualStatus').textContent=error.message+' Refresh the menu, review the bill, then tap Done again.';
+   }else el('manualStatus').textContent='Confirmation could not be verified: '+error.message+' Tap Check / retry Done. Do not create another bill for this customer.';
+  }
   finally{saving=false;render();if(!pending){const message=el('manualStatus').textContent;await open();el('manualStatus').textContent=message;}}
  }
  function showReceipt(order){if(!order)return;let d=el('manualReceiptDialog');if(!d){d=document.createElement('dialog');d.id='manualReceiptDialog';d.innerHTML='<h2>Bill preview</h2><div id="manualReceiptBody"></div><div class="toolbar"><button id="manualPrint" class="primary-btn" type="button">Print bill</button><button class="secondary-btn" type="button" onclick="document.getElementById(\'manualReceiptDialog\').close()">Close</button></div>';document.body.append(d);}el('manualReceiptBody').innerHTML=YummyReceipt.html(order);el('manualPrint').onclick=async()=>{try{await window.Custom48?.sync();}catch(error){el('manualStatus').textContent='Bill settings could not load: '+error.message;return;}let target=el('printReceipt');if(!target){target=document.createElement('div');target.id='printReceipt';document.body.append(target);}target.innerHTML=YummyReceipt.html(order);await YummyReceipt.ready(target);d.close();window.print();};if(!d.open)d.showModal();}

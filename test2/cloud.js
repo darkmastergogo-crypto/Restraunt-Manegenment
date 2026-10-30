@@ -9,10 +9,12 @@ const Cloud = (() => {
  const configured=publicKey && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) && key.length>20 && !/YOUR_|PASTE_/i.test(key+url);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const safeImage=v=>typeof v==='string' && (/^https:\/\//i.test(v)||/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v))?v:'';
- // Staff previews can still defer photos. Customer-facing menu images are loaded
- // immediately (eager=true) so scrolling never gates image availability.
+ // Release58: true deferred public menu images. `data-low-src` never starts a
+ // network request; the real `src` is assigned only as the image approaches
+ // the viewport. This is stricter than native loading=lazy and keeps unseen
+ // category/dish photos at zero image egress for that visit.
  let lowImageObserver=null;
- function deferImages(root=document,eager=false){
+ function deferImages(root=document){
   if(!root)return;
   const images=[];
   if(root.matches?.('img[data-low-src]'))images.push(root);
@@ -21,12 +23,12 @@ const Cloud = (() => {
   const load=img=>{
    const source=safeImage(img.dataset.lowSrc||'');
    if(!source){img.removeAttribute('data-low-src');return;}
-   img.loading=eager?'eager':'lazy';img.decoding='async';try{img.fetchPriority=eager?'auto':'low';}catch{}
+   img.loading='lazy';img.decoding='async';try{img.fetchPriority='low';}catch{}
    if(img.getAttribute('src')!==source)img.setAttribute('src',source);
    img.removeAttribute('data-low-src');img.removeAttribute('data-low-observed');
    lowImageObserver?.unobserve(img);
   };
-  if(eager||!('IntersectionObserver' in window)){images.forEach(load);return;}
+  if(!('IntersectionObserver' in window)){images.forEach(load);return;}
   if(!lowImageObserver)lowImageObserver=new IntersectionObserver(entries=>{
    for(const entry of entries)if(entry.isIntersecting)load(entry.target);
   },{root:null,rootMargin:'160px 0px',threshold:0.01});
@@ -71,11 +73,10 @@ const Cloud = (() => {
  // Caches are memory-only and partitioned by project, account and capability scope.
  // No receipt tokens or staff responses enter public HTTP/Service Worker caches.
  const menuCache=new Map();let orderCache=null;let cacheEpoch=0;
- let sharedImageLibrary=null,sharedImageLibraryAt=0,sharedImageLibraryPromise=null;
  const pendingReads=new Map(),failures=new Map();
  const readRPC=new Set(['restaurant_menu_sync47','restaurant_active_sync47','restaurant_receipt_sync47','restaurant_staff_pulse47','restaurant_waiter_sync47','restaurant_table_names','restaurant_get_device_orders','restaurant_order_loyalty','restaurant_staff_menu','restaurant_customer_menu','restaurant_open_device_visit','restaurant_requests_page47','restaurant_manual_menu','restaurant_sales_analytics','restaurant_recent_cancelled','restaurant_dish_sales','restaurant_filtered_records','restaurant_records','restaurant_waiter_public56','restaurant_staff_menu_page63','restaurant_staff_menu_item63','restaurant_manual_menu_page63','restaurant_sales_analytics_section63']);
  function scope(){return url+'|'+(session?.user?.id||'customer');}
- function clearPrivate(){cacheEpoch++;menuCache.clear();orderCache=null;sharedImageLibrary=null;sharedImageLibraryAt=0;sharedImageLibraryPromise=null;pendingReads.clear();failures.clear();tableNames.clear();tableNamesAt.clear();}
+ function clearPrivate(){cacheEpoch++;menuCache.clear();orderCache=null;pendingReads.clear();failures.clear();tableNames.clear();tableNamesAt.clear();}
  function request(path,options={}){
   const endpoint=path.split('/').at(-1),args=options.body||{};
   const configRead=['restaurant_manager_permissions','restaurant_alert_settings','restaurant_stock_visibility'].includes(endpoint)&&Object.values(args).every(v=>v===null);
@@ -134,51 +135,37 @@ const Cloud = (() => {
   const match=/^data:image\/(webp|png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(data);
   if(!match)throw Error('Unsupported image. Choose WebP, PNG or JPEG.');
   const bytes=Uint8Array.from(atob(match[2]),c=>c.charCodeAt(0));if(bytes.length>1048576)throw Error('Photo must be under 1 MB.');
-  // Central SHOI SYSTEMS service validates this restaurant's Supabase admin + TOTP status.
-  // Shared R2 credentials stay only in the central Cloudflare Worker, never in client deployments.
-  if(!session)throw Error('Admin sign-in is required to upload images.');
-  if(session.expires_at*1000<Date.now()+60000)await refresh();
-  const tenantId=String(cfg.restaurantId||'').trim();
-  if(!/^[a-z0-9][a-z0-9_-]{2,63}$/.test(tenantId))throw Error('Image storage is not configured. Set a unique restaurantId in config.js.');
-  const serviceUrl=String(cfg.imageUploadServiceUrl||'').replace(/\/+$/,'');
-  if(!serviceUrl)throw Error('Central image upload service is not configured in config.js.');
-  let service;
-  try{service=new URL(serviceUrl);}catch{throw Error('Central image upload service URL is invalid.');}
-  if(service.protocol!=='https:'||service.username||service.password||service.pathname!=='/'||service.search||service.hash)throw Error('Central image upload service URL must be an HTTPS origin without a path.');
-  const endpoint=new URL('/upload',service.origin);endpoint.searchParams.set('tenant',tenantId);
-  const response=await fetch(endpoint.href,{method:'POST',mode:'cors',credentials:'omit',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({image:data}),cache:'no-store'});
-  const result=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(result.error||'Image upload failed.');
-  if(!/^https:\/\//i.test(result.url||''))throw Error('Upload did not return a valid image URL.');
-  return result.url;
+  const ext=match[1];
+  const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(b=>b.toString(16).padStart(2,'0')).join('');
+  const r2Base=String(cfg.imagesBaseUrl||'').replace(/\/$/,'');
+  const slug=String(cfg.restaurantSlug||'').trim();
+  if(r2Base && slug) return uploadToR2(bytes,hash,ext,r2Base,slug);
+  // Legacy path: Supabase Storage. Used only while imagesBaseUrl is blank.
+  const path='thumbs/'+hash+'.'+ext,publicURL=url+'/storage/v1/object/public/menu-images/'+path;
+  let check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
+  if(!check.ok){
+   try{await request('/storage/v1/object/menu-images/'+path,{method:'POST',body:bytes,raw:true,staff:true,headers:{'Content-Type':'image/'+ext,'Cache-Control':'max-age=31536000','x-upsert':'false'}});}
+   catch(e){if(e.httpStatus!==409)throw e;}
+   check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
+  }
+  if(!check.ok)throw Error('Uploaded photo could not be verified. Original photo has been preserved.');return publicURL;
  }
- async function sharedDishImages(){
-  if(sharedImageLibrary&&Date.now()-sharedImageLibraryAt<300000)return sharedImageLibrary;
-  if(sharedImageLibraryPromise)return sharedImageLibraryPromise;
-  const epoch=cacheEpoch;
-  const job=(async()=>{
-   if(!session)throw Error('Admin sign-in is required to search shared dish photos.');
-   if(session.expires_at*1000<Date.now()+60000)await refresh();
-   const tenantId=String(cfg.restaurantId||'').trim();
-   if(!/^[a-z0-9][a-z0-9_-]{2,63}$/.test(tenantId))throw Error('Image storage is not configured. Set a unique restaurantId in config.js.');
-   const serviceUrl=String(cfg.imageUploadServiceUrl||'').replace(/\/+$/,'');
-   if(!serviceUrl)throw Error('Central image upload service is not configured in config.js.');
-   let service;
-   try{service=new URL(serviceUrl);}catch{throw Error('Central image upload service URL is invalid.');}
-   if(service.protocol!=='https:'||service.username||service.password||service.pathname!=='/'||service.search||service.hash)throw Error('Central image upload service URL must be an HTTPS origin without a path.');
-   const endpoint=new URL('/library',service.origin);endpoint.searchParams.set('tenant',tenantId);
-   const response=await fetch(endpoint.href,{method:'GET',mode:'cors',credentials:'omit',headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
-   const result=await response.json().catch(()=>({}));
-   if(!response.ok)throw Error(result.error||'Shared dish image library could not be loaded.');
-   if(epoch!==cacheEpoch)throw Error('Account changed. Please retry.');
-   if(!Array.isArray(result.images))throw Error('Shared dish image library returned an invalid response.');
-   const images=result.images.filter(item=>item&&typeof item.name==='string'&&/^https:\/\//i.test(item.url||'')).map(item=>({name:item.name,url:item.url}));
-   sharedImageLibrary={images,truncated:result.truncated===true};
-   sharedImageLibraryAt=Date.now();
-   return sharedImageLibrary;
-  })();
-  sharedImageLibraryPromise=job;
-  try{return await job;}finally{if(sharedImageLibraryPromise===job)sharedImageLibraryPromise=null;}
+ // Cloudflare R2 path: bytes go straight from this browser to R2 over a short-lived
+ // presigned URL handed out by /api/r2-upload-url. No image bytes touch Supabase,
+ // so this keeps Supabase egress to just API/database traffic.
+ async function uploadToR2(bytes,hash,ext,r2Base,slug){
+  const objectKey='restaurants/'+slug+'/thumbs/'+hash+'.'+ext,publicURL=r2Base+'/'+objectKey;
+  let check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
+  if(!check.ok){
+   if(!session)throw Error('Please sign in as staff.');
+   const signRes=await fetch('/api/r2-upload-url',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({restaurant:slug,hash,ext,supabaseUrl:url,supabaseAnonKey:key})});
+   const signData=await signRes.json().catch(()=>({}));
+   if(!signRes.ok)throw Error(signData?.error||'Could not prepare image upload.');
+   const put=await fetch(signData.uploadUrl,{method:'PUT',body:bytes,headers:{'Content-Type':'image/'+ext}});
+   if(!put.ok)throw Error('Image upload to storage failed.');
+   check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
+  }
+  if(!check.ok)throw Error('Uploaded photo could not be verified. Original photo has been preserved.');return publicURL;
  }
  const rpc=(name,body,staff=false)=>request('/rest/v1/rpc/'+name,{method:'POST',body,staff});
  const categories=[...(cfg.categories||['All','Steamed Momos','Fried Momos','Kurkure Momos','Tandoori Momos','Chutney & Dips','Drinks','Desserts'])];
@@ -207,7 +194,7 @@ const Cloud = (() => {
    saveSession(tokens);
   },
   role:async()=>{const data=await request('/rest/v1/staff_users?select=role&user_id=eq.'+session.user.id,{staff:true});if(!data[0])throw Error('This account has no staff access. Ask the owner to add it to staff_users.');return data[0].role;},
-  menu,syncMenu,schedule,uploadMenuImage,sharedDishImages,clearPrivate,
+  menu,syncMenu,schedule,uploadMenuImage,clearPrivate,
   saveMenu:async rows=>{const prepared=[];for(const row of rows)prepared.push({...row,image:await uploadMenuImage(row.image)});return request('/rest/v1/menu_items?on_conflict=id',{method:'POST',body:prepared,staff:true,headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});},
   patchMenu:async(id,body)=>{if(Object.hasOwn(body,'image'))body={...body,image:await uploadMenuImage(body.image)};return request('/rest/v1/menu_items?id=eq.'+encodeURIComponent(id),{method:'PATCH',body,staff:true,headers:{Prefer:'return=minimal'}});},
   deleteMenu:id=>request('/rest/v1/menu_items?id=eq.'+encodeURIComponent(id),{method:'DELETE',staff:true}),

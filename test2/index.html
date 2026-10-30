@@ -785,7 +785,7 @@
  .menu-label{display:inline-block;margin:4px 4px 8px 0;background:#eff6ff;color:#174278;border-radius:4px;padding:3px 8px;font-size:14px;font-weight:700;}
  </style>
   <link rel="stylesheet" href="menu-theme.css?v=yummy-56">
-  <link rel="stylesheet" href="order-celebration.css?v=yummy-46">
+  <link rel="stylesheet" href="order-celebration.css?v=yummy-64">
 <link rel="stylesheet" href="yaar-theme.css?v=yummy-46"><link rel="stylesheet" href="dark-theme.css?v=yummy-46"><link rel="stylesheet" href="device-layouts.css?v=yummy-46"><link rel="stylesheet" href="yummy-momo.css?v=yummy-46"><link rel="stylesheet" href="menu-customization.css?v=yummy-46"><link rel="stylesheet" href="release42.css?v=yummy-46"><link rel="stylesheet" href="release43.css?v=yummy-46">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e23744">
@@ -796,15 +796,33 @@
 <script src="pwa-install.js?v=yummy-56" defer></script>
 <link rel="stylesheet" href="table-names.css?v=yummy-46">
 <link rel="stylesheet" href="experience46.css?v=yummy-46">
-<link rel="stylesheet" href="custom48.css?v=48"><link rel="stylesheet" href="release49.css?v=r66-both1"><link rel="stylesheet" href="release51.css?v=51"><link rel="stylesheet" href="release57.css?v=58"><link rel="stylesheet" href="release59.css?v=59"></head>
+<link rel="stylesheet" href="custom48.css?v=48"><link rel="stylesheet" href="release49.css?v=54"><link rel="stylesheet" href="release51.css?v=51"><link rel="stylesheet" href="release57.css?v=58"><link rel="stylesheet" href="release59.css?v=59">
+<link rel="stylesheet" href="qr-splash.css?v=1">
+<link rel="stylesheet" href="nav-drawer.css?v=1">
+<link rel="stylesheet" href="polish.css?v=1">
+</head>
 <body class="customer-site">
+
+  <!-- QR scan intro splash: pure-CSS auto-hide, skipped after first view this tab session -->
+  <div id="qrSplash" class="qr-splash" aria-hidden="true">
+    <div class="qr-splash-inner">
+      <div class="qr-splash-frame">
+        <span class="qr-splash-corner tl"></span><span class="qr-splash-corner tr"></span>
+        <span class="qr-splash-corner bl"></span><span class="qr-splash-corner br"></span>
+        <span class="qr-splash-scanline"></span>
+        <div class="qr-splash-mark"><img src="yummy-momo-logo.webp?v=yummy-44" alt=""></div>
+      </div>
+      <p class="qr-splash-text">Opening your table's menu<small>Scanned &amp; ready</small></p>
+    </div>
+  </div>
+  <script>try{if(sessionStorage.getItem('ymQrSplashSeen')){document.getElementById('qrSplash').setAttribute('data-skip','');}else{sessionStorage.setItem('ymQrSplashSeen','1');}}catch(e){}</script>
 
   <!-- Top Header -->
   <header>
     <div class="header-top">
       <a class="brand-box" href="#home" aria-label="Yummy Momo home"><img class="brand-logo" src="yummy-momo-logo.webp?v=yummy-44" alt="Yummy Momo logo">
         <div><h1 id="restaurantName">Yummy Momo</h1><p class="brand-caption">Yummy in your tummy</p></div></a>
-      <div class="header-actions"><span class="table-badge" id="tableBadge" style="cursor:default;">
+      <div class="header-actions"><button type="button" id="navMenuToggle" class="nav-menu-toggle" aria-label="Open menu" aria-haspopup="true" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span><span></span></button><span class="table-badge" id="tableBadge" style="cursor:default;">
         <span class="dot"></span>
         <span id="tableText">Table 1</span>
       </span><div class="waiter-call-action"><button type="button" id="callWaiterButton" class="call-waiter-button"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#bell"></use></svg><span>Call waiter</span></button><p id="callWaiterStatus" role="status" aria-live="polite"></p></div><button class="header-cart" onclick="openTrackingModal()"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#plate"></use></svg><span>Order status</span><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#arrow"></use></svg></button></div>
@@ -913,7 +931,7 @@
       <div><h3 id="trackingTitle" style="font-size:1.05rem; font-weight:800;">Order Status</h3><p id="trackingOrderIdentity" class="tracking-order-identity" aria-live="polite"></p></div>
       <button class="btn-close-drawer" onclick="closeTrackingModal()" aria-label="Close order tracking">×</button>
     </div>
-    <div class="tracking-status-hero">
+    <div class="tracking-status-hero" aria-live="polite" aria-atomic="true">
       <div class="status-icon-circle" id="trackingStatusIcon">🍳</div>
       <h2 id="trackingStatusTitle">Preparing your meal</h2>
       <p id="trackingStatusSub">The kitchen is preparing your dishes with care.</p>
@@ -977,13 +995,31 @@
  <div class="review-card"><button type="button" class="btn-close-drawer review-close" onclick="closeReviewModal()" aria-label="Close review prompt">×</button><h2 id="reviewTitle">Thanks for your order!</h2><p>After you've tried your food, you're welcome to share an honest Google review. Any rating is welcome — reviewing is optional.</p><div class="review-actions"><a id="googleReviewBtn" target="_blank" rel="noopener noreferrer" class="btn-google-review" hidden>Open Google reviews ↗</a><button type="button" class="btn-maybe-later review-maybe-later" onclick="closeReviewModal()">Maybe later</button></div><p id="reviewLinkStatus" role="status"></p></div>
  </dialog>
 
-  <script src="config.js?v=yummy-66"></script>
-  <script src="menu-options.js?v=yummy-46"></script><script src="cloud.js?v=r66"></script>
-  <script src="order-celebration.js?v=yummy-46"></script>
+  <!-- Hamburger nav drawer: consolidates call waiter / order status / history / song request -->
+  <div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+  <nav class="nav-drawer" id="navDrawer" aria-label="Menu" aria-hidden="true">
+    <div class="nav-drawer-head">
+      <img src="yummy-momo-logo.webp?v=yummy-44" alt="" class="nav-drawer-logo">
+      <div><strong id="navDrawerName">Yummy Momo</strong><span id="navDrawerTable">Table 1</span></div>
+      <button type="button" class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">×</button>
+    </div>
+    <div class="nav-drawer-body">
+      <button type="button" class="nav-drawer-item" id="navCallWaiter"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#bell"></use></svg><span>Call waiter</span></button>
+      <button type="button" class="nav-drawer-item" id="navOrderStatus"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#plate"></use></svg><span>Order status</span></button>
+      <button type="button" class="nav-drawer-item" id="navOrderHistory"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#history"></use></svg><span>Order history</span></button>
+      <button type="button" class="nav-drawer-item" id="navSongRequest" hidden><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#speaker"></use></svg><span>Request a song</span></button>
+    </div>
+    <div class="nav-drawer-foot" id="navDrawerFoot" hidden><p>This system is made by <strong>SHOI SYSTEMS</strong></p><a id="navDrawerCreditLink" rel="noopener noreferrer">Click here</a></div>
+  </nav>
+
+  <script src="config.js?v=yummy-46"></script>
+  <script src="menu-options.js?v=yummy-46"></script><script src="cloud.js?v=yummy-58"></script>
+  <script src="order-celebration.js?v=yummy-64"></script>
   <script src="reviews.js?v=yummy-46"></script>
   <script src="table-access.js?v=yummy-46"></script>
-  <script src="menu-experience.js?v=yummy-46"></script><script src="category-menu49.js?v=r66-both1"></script><script src="customer.js?v=r66-both1"></script>
+  <script src="menu-experience.js?v=yummy-46"></script><script src="category-menu49.js?v=58"></script><script src="customer.js?v=yummy-64"></script>
   <script src="customer-waiter.js?v=yummy-50"></script>
   <script src="customer-requests56.js?v=yummy-56"></script>
-<script src="custom48.js?v=r66-both1"></script></body>
+<script src="custom48.js?v=59"></script>
+<script src="nav-drawer.js?v=1" defer></script></body>
 </html>

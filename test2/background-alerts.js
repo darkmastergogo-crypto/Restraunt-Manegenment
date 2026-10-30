@@ -10,7 +10,7 @@ const BackgroundAlerts=(()=>{
  function paint(){if(!button)return;button.disabled=busy;button.textContent=busy?'Please wait…':enabled?'Notifications on · disable':'Enable notifications';button.setAttribute('aria-pressed',String(enabled));const setup=document.getElementById('enableAllDeviceAlerts');if(setup)setup.disabled=busy;}
  const rpc=(action,subscription)=>Cloud.rpc('restaurant_push_device',{p_kind:role,p_key:role==='waiter'?key:null,p_action:action,p_subscription:subscription},role==='kitchen');
  function decode(v){const raw=atob(v.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0));}
- async function registration(){await navigator.serviceWorker.register(new URL('sw.js?v=yummy-55',location.href),{scope:new URL('./',location.href).pathname});return navigator.serviceWorker.ready;}
+ async function registration(){await navigator.serviceWorker.register(new URL('sw.js?v=yummy-65',location.href),{scope:new URL('./',location.href).pathname});return navigator.serviceWorker.ready;}
  async function existing(){const reg=await navigator.serviceWorker.getRegistration(new URL('./',location.href));return reg?await reg.pushManager.getSubscription():null;}
  async function enable(){
   if(!/^[A-Za-z0-9_-]{87}=?$/.test(publicKey()))throw Error('Permission saved. The owner must configure push-config.js and the Supabase push sender for background delivery.');
@@ -31,7 +31,7 @@ const BackgroundAlerts=(()=>{
  }
  async function setup(){
   if(busy)return;
-  for(const k of [role==='waiter'?'waiter':'kitchen',...(role==='kitchen'?['kitchen-orders','notification']:[]),'push-'+role])AlertDevice.set(k,true);
+  for(const k of [role==='waiter'?'waiter':'kitchen',...(role==='waiter'?['waiter-orders']:[]),...(role==='kitchen'?['kitchen-orders','notification']:[]),'push-'+role])AlertDevice.set(k,true);
   // Invoke requestPermission before any await: mobile browsers require this direct user gesture.
   let permission;
   try{permission=supported()?Notification.requestPermission():Promise.resolve('unsupported');}catch(e){permission=Promise.reject(e);}
@@ -50,7 +50,7 @@ const BackgroundAlerts=(()=>{
    document.querySelector('#staffAccount .account-menu').prepend(panel);
   }else{
    panel.className='alert-ready-panel';
-   panel.innerHTML='<div><strong>Waiter-call alerts</strong><p id="alertReadyStatus" class="hint" role="status">Sounds are on by default. Allow notifications for background alerts.</p></div><button id="enableAllDeviceAlerts" type="button" class="primary-btn">Enable sounds & notifications</button>';
+   panel.innerHTML='<div><strong>Order &amp; request alerts</strong><p id="alertReadyStatus" class="hint" role="status">Sounds are on by default. Allow notifications for background alerts.</p></div><button id="enableAllDeviceAlerts" type="button" class="primary-btn">Enable sounds & notifications</button>';
    document.querySelector('main').prepend(panel);
   }
   panel.querySelector('[data-open-alert-setup]')?.addEventListener('click',()=>document.getElementById('alertSetupModal').showModal());
@@ -82,7 +82,7 @@ const BackgroundAlerts=(()=>{
     else if(kind==='stock'){title='Low stock · '+r.dish_name;body=r.remaining+' of '+r.baseline+' left. Check Stocks.';screen='notifications';}
     else if(kind==='security'){title='Blocked browser scanned · '+Cloud.tableName(r.table_number);body='Open Notifications to review this QR scan.';screen='notifications';}
     else{title=r.request_kind==='ReservedScan'?'Reserved table QR opened · '+Cloud.tableName(r.table_number):'Waiter requested · '+(r.request_kind==='Reception'?'Counter':Cloud.tableName(r.table_number));body='Open Requests to respond.';}
-    await reg.showNotification(title,{body,tag:'restaurant-event-'+kind+'-'+r.id,silent:false,renotify:false,requireInteraction:true,vibrate:[500,150,500],data:{kind:role,screen}});remember(id);
+    await reg.showNotification(title,{body,tag:'restaurant-event-'+kind+'-'+r.id,silent:false,renotify:false,requireInteraction:true,vibrate:kind==='order'?[900,180,900,180,900]:[500,150,500],data:{kind:role,screen}});remember(id);
    }catch(e){text('Foreground notification failed: '+e.message,true);}finally{pending.delete(id);}},enabled?6500:0);
   }
  }
