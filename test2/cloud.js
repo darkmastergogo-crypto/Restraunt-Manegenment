@@ -167,6 +167,8 @@ const Cloud = (() => {
   }
   if(!check.ok)throw Error('Uploaded photo could not be verified. Original photo has been preserved.');return publicURL;
  }
+  if(!check.ok)throw Error('Uploaded photo could not be verified. Original photo has been preserved.');return publicURL;
+ }
  const rpc=(name,body,staff=false)=>request('/rest/v1/rpc/'+name,{method:'POST',body,staff});
  const categories=[...(cfg.categories||['All','Steamed Momos','Fried Momos','Kurkure Momos','Tandoori Momos','Chutney & Dips','Drinks','Desserts'])];
  const normalizeCategory=v=>String(v||'').trim();
