@@ -107,5 +107,5 @@ const Stocks = (() => {
     Store.loadItems(true).then(renderLevels).catch(e => toast(e.message, 'error'));
   }
   document.addEventListener('items:changed', renderLevels);
-  return { mount, unmount() { root = null; } };
+  return { mount, adjust, unmount() { root = null; } };
 })();

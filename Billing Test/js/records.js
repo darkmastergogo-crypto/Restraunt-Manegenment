@@ -17,9 +17,9 @@ const Records = (() => {
   }
 
   function render() {
-    const s = data.summary, all = Store.can('allRecords');
+    const s = data.summary, all = Store.can('records_all'), pays = Store.payments();
     $('#rSummary', root).innerHTML = [
-      ['Sales', Fmt.money(s.sales), 'big'], ['Bills', s.bills], ['Cash', Fmt.money(s.cash)], ['UPI', Fmt.money(s.upi)], ['Card', Fmt.money(s.card)], ['Credit due', Fmt.money(s.credit)], ['Cancelled', s.cancelled]
+      ['Sales', Fmt.money(s.sales), 'big'], ['Bills', s.bills], ...pays.map(m => [m, Fmt.money(s[m.toLowerCase()])]), ['Cancelled', s.cancelled]
     ].map(([k, v, c]) => `<div class="sum ${c || ''}"><span>${k}</span><b>${v}</b></div>`).join('');
     const label = data.from === data.to ? Fmt.date(data.from) : `${Fmt.date(data.from)} – ${Fmt.date(data.to)}`;
     $('#rStatus', root).textContent = data.total ? `${data.total} bill${data.total === 1 ? '' : 's'} · ${label}` : '';
@@ -40,19 +40,19 @@ const Records = (() => {
   }
 
   function openBill(b) {
-    const manage = Store.can('manageBills') && b.status === 'Paid';
+    const manage = Store.can('cancel_bills') && b.status === 'Paid';
     const d = modal(`Bill ${b.bill_no}`, `<div class="bill-view">
         <div class="bill-paper">${Receipt.html(b)}</div>
         <div class="bill-side">
           <dl class="facts">
             <dt>Status</dt><dd>${b.status === 'Cancelled' ? `<span class="badge badge-red">Cancelled</span>${b.cancel_reason ? `<small>${esc(b.cancel_reason)}</small>` : ''}` : '<span class="badge badge-green">Paid</span>'}</dd>
-            <dt>Paid by</dt><dd>${manage ? `<select id="bvPay">${['Cash', 'UPI', 'Card', 'Credit'].map(m => `<option ${m === b.payment_method ? 'selected' : ''}>${m}</option>`).join('')}</select>` : esc(b.payment_method)}</dd>
+            <dt>Paid by</dt><dd><b>${esc(b.payment_method)}</b>${b.cash_received != null ? `<small>Cash received ${Fmt.money(b.cash_received)}${Number(b.change_amount) > 0 ? ` · returned ${Fmt.money(b.change_amount)}` : ''}${Number(b.less_amount) > 0 ? ` · short ${Fmt.money(b.less_amount)}` : ''}</small>` : ''}</dd>
             <dt>Billed by</dt><dd>${esc(b.cashier_name || '—')}</dd>
             <dt>Time</dt><dd>${esc(Fmt.dateTime(b.created_at))}</dd>
           </dl>
           <div class="stack">
             <button type="button" class="btn btn-primary" data-print>${Icon('printer')} Print bill</button>
-            <button type="button" class="btn" data-wa>${Icon('whatsapp')} Send on WhatsApp</button>
+            ${Store.feature('whatsapp') ? `<button type="button" class="btn" data-wa>${Icon('whatsapp')} Send on WhatsApp</button>` : ''}
             ${manage ? `<button type="button" class="btn btn-danger-ghost" data-cancel>${Icon('ban')} Cancel bill</button><p class="hint">Cancelling puts the stock back and removes the bill from sales. The bill number stays in the records.</p>` : ''}
           </div>
         </div></div>`, { size: 'modal-lg' });
@@ -62,13 +62,9 @@ const Records = (() => {
       else if (e.target.closest('[data-cancel]')) {
         const reason = await ask({ title: `Cancel bill ${b.bill_no}?`, body: `${Fmt.money(b.total)} will be removed from sales and tracked stock will be added back.`, confirm: 'Cancel bill', cancel: 'Keep bill', danger: true, input: { label: 'Reason (optional)', placeholder: 'e.g. Customer returned items', maxlength: 200 } });
         if (reason === null) return;
-        try { const nb = await Cloud.rpc('shop_bill_cancel', { p_id: b.id, p_reason: reason }); toast(`Bill ${nb.bill_no} cancelled.`, 'ok'); d.close(); Store.loadItems(true).catch(() => {}); if (root?.isConnected) load(); }
+        try { const nb = await Cloud.rpc('shop_bill_cancel', { p_id: b.id, p_reason: reason }); toast(`Bill ${nb.bill_no} cancelled.`, 'ok'); d.close(); Store.applyStockUpdates(nb.stock_updates); if (root?.isConnected) load(); }
         catch (err) { toast(err.message, 'error'); }
       }
-    });
-    $('#bvPay', d)?.addEventListener('change', async e => {
-      try { const nb = await Cloud.rpc('shop_bill_set_payment', { p_id: b.id, p_method: e.target.value }); Object.assign(b, nb); toast(`Payment changed to ${nb.payment_method}.`, 'ok'); if (root?.isConnected) load(); }
-      catch (err) { toast(err.message, 'error'); e.target.value = b.payment_method; }
     });
   }
 
@@ -80,11 +76,11 @@ const Records = (() => {
         const d = await Cloud.rpc('shop_bills_list', { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_offset: off, p_limit: 200 });
         total = d.total; rows.push(...d.rows); off += 200;
       }
-      const out = [['Bill no', 'Date', 'Time', 'Status', 'Payment', 'Customer', 'Phone', 'Item', 'Qty', 'Unit', 'Rate', 'Line amount', 'Bill subtotal', 'Discount', 'Tax', 'Round off', 'Bill total', 'Billed by', 'Cancel reason']];
+      const out = [['Bill no', 'Date', 'Time', 'Status', 'Payment', 'Customer', 'Phone', 'Item', 'Qty', 'Unit', 'Rate', 'Line amount', 'Bill subtotal', 'Discount', 'Tax', 'Round off', 'Short cash', 'Bill total', 'Cash received', 'Change', 'Billed by', 'Cancel reason']];
       for (const b of rows.reverse()) {
         const dt = new Date(b.created_at), dd = dt.toLocaleDateString('en-CA', { timeZone: Fmt.tz() }), tt = dt.toLocaleTimeString('en-GB', { timeZone: Fmt.tz() });
         (b.items || []).forEach((i, n) => out.push([b.bill_no, dd, tt, b.status, b.payment_method, b.customer_name, b.customer_phone, i.name, i.qty, i.unit, i.price, i.line_total,
-          n ? '' : b.items_subtotal, n ? '' : b.discount_amount, n ? '' : b.tax_amount, n ? '' : b.round_off, n ? '' : b.total, b.cashier_name, b.cancel_reason]));
+          n ? '' : b.items_subtotal, n ? '' : b.discount_amount, n ? '' : b.tax_amount, n ? '' : b.round_off, n ? '' : b.less_amount, n ? '' : b.total, n ? '' : (b.cash_received ?? ''), n ? '' : b.change_amount, b.cashier_name, b.cancel_reason]));
       }
       downloadFile(`bills_${from}_to_${to}.csv`, toCSV(out));
       toast(`Exported ${rows.length} bills.`, 'ok');
@@ -93,16 +89,17 @@ const Records = (() => {
 
   function mount(view) {
     root = view; offset = 0;
-    const all = Store.can('allRecords');
+    const all = Store.can('records_all');
     if (!all) f.period = 'today';
+    if (!['all', ...Store.payments()].includes(f.payment)) f.payment = 'all';
     view.innerHTML = `<div class="page">
       <header class="page-head"><div><h1>Records</h1><p class="sub">${all ? 'Every bill, with search, reprint and export.' : 'Bills made today. Tap a bill to reprint it.'}</p></div>
-        <div class="head-actions"><button type="button" class="btn" id="rRefresh">${Icon('refresh')} Refresh</button><button type="button" class="btn" id="rExport">${Icon('download')} Export CSV</button></div></header>
+        <div class="head-actions"><button type="button" class="btn" id="rRefresh">${Icon('refresh')} Refresh</button>${Store.can('export') ? `<button type="button" class="btn" id="rExport">${Icon('download')} Export CSV</button>` : ''}</div></header>
       <div class="filters">
         ${all ? `<div class="seg" id="rPeriods">${PERIODS.map(([k, l]) => `<button type="button" data-p="${k}" class="${f.period === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <div class="range" id="rRange" ${f.period === 'custom' ? '' : 'hidden'}><input type="date" id="rFrom" aria-label="From date"><span>to</span><input type="date" id="rTo" aria-label="To date"></div>` : ''}
         <label class="search sm">${Icon('search')}<input id="rQ" type="search" placeholder="Bill no, customer or phone" value="${esc(f.q)}" aria-label="Search bills"></label>
-        <select id="rPay" aria-label="Payment filter"><option value="all">All payments</option>${['Cash', 'UPI', 'Card', 'Credit'].map(m => `<option ${f.payment === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
+        <select id="rPay" aria-label="Payment filter"><option value="all">All payments</option>${Store.payments().map(m => `<option ${f.payment === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
         <select id="rStat" aria-label="Status filter"><option value="all">Paid & cancelled</option><option value="Paid" ${f.status === 'Paid' ? 'selected' : ''}>Paid only</option><option value="Cancelled" ${f.status === 'Cancelled' ? 'selected' : ''}>Cancelled only</option></select>
       </div>
       <div class="summary" id="rSummary"></div>
@@ -118,7 +115,7 @@ const Records = (() => {
     $('#rPay', view).onchange = e => { f.payment = e.target.value; offset = 0; load(); };
     $('#rStat', view).onchange = e => { f.status = e.target.value; offset = 0; load(); };
     $('#rRefresh', view).onclick = load;
-    $('#rExport', view).onclick = e => exportCSV(e.currentTarget);
+    if ($('#rExport', view)) $('#rExport', view).onclick = e => exportCSV(e.currentTarget);
     $('#rPrev', view).onclick = () => { offset = Math.max(0, offset - PAGE); load(); };
     $('#rNext', view).onclick = () => { offset += PAGE; load(); };
     const pick = tr => { const b = data?.rows.find(x => x.id === tr.dataset.id); if (b) openBill(b); };

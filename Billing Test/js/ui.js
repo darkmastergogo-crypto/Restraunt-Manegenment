@@ -4,22 +4,31 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+const ROLE_LABEL = { superadmin: 'Admin', owner: 'Owner', manager: 'Manager', cashier: 'Cashier' };
+
+/* What each permission means, grouped for the Admin → Roles & permissions screen. */
+const PERMISSIONS = [
+  ['Screens', [['billing', 'Billing counter'], ['records', 'Records (today)'], ['records_all', 'Records (any date)'], ['dashboard', 'Dashboard'], ['items', 'Items'], ['stocks', 'Stocks']]],
+  ['Billing', [['discount', 'Give discounts'], ['short_cash', 'Accept less cash than the total'], ['cancel_bills', 'Cancel bills'], ['export', 'Export records to CSV']]],
+  ['Settings', [['settings_shop', 'Shop details'], ['settings_tax', 'Billing & tax'], ['settings_design', 'Bill design'], ['settings_contact', 'Shop contact info'], ['staff', 'Staff & logins'], ['reset', 'Delete all bills']]]
+];
+
 const Store = {
-  me: null,            // { role, name, email, today, settings }
+  me: null,            // { role, name, email, today, settings, system, perms }
   items: [],
   categories: [],
   itemsLoadedAt: 0,
   get settings() { return this.me?.settings || {}; },
+  get sys() { return this.me?.system || App.publicInfo || {}; },
   get role() { return this.me?.role || ''; },
+  get isAdmin() { return this.role === 'superadmin'; },
+  feature(name) { return this.sys.features?.[name] !== false; },
   can(perm) {
-    const r = this.role;
-    const map = {
-      billing: ['admin', 'manager', 'cashier'], records: ['admin', 'manager', 'cashier'],
-      dashboard: ['admin', 'manager'], items: ['admin', 'manager'], stocks: ['admin', 'manager'],
-      manageBills: ['admin', 'manager'], settings: ['admin'], allRecords: ['admin', 'manager']
-    };
-    return (map[perm] || []).includes(r);
+    const p = this.me?.perms || [];
+    if (perm === 'settings') return ['settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'reset'].some(x => p.includes(x));
+    return p.includes(perm);
   },
+  payments() { const p = this.sys.payments || {}; return ['Cash', 'UPI', 'Card'].filter(m => p[m] !== false); },
   async loadItems(force = false) {
     if (!force && this.itemsLoadedAt && Date.now() - this.itemsLoadedAt < 15000) return this.items;
     const data = await Cloud.rpc('shop_items_list');
@@ -32,6 +41,12 @@ const Store = {
     if (i >= 0) this.items[i] = item; else this.items.push(item);
     if (item.category && !this.categories.includes(item.category)) this.categories.push(item.category);
     this.items.sort((a, b) => a.name.localeCompare(b.name));
+    document.dispatchEvent(new CustomEvent('items:changed'));
+  },
+  /* Patch stock counts locally from a bill/cancel response instead of re-downloading the whole item list. */
+  applyStockUpdates(updates) {
+    if (!updates?.length) return;
+    for (const u of updates) { const it = this.items.find(x => x.id === u.id); if (it) it.stock = u.stock; }
     document.dispatchEvent(new CustomEvent('items:changed'));
   }
 };
@@ -157,7 +172,14 @@ const ICONS = {
   history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>', alert: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/>',
   refresh: '<path d="M20 11a8 8 0 0 0-14.9-3M4 13a8 8 0 0 0 14.9 3"/><path d="M4 4v4h4M20 20v-4h-4"/>', keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
   wifi: '<path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0"/><circle cx="12" cy="19.5" r=".8"/>', check: '<path d="M5 12l5 5L20 7"/>',
-  rupee: '<path d="M6 4h12M6 9h12M6 4c7 0 7 9 0 9l8 7"/>', ban: '<circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/>', barcode: '<path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"/>'
+  rupee: '<path d="M6 4h12M6 9h12M6 4c7 0 7 9 0 9l8 7"/>',
+  power: '<path d="M12 3v8"/><path d="M6.3 6.6a8 8 0 1 0 11.4 0"/>',
+  shield: '<path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  palette: '<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4.1-4-7.6-9-7.6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',
+  card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
+  sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>', ban: '<circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/>', barcode: '<path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"/>'
 };
 function Icon(name, cls = '') { return `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ''}</svg>`; }
 

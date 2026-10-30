@@ -37,14 +37,19 @@ const Items = (() => {
     const d = modal(item ? 'Edit item' : 'Add item', `<form id="itForm" class="form-grid">
       <label class="field span-2"><span>Item name</span><input name="name" required maxlength="120" value="${esc(i.name)}" autocomplete="off" placeholder="e.g. Tata Salt 1 kg"></label>
       <label class="field"><span>Barcode / code <em>optional</em></span><div class="joined"><input name="code" maxlength="60" value="${esc(i.code || '')}" autocomplete="off" placeholder="Scan or type"><button type="button" class="btn" data-gen title="Make a short code">Make code</button></div></label>
-      <label class="field"><span>Category</span><input name="category" list="catList" maxlength="60" value="${esc(i.category)}" required autocomplete="off"><datalist id="catList">${Store.categories.map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
+      <div class="field"><span>Category</span>
+        <select name="catPick" aria-label="Category">${[...new Set([...Store.categories, i.category].filter(Boolean))].map(c => `<option ${c === i.category ? 'selected' : ''}>${esc(c)}</option>`).join('')}<option value="__new">+ New category…</option></select>
+        <input name="category" maxlength="60" value="${esc(i.category)}" autocomplete="off" placeholder="New category name" hidden aria-label="New category name"></div>
       <label class="field"><span>Selling price (${esc(Fmt.cur())})</span><input name="price" type="number" min="0" max="9999999" step="0.01" inputmode="decimal" required value="${i.price === '' ? '' : Number(i.price)}"></label>
-      <label class="field"><span>Sold per (unit)</span><input name="unit" list="unitList" maxlength="12" required value="${esc(i.unit)}"><datalist id="unitList">${UNITS.map(u => `<option value="${u}">`).join('')}</datalist></label>
+      <div class="field"><span>Sold per (unit)</span>
+        <select name="unitPick" aria-label="Unit">${[...new Set([...UNITS, i.unit])].map(u => `<option ${u === i.unit ? 'selected' : ''}>${esc(u)}</option>`).join('')}<option value="__new">Other…</option></select>
+        <input name="unit" maxlength="12" value="${esc(i.unit)}" autocomplete="off" placeholder="e.g. bundle" hidden aria-label="Other unit"></div>
       <label class="field"><span>Cost price <em>optional, for profit</em></span><input name="cost_price" type="number" min="0" max="9999999" step="0.01" inputmode="decimal" value="${i.cost_price == null ? '' : Number(i.cost_price)}"></label>
       <label class="check"><input type="checkbox" name="active" ${i.active ? 'checked' : ''}><span>Show in billing</span></label>
       <fieldset class="span-2 sub-box"><label class="check"><input type="checkbox" name="track_stock" ${i.track_stock ? 'checked' : ''}><span>Track stock for this item</span></label>
         <div class="form-grid" data-stock ${i.track_stock ? '' : 'hidden'}>
-          ${item ? `<div class="field"><span>In stock now</span><p class="static">${Fmt.qty(i.stock)} ${esc(i.unit)} <a class="linkish" href="#/stocks">Change in Stocks</a></p></div>` : `<label class="field"><span>Opening stock</span><input name="stock" type="number" step="any" min="0" inputmode="decimal" value="0"></label>`}
+          ${item && i.track_stock ? `<div class="field"><span>In stock now</span><div class="stock-now"><b>${Fmt.qty(i.stock)} ${esc(i.unit)}</b>${Store.can('stocks') ? `<button type="button" class="btn btn-sm" data-stock-act="in">${Icon('plus')} Add stock</button><button type="button" class="btn btn-sm btn-ghost" data-stock-act="set">Set count</button>` : ''}</div></div>`
+            : `<label class="field"><span>${item ? 'Stock count now' : 'Opening stock'}</span><input name="stock" type="number" step="any" min="0" inputmode="decimal" value="0"></label>`}
           <label class="field"><span>Warn when stock is at or below</span><input name="low_stock_at" type="number" step="any" min="0" inputmode="decimal" value="${Number(i.low_stock_at) || 0}"></label>
         </div></fieldset>
       <p class="form-error span-2" role="alert" hidden></p>
@@ -53,6 +58,9 @@ const Items = (() => {
     const form = $('#itForm', d), err = $('.form-error', d);
     $('[name=name]', d).focus();
     $('[name=track_stock]', d).onchange = e => { $('[data-stock]', d).hidden = !e.target.checked; };
+    const pick = (sel, input) => { const s = $(`[name=${sel}]`, d), t = $(`[name=${input}]`, d); s.onchange = () => { const nw = s.value === '__new'; t.hidden = !nw; if (nw) { t.value = ''; t.focus(); } else t.value = s.value; }; };
+    pick('catPick', 'category'); pick('unitPick', 'unit');
+    d.addEventListener('click', e => { const b = e.target.closest('[data-stock-act]'); if (b && item) { d.close(); Stocks.adjust(Store.items.find(x => x.id === item.id) || item, b.dataset.stockAct); } });
     $('[data-gen]', d).onclick = () => { $('[name=code]', d).value = String(Date.now()).slice(-7) + Math.floor(Math.random() * 10); };
     $('[data-delete]', d)?.addEventListener('click', async () => {
       if (!(await ask({ title: `Delete ${i.name}?`, body: 'Old bills keep this item’s name and price. To stop selling it but keep it for later, untick “Show in billing” instead.', confirm: 'Delete item', danger: true }))) return;
@@ -66,11 +74,20 @@ const Items = (() => {
       const p = { id: item?.id || null, name: fd.get('name').trim(), code: fd.get('code').trim(), category: fd.get('category').trim() || 'General', unit: fd.get('unit').trim() || 'pcs',
         price: String(Number(fd.get('price'))), cost_price: fd.get('cost_price') === '' ? '' : String(Number(fd.get('cost_price'))), active: fd.get('active') === 'on',
         track_stock: fd.get('track_stock') === 'on', low_stock_at: String(Number(fd.get('low_stock_at') || 0)), stock: item ? undefined : String(Number(fd.get('stock') || 0)) };
+      if (!p.category) { err.textContent = 'Choose a category or type a new one.'; err.hidden = false; return; }
+      const startTracking = item && !item.track_stock && p.track_stock ? Number(fd.get('stock') || 0) : null;
       busy(btn, true, 'Saving…');
       try {
-        const saved = await Cloud.rpc('shop_item_save', { p });
+        let saved = await Cloud.rpc('shop_item_save', { p });
+        if (startTracking !== null) saved = await Cloud.rpc('shop_stock_adjust', { p_item_id: saved.id, p_mode: 'set', p_qty: startTracking, p_note: 'Tracking started' });
         Store.upsertItem(saved); toast(`${saved.name} saved.`, 'ok');
-        if (again) { form.reset(); $('[name=category]', d).value = saved.category; $('[name=unit]', d).value = saved.unit; $('[name=active]', d).checked = true; $('[data-stock]', d).hidden = true; $('[name=name]', d).focus(); }
+        if (again) {
+          form.reset(); $('[name=active]', d).checked = true; $('[data-stock]', d).hidden = true;
+          const cs = $('[name=catPick]', d); if (![...cs.options].some(o => o.value === saved.category)) cs.add(new Option(saved.category, saved.category), cs.options.length - 1);
+          cs.value = saved.category; $('[name=category]', d).value = saved.category; $('[name=category]', d).hidden = true;
+          $('[name=unitPick]', d).value = saved.unit; $('[name=unit]', d).value = saved.unit; $('[name=unit]', d).hidden = true;
+          $('[name=name]', d).focus();
+        }
         else d.close();
       } catch (ex) { err.textContent = ex.message; err.hidden = false; }
       finally { busy(btn, false); }

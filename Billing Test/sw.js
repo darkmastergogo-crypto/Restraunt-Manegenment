@@ -1,7 +1,7 @@
 /* Caches the app files so it opens fast. Bills always go to the server. */
-const CACHE = 'shopbill-v1';
-const FILES = ['./', 'index.html', 'config.js?v=1', 'css/app.css?v=1', 'js/cloud.js?v=1', 'js/ui.js?v=1', 'js/receipt.js?v=1', 'js/billing.js?v=1',
-  'js/records.js?v=1', 'js/dashboard.js?v=1', 'js/items.js?v=1', 'js/stocks.js?v=1', 'js/settings.js?v=1', 'js/app.js?v=1', 'icons/icon.svg', 'icons/icon-192.png'];
+const CACHE = 'shopbill-v2';
+const FILES = ['./', 'index.html', 'config.js?v=2', 'css/app.css?v=2', 'js/cloud.js?v=2', 'js/ui.js?v=2', 'js/receipt.js?v=2', 'js/billing.js?v=2',
+  'js/records.js?v=2', 'js/dashboard.js?v=2', 'js/items.js?v=2', 'js/stocks.js?v=2', 'js/settings.js?v=2', 'js/admin.js?v=2', 'js/app.js?v=2', 'icons/icon.svg', 'icons/icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

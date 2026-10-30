@@ -31,8 +31,9 @@ const Cloud = (() => {
       const text = await res.text(); let data; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
       if (!res.ok) {
         const msg = data?.message || data?.msg || data?.error_description || data?.error || ('Request failed (HTTP ' + res.status + ').');
-        const err = new Error(friendly(msg)); err.status = res.status; err.raw = msg;
+        const err = new Error(friendly(msg)); err.status = res.status; err.raw = msg; err.hint = data?.hint || '';
         if (res.status === 401 && auth) { save(null); err.code = 'AUTH'; }
+        if (err.hint === 'system_locked') { err.code = 'LOCKED'; dispatchEvent(new CustomEvent('system:locked', { detail: err.message })); }
         throw err;
       }
       return data;
@@ -66,6 +67,7 @@ const Cloud = (() => {
     async recover(email) { return request('/auth/v1/recover', { method: 'POST', body: { email, redirect_to: location.origin + location.pathname } }); },
     useRecoveryToken(hash) { const p = new URLSearchParams(hash.replace(/^#/, '')); if (p.get('type') !== 'recovery' || !p.get('access_token')) return false; save({ access_token: p.get('access_token'), refresh_token: p.get('refresh_token'), expires_in: Number(p.get('expires_in')) || 3600, user: {} }); return true; },
     async setPassword(password) { return request('/auth/v1/user', { method: 'PUT', auth: true, body: { password } }); },
-    rpc(name, args = {}) { return request('/rest/v1/rpc/' + name, { method: 'POST', auth: true, body: args }); }
+    rpc(name, args = {}) { return request('/rest/v1/rpc/' + name, { method: 'POST', auth: true, body: args }); },
+    publicRpc(name, args = {}) { return request('/rest/v1/rpc/' + name, { method: 'POST', body: args, timeout: 8000 }); }
   };
 })();
