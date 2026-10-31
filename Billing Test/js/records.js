@@ -25,7 +25,7 @@ const Records = (() => {
     $('#rStatus', root).textContent = data.total ? `${data.total} bill${data.total === 1 ? '' : 's'} · ${label}` : '';
     const body = $('#rBody', root);
     body.innerHTML = data.rows.length ? data.rows.map(b => `<tr data-id="${esc(b.id)}" tabindex="0" class="${b.status === 'Cancelled' ? 'is-void' : ''}">
-        <td data-label="Bill no"><b class="mono">${esc(b.bill_no)}</b></td>
+        <td data-label="Bill no"><b class="mono">${esc(b.bill_no)}</b>${b.kind === 'membership' ? ` <span class="badge badge-soft" title="Membership">${Icon('idcard')} ${esc(Store.label1('members'))}ship</span>` : ''}</td>
         <td data-label="Time">${esc(data.from === data.to ? Fmt.time(b.created_at) : Fmt.dateTime(b.created_at))}</td>
         <td data-label="Customer" class="${b.customer_name || b.customer_phone ? '' : 'm-hide'}">${esc(b.customer_name || b.customer_phone || '—')}</td>
         <td class="num" data-label="Lines">${(b.items || []).length}</td>

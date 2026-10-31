@@ -79,6 +79,10 @@ const Settings = (() => {
           <label><input type="radio" name="stock_mode" value="stop" ${!s.allow_negative_stock ? 'checked' : ''}><span><b>Stop adding it</b><small>Can’t sell more than you have.</small></span></label>
           <label><input type="radio" name="stock_mode" value="warn" ${s.allow_negative_stock ? 'checked' : ''}><span><b>Only warn me</b><small>Shows a message, lets you sell anyway.</small></span></label></div></div>
         ${sw('stock_shown', !s.stock_hidden, 'Show stock', 'Turn off to hide the Stocks screen and stock numbers for everyone except Admin. Sales still count stock in the background.')}</section>
+      ${Store.moduleOn('expenses') ? `<section class="card"><header class="card-head"><h2>Profit on the dashboard</h2></header>
+        <div class="field"><span>Take expenses off the profit?</span><div class="seg seg-wide" role="radiogroup">
+          <label><input type="radio" name="exp_profit" value="yes" ${s.expenses_in_profit !== false ? 'checked' : ''}><span><b>Yes</b><small>Net profit = sales − expenses</small></span></label>
+          <label><input type="radio" name="exp_profit" value="no" ${s.expenses_in_profit === false ? 'checked' : ''}><span><b>No</b><small>Net profit = selling price − buying price</small></span></label></div></div></section>` : ''}
       <section class="card"><header class="card-head"><h2>Payment methods</h2><p class="hint">Only these appear on the billing screen.</p></header>
         <div class="pay-toggles">${['Cash', 'UPI', 'Card'].map(m => sw('pay_' + m, p[m] !== false, m)).join('')}</div></section>
       <section class="card"><header class="card-head"><h2>Billing screen</h2></header>
@@ -231,7 +235,7 @@ const Settings = (() => {
     return `<form id="fPerms" class="card">
       <header class="card-head"><h2>Permissions</h2><p class="hint">Choose what each role can see and do. You can only give permissions you have yourself. The server checks every action.</p></header>
       <div class="table-wrap perm-wrap"><table class="table perm-table"><thead><tr><th>Permission</th>${roles.map(x => `<th class="c">${ROLE_LABEL[x]}</th>`).join('')}</tr></thead><tbody>
-      ${PERMISSIONS.map(([group, perms]) => `<tr class="perm-group"><td colspan="${roles.length + 1}">${group}</td></tr>` + perms.map(([k, label]) => `<tr><td>${label}</td>${roles.map(x => {
+      ${PERMISSIONS.map(([group, all]) => [group, all.filter(([k]) => Store.permShown(k))]).filter(([, perms]) => perms.length).map(([group, perms]) => `<tr class="perm-group"><td colspan="${roles.length + 1}">${group}</td></tr>` + perms.map(([k, label]) => `<tr><td>${label}</td>${roles.map(x => {
         const has = (cur[x] || []).includes(k), can = Store.isAdmin || mine.includes(k) || has;
         return `<td class="c"><input type="checkbox" data-role="${x}" data-perm="${k}" ${has ? 'checked' : ''} ${can ? '' : 'disabled title="You don’t have this permission yourself"'} aria-label="${ROLE_LABEL[x]}: ${label}"></td>`;
       }).join('')}</tr>`).join('')).join('')}
@@ -282,11 +286,11 @@ const Settings = (() => {
         if (!Object.values(payments).some(Boolean)) return toast('Keep at least one payment method turned on.', 'warn');
         const ok = await saveSettings({ tax_enabled: f.tax_enabled.checked, tax_label: f.tax_label.value, tax_mode: f.tax_mode.value, tax_value: f.tax_value.value || '0', tax_scope: f.tax_scope.value,
           tax_split: f.tax_split.checked, tax_inclusive_default: f.tax_inclusive_default.checked, round_off: f.round_off.checked, bill_prefix: f.bill_prefix.value,
-          allow_negative_stock: f.stock_mode.value === 'warn', stock_hidden: !f.stock_shown.checked,
+          allow_negative_stock: f.stock_mode.value === 'warn', stock_hidden: !f.stock_shown.checked, ...(f.exp_profit ? { expenses_in_profit: f.exp_profit.value === 'yes' } : {}),
           item_fields: Object.fromEntries(ITEM_FIELDS.map(([k]) => [k, f['if_' + k].checked])) }, btn, 'Billing settings saved.');
         if (!ok) return;
         busy(btn, true, 'Saving…');
-        try { Store.me.system = await Cloud.rpc('shop_billing_options_save', { p: { payments, features: Object.fromEntries(FEATURES.map(([k]) => [k, f['f_' + k].checked])) } }); App.rebuildNav(); }
+        try { Store.me.system = await Cloud.rpc('shop_billing_options_save', { p: { payments, features: Object.fromEntries(FEATURES.map(([k]) => [k, f['f_' + k].checked])) } }); await App.refreshMe(); App.rebuildNav(); }
         catch (ex) { toast(ex.message, 'error', 6000); } finally { busy(btn, false); }
       };
     }
@@ -345,10 +349,10 @@ const Settings = (() => {
       e.preventDefault(); const btn = e.submitter; busy(btn, true, 'Saving…');
       try {
         for (const r of ['manager', 'cashier'].filter(x => Store.can('roles_' + x))) {
-          const perms = $$(`[data-role="${r}"]`, e.target).filter(c => c.checked).map(c => c.dataset.perm);
+          const perms = [...(Store.sys.roles?.[r] || []).filter(x => !Store.permShown(x)), ...$$(`[data-role="${r}"]`, e.target).filter(c => c.checked).map(c => c.dataset.perm)];
           Store.me.system = await Cloud.rpc('shop_role_perms_save', { p_role: r, p_perms: perms });
         }
-        toast('Permissions saved. Staff see the change the next time they open the app.', 'ok');
+        toast('Permissions saved. Staff see the change within a minute.', 'ok');
       } catch (ex) { toast(ex.message, 'error', 6000); } finally { busy(btn, false); }
     };
     if (sec === 'contact') $('#fContact', root).onsubmit = e => { e.preventDefault(); const f = e.target; saveSettings({ contact_name: f.contact_name.value, contact_phone: f.contact_phone.value, contact_details: f.contact_details.value }, e.submitter, 'Contact info saved.'); };

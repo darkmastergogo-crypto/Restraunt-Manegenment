@@ -4,14 +4,22 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const ROLE_LABEL = { superadmin: 'Admin', owner: 'Owner', manager: 'Manager', cashier: 'Cashier' };
+const ROLE_LABEL = { superadmin: 'Admin', owner: 'Owner', manager: 'Manager', cashier: 'Cashier', member: 'Member' };
 
 /* What each permission means, grouped for the Admin → Roles & permissions screen. */
 const PERMISSIONS = [
   ['Screens', [['billing', 'Billing counter'], ['records', 'Records (today)'], ['records_all', 'Records (any date)'], ['dashboard', 'Dashboard'], ['items', 'Items'], ['stocks', 'Stocks']]],
   ['Billing', [['discount', 'Give discounts'], ['short_cash', 'Accept less cash than the total'], ['cancel_bills', 'Cancel bills'], ['export', 'Export records to CSV']]],
+  ['Expenses', [['expenses', 'See and add expenses'], ['expenses_manage', 'Edit, delete, expense types & auto expenses']]],
+  ['Members', [['members', 'See members'], ['members_add', 'Add and edit members'], ['members_renew', 'Renew or change a membership'], ['members_plans', 'Plans, dates & check-in code'], ['members_login', 'Member logins'], ['attendance', 'Attendance (check members in)']]],
   ['Settings', [['settings_shop', 'Shop details'], ['settings_tax', 'Billing (tax, payments, stock)'], ['settings_design', 'Bill design & extras'], ['settings_contact', 'Shop contact info'], ['staff', 'Staff & logins'], ['roles_manager', 'Change what managers can do'], ['roles_cashier', 'Change what cashiers can do'], ['reset', 'Delete all bills']]]
 ];
+
+/* Which screen each permission belongs to. A screen switched off in the preset hides its permissions too. */
+const PERM_MODULE = { billing: 'billing', records: 'records', records_all: 'records', cancel_bills: 'records', export: 'records', dashboard: 'dashboard', items: 'items', stocks: 'stocks',
+  expenses: 'expenses', expenses_manage: 'expenses', members: 'members', members_add: 'members', members_renew: 'members', members_plans: 'members', members_login: 'members', attendance: 'members' };
+/* Default screen names; a preset can rename them (e.g. Members → Students). */
+const MODULE_LABEL = { billing: 'Billing', dashboard: 'Dashboard', records: 'Records', items: 'Items', stocks: 'Stocks', expenses: 'Expenses', members: 'Members' };
 
 const Store = {
   me: null,            // { role, name, email, today, settings, system, perms }
@@ -30,6 +38,12 @@ const Store = {
     return p.includes(perm);
   },
   payments() { const p = this.sys.payments || {}; return ['Cash', 'UPI', 'Card'].filter(m => p[m] !== false); },
+  get isMember() { return this.role === 'member'; },
+  moduleOn(m) { const mods = this.sys.modules || {}; return m in mods ? mods[m] !== false : m !== 'members'; },
+  permShown(perm) { const m = PERM_MODULE[perm]; return !m || this.moduleOn(m); },
+  label(m) { return (this.sys.labels || {})[m] || MODULE_LABEL[m] || m; },
+  /* singular for "Add member" / "Add student" */
+  label1(m) { const l = this.label(m); return /ies$/i.test(l) ? l.replace(/ies$/i, 'y') : l.replace(/s$/i, ''); },
   /* Stock can be hidden by the owner/manager; Admin always sees it. */
   stockShown() { return this.isAdmin || !this.settings.stock_hidden; },
   /* Optional item fields switched on in Settings → Billing. HSN is on by default; others off. */
@@ -196,6 +210,14 @@ const ICONS = {
   lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',
   card: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
+  wallet: '<path d="M4 7a2 2 0 0 1 2-2h12v4"/><path d="M4 7v11a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2z"/><circle cx="16" cy="14.5" r="1.2"/>',
+  idcard: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.2"/><path d="M5.5 16.5a3.6 3.6 0 0 1 7 0M15 10h3M15 13.5h3"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/>',
+  repeat: '<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
+  bell: '<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>', ban: '<circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/>', barcode: '<path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"/>'
 };
 function Icon(name, cls = '') { return `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ''}</svg>`; }

@@ -51,12 +51,25 @@ const Dashboard = (() => {
   function render(d) {
     const m = d.metrics;
     $('#dStatus', root).textContent = d.from === d.to ? Fmt.date(d.from) : `${Fmt.date(d.from)} – ${Fmt.date(d.to)}`;
+    const ex = m.expenses_on, exp = Number(m.expenses || 0), gross = Number(m.profit), inP = m.expenses_in_profit !== false;
+    const net = ex && inP ? Number(m.sales) - exp : gross;
     $('#dKpis', root).innerHTML = `
       <div class="kpi kpi-hero"><span>Sales</span><b>${Fmt.money(m.sales)}</b>${delta(Number(m.sales), Number(m.prev_sales))}</div>
       <div class="kpi"><span>Bills</span><b>${Fmt.nf0.format(m.bills)}</b><small>${m.cancelled ? `${m.cancelled} cancelled (${Fmt.money(m.cancelled_value)})` : 'No cancelled bills'}</small></div>
+      ${ex ? `<div class="kpi"><span>Expenses</span><b>${Fmt.money(exp)}</b><small><a class="linkish" href="#/expenses">${(d.expense_heads || []).length ? esc(d.expense_heads.slice(0, 2).map(h => h.head).join(', ')) + (d.expense_heads.length > 2 ? '…' : '') : 'Add expenses'}</a></small></div>` : ''}
+      <div class="kpi ${net < 0 ? 'kpi-bad' : 'kpi-good'}"><span>Net profit</span><b>${Fmt.money(net)}</b><small>${ex && inP ? 'Sales − expenses' : 'Selling price − buying price'}${!ex || inP ? '' : ' · expenses not deducted'}</small></div>
+      ${ex && inP ? `<div class="kpi"><span>Gross profit</span><b>${Fmt.money(gross)}</b><small>${Number(m.profit_cover) >= 99.5 ? 'Selling − buying price' : `Covers ${Number(m.profit_cover)}% of sales — add buying prices in Items`}</small></div>` : ''}
+      ${m.members_on && Number(m.membership_sales) ? `<div class="kpi"><span>Memberships</span><b>${Fmt.money(m.membership_sales)}</b><small>Plans sold and renewed</small></div>` : ''}
       <div class="kpi"><span>Average bill</span><b>${Fmt.money(m.avg_bill)}</b><small>${Fmt.qty(m.qty)} units sold</small></div>
-      <div class="kpi"><span>Estimated profit</span><b>${Fmt.money(m.profit)}</b><small>${Number(m.profit_cover) >= 99.5 ? 'From cost prices of items sold' : `Covers ${Number(m.profit_cover)}% of sales — add cost prices in Items`}</small></div>
       <div class="kpi"><span>Discount given</span><b>${Fmt.money(m.discount)}</b><small>Tax collected ${Fmt.money(m.tax)}</small></div>`;
+    const mb = d.members, L = Store.label('members');
+    $('#dMembersCard', root).hidden = !mb;
+    if (mb) $('#dMembers', root).innerHTML = `<div class="mini-stats"><a href="#/members" class="ms"><b>${mb.active}</b><span>Active</span></a><a href="#/members" class="ms ms-warn"><b>${mb.expiring}</b><span>Ending soon</span></a><a href="#/members" class="ms ms-bad"><b>${mb.expired}</b><span>Expired</span></a><span class="ms"><b>${mb.checkins_today}</b><span>Check-ins today</span></span></div><a class="linkish" href="#/members">Open ${esc(L.toLowerCase())}</a>`;
+    $('#dMembersTitle', root).textContent = L;
+    $('#dExpCard', root).hidden = !ex;
+    const eh = d.expense_heads || [];
+    if (ex) $('#dExp', root).innerHTML = eh.length ? hbars(eh, 'head', 'amount', v => Fmt.money(v), r => `${r.n} entr${r.n === 1 ? 'y' : 'ies'}`) + '<a class="linkish" href="#/expenses">All expenses</a>' : '<div class="empty slim"><p>No expenses in this period.</p></div>';
+    $('#dLowCard', root).hidden = !Store.moduleOn('stocks') || !Store.can('stocks');
     $('#dTrend', root).innerHTML = barChart(d.trend || [], d.trend_unit);
     $('#dTrendTitle', root).textContent = { hour: 'Sales by hour', day: 'Sales by day', month: 'Sales by month' }[d.trend_unit];
     wireTip(d.trend || [], d.trend_unit);
@@ -102,7 +115,9 @@ const Dashboard = (() => {
         <section class="card"><h2>Payments</h2><div id="dPay"></div></section>
         <section class="card"><h2>Best-selling items</h2><div id="dTop"></div></section>
         <section class="card"><h2>Sales by category</h2><div id="dCats"></div></section>
-        <section class="card"><h2>Low stock</h2><div id="dLow"></div></section>
+        <section class="card" id="dMembersCard" hidden><h2 id="dMembersTitle">Members</h2><div id="dMembers"></div></section>
+        <section class="card" id="dExpCard" hidden><h2>Expenses by type</h2><div id="dExp"></div></section>
+        <section class="card" id="dLowCard"><h2>Low stock</h2><div id="dLow"></div></section>
         <section class="card"><h2>Latest bills</h2><div id="dRecent"></div></section>
       </div></div>`;
     const t = Fmt.today();
@@ -112,5 +127,5 @@ const Dashboard = (() => {
     $('#dRefresh', view).onclick = load;
     load();
   }
-  return { mount, unmount() { root = null; } };
+  return { mount, unmount() { root = null; }, refresh() { if (root) load(); } };
 })();
