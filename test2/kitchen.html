@@ -522,25 +522,7 @@
       <div class="field"><label for="staffPassword">Password</label><input type="password" id="staffPassword" autocomplete="current-password" required></div>
       <button id="staffSignInButton" class="primary-btn" type="submit">Sign in</button>
     </form>
-    <form id="adminMfaForm" hidden onsubmit="StaffAuth.verify(event)" style="margin-top:24px">
-      <h3 id="adminMfaTitle">Admin authenticator verification</h3>
-      <p id="adminMfaHelp" class="hint">Use Google Authenticator, Microsoft Authenticator or another compatible app.</p>
-      <div id="adminMfaSetup" hidden>
-        <button id="adminMfaEnroll" class="primary-btn" type="button" onclick="StaffAuth.enroll()">Set up authenticator</button>
-        <div id="adminMfaQrPanel" hidden style="margin:16px 0">
-          <p>In your authenticator app choose Add account → Scan a QR code. Keep this setup private.</p>
-          <img id="adminMfaQr" alt="Private authenticator enrollment QR" width="240" height="240" style="max-width:100%;height:auto;background:white;border-radius:12px;padding:8px">
-          <details><summary>Cannot scan? Enter the setup key manually</summary><code id="adminMfaSecret" style="display:block;overflow-wrap:anywhere;user-select:all;margin:12px 0"></code><p class="hint">Choose Time-based (TOTP). Never share this key or screenshot.</p></details>
-        </div>
-      </div>
-      <div id="adminMfaVerifyPanel" hidden>
-        <label for="adminMfaFactor">Authenticator</label><select id="adminMfaFactor"></select>
-        <label for="adminMfaCode">Six-digit authenticator code</label><input id="adminMfaCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
-        <button id="adminMfaVerify" class="primary-btn" type="submit" style="margin-top:16px">Verify and sign in</button>
-      </div>
-      <div class="toolbar" style="margin-top:16px"><button id="adminMfaRetry" class="secondary-btn" type="button" onclick="StaffAuth.retry()">Refresh verification options</button><button class="secondary-btn" type="button" onclick="StaffAuth.cancel()">Back to sign-in</button></div>
-      <p class="hint">No email code is sent. Lost your authenticator? Contact the Supabase project owner; there is no password-only admin bypass.</p>
-    </form><p id="loginStatus" class="hint" role="status"></p>
+    <p id="loginStatus" class="hint" role="status"></p>
   </section>
   <div class="staff-session" id="staffSession" hidden><span id="staffIdentity"></span></div>
   <div class="cloud-error" id="cloudError" role="status" hidden></div>
