@@ -1,0 +1,104 @@
+/* QR scan intro splash — added for the "scan to open menu" feel.
+   Pure CSS auto-hide (animation, no JS dependency) so it can never get stuck. */
+#qrSplash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 35%, #2a2b31 0%, #15161b 60%, #0c0d10 100%);
+  animation: qrSplashOut .5s ease forwards;
+  animation-delay: 1.15s;
+}
+
+#qrSplash[data-skip] { animation-delay: 0s; animation-duration: .01s; }
+
+@keyframes qrSplashOut {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+.qr-splash-inner {
+  text-align: center;
+  animation: qrSplashIn .5s cubic-bezier(.16,1,.3,1);
+}
+
+@keyframes qrSplashIn {
+  from { opacity: 0; transform: scale(.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.qr-splash-frame {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  margin: 0 auto 20px;
+}
+
+.qr-splash-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 3px solid #e23744;
+  opacity: .9;
+}
+.qr-splash-corner.tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
+.qr-splash-corner.tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
+.qr-splash-corner.bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
+.qr-splash-corner.br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 8px 0; }
+
+.qr-splash-mark {
+  position: absolute;
+  inset: 16px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+.qr-splash-mark img {
+  width: 66%;
+  height: 66%;
+  object-fit: contain;
+}
+
+.qr-splash-scanline {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 10px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e23744 20%, #ff8a7a 50%, #e23744 80%, transparent);
+  box-shadow: 0 0 12px 2px rgba(226,55,68,.65);
+  animation: qrScanline 1.15s cubic-bezier(.45,0,.55,1) infinite;
+}
+
+@keyframes qrScanline {
+  0% { top: 8px; opacity: .9; }
+  50% { top: 116px; opacity: 1; }
+  100% { top: 8px; opacity: .9; }
+}
+
+.qr-splash-text {
+  color: #f2e7d3;
+  font: 700 .95rem/1.4 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: .3px;
+}
+
+.qr-splash-text small {
+  display: block;
+  margin-top: 5px;
+  font-weight: 500;
+  color: #9a9aa5;
+  font-size: .76rem;
+  letter-spacing: .4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-splash-scanline { animation: none; top: 62px; }
+  .qr-splash-inner { animation: none; }
+  #qrSplash { animation-delay: .5s; }
+}

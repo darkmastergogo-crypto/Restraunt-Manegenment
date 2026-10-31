@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Yummy Momo · Digital Menu & Ordering</title>
+  <meta name="theme-color" content="#FBF7F2">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <script src="theme-engine.js?v=67"></script>
+  <link rel="stylesheet" href="qr-splash.css?v=1">
+  <link rel="stylesheet" href="order-celebration.css?v=yummy-64">
+  <link rel="stylesheet" href="menu-premium.css?v=67">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="app-icons/logo-v2-192.png">
+  <link rel="apple-touch-icon" href="app-icons/logo-v2-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="pwa-install.js?v=yummy-56" defer></script>
+</head>
+<body class="customer-site">
+
+  <!-- QR scan intro splash: pure-CSS auto-hide, skipped after first view this tab session -->
+  <div id="qrSplash" class="qr-splash" aria-hidden="true">
+    <div class="qr-splash-inner">
+      <div class="qr-splash-frame">
+        <span class="qr-splash-corner tl"></span><span class="qr-splash-corner tr"></span>
+        <span class="qr-splash-corner bl"></span><span class="qr-splash-corner br"></span>
+        <span class="qr-splash-scanline"></span>
+        <div class="qr-splash-mark"><img src="yummy-momo-logo.webp?v=yummy-44" alt=""></div>
+      </div>
+      <p class="qr-splash-text">Opening your table's menu<small>Scanned &amp; ready</small></p>
+    </div>
+  </div>
+  <script>try{if(sessionStorage.getItem('ymQrSplashSeen')){document.getElementById('qrSplash').setAttribute('data-skip','');}else{sessionStorage.setItem('ymQrSplashSeen','1');}}catch(e){}</script>
+
+  <!-- Top Header -->
+  <header>
+    <div class="header-top">
+      <a class="brand-box" href="#home" aria-label="Yummy Momo home"><img class="brand-logo" src="yummy-momo-logo.webp?v=yummy-44" alt="Yummy Momo logo">
+        <div><h1 id="restaurantName">Yummy Momo</h1><p class="brand-caption">Yummy in your tummy</p></div></a>
+      <div class="header-actions"><button type="button" id="navMenuToggle" class="nav-menu-toggle" aria-label="Open menu" aria-haspopup="true" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span><span></span></button><span class="table-badge" id="tableBadge" style="cursor:default;">
+        <span class="dot"></span>
+        <span id="tableText">Table 1</span>
+      </span><div class="waiter-call-action"><button type="button" id="callWaiterButton" class="call-waiter-button"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#bell"></use></svg><span>Call waiter</span></button><p id="callWaiterStatus" role="status" aria-live="polite"></p></div><button class="header-cart" onclick="openTrackingModal()"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#plate"></use></svg><span>Order status</span><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#arrow"></use></svg></button></div>
+    </div>
+  </header>
+
+<section id="tableAccessNotice" class="table-access-notice" role="alert" hidden></section><section id="scanExpired" class="scan-expired" role="alertdialog" aria-labelledby="scanExpiredTitle"><div><h2 id="scanExpiredTitle">Please scan your table QR</h2><p><span id="scanAccessText">Scan the QR printed on your table to open the menu.</span></p></div></section>
+  <section id="home" class="menu-hero" aria-label="Restaurant menu">
+    <div class="hero-copy"><span class="experience-kicker">THE GOOD FOOD CLUB</span><p class="hero-eyebrow"><span aria-hidden="true"></span> A LITTLE STEAM. A LOT OF LOVE.</p><h2 id="restaurantTagline">Our Menu</h2><p class="hero-description">Big cravings. Little pockets of happiness. Pick your favourites, we’ll bring them to your table.</p>
+      <div class="customer-tools"><button type="button" id="requestSongButton" class="song-request-button" hidden>🎵 Request song</button></div>
+    </div>
+    <div class="hero-photo"><img src="momo-hero46.svg" alt="An illustration of freshly steamed momos" fetchpriority="high"></div>
+  </section>
+  <section id="waiterConfirmation" class="waiter-confirmation" role="status" aria-live="polite" hidden><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#bell"></use></svg><strong id="waiterConfirmationText"></strong></section>
+  <dialog id="songModal" aria-labelledby="songRequestTitle"><form id="songRequestForm"><div class="song-modal-header"><h2 id="songRequestTitle">Request a song</h2><button type="button" class="cancel-btn" id="songRequestClose" aria-label="Close song request">×</button></div><p>Tell the staff what you would like to hear.</p><label for="songRequestText">Song name / artist</label><input id="songRequestText" maxlength="120" autocomplete="off" required placeholder="Example: song name — artist"><p id="songRequestStatus" role="status" aria-live="polite"></p><div class="toolbar"><button type="submit" id="songRequestSend" class="song-request-button">Send song request</button><button type="button" class="cancel-btn" id="songRequestCancel">Cancel</button></div></form></dialog>
+  <!-- Active Order Alert (if order is placed) -->
+  <div class="active-order-banner" id="activeOrderBanner" onclick="openTrackingModal()">
+    <span>⚡ <b id="bannerStatusText">Order in Progress</b> (Click to track)</span>
+    <span>→</span>
+  </div>
+  <section id="customerOrdersBar" class="customer-orders-bar" hidden aria-label="Your orders on this device">
+    <div class="customer-orders-buttons">
+      <button type="button" id="currentOrdersButton" onclick="openTrackingModal()">Order status</button>
+      <button type="button" id="orderHistoryButton" onclick="openOrderHistory()">Order history</button>
+    </div>
+    <p id="orderSyncMessage" role="status" aria-live="polite"></p>
+  </section>
+
+  <div class="menu-workspace"><section id="browseMenu" class="browse-menu" aria-labelledby="browseTitle"><div class="browse-heading"><h2 id="browseTitle">Categories</h2></div>
+  <!-- Category Filter Bar -->
+  <div class="categories-bar" id="categoriesBar"></div>
+
+  </section><section class="menu-main"><div class="menu-search-tools"><div class="search-container"><input type="search" id="searchInput" class="search-input" aria-label="Search dishes, drinks and desserts" placeholder="Search dishes, drinks, desserts..." oninput="handleSearch()"></div><label class="sr-only" for="menuSort">Filter by category</label><select id="menuSort" aria-label="Filter by category" onchange="selectCategory(this.value)"><option value="All">All categories</option></select><label class="sr-only" for="menuDiet">Dietary filter</label><select id="menuDiet" onchange="handleSearch()"><option value="all">Veg / Non-Veg</option><option value="veg">Veg only</option><option value="nonveg">Non-Veg only</option></select></div><div class="menu-list-heading"><h2 id="menuListTitle">Our menu</h2><p>Find your next favourite.</p></div>
+  <!-- Menu items container -->
+  <div id="cloudMessage" role="status" style="max-width:800px;margin:16px auto;padding:12px 20px;color:#71717a;">Loading shared menu…</div>
+  <div id="pendingRetry" hidden style="max-width:800px;margin:16px auto;padding:16px 20px;background:#fff7ed;">A previous order is not confirmed. <button class="cancel-btn" onclick="placeOrder()">Retry original order</button></div>
+  <main class="menu-container" id="menuContainer" aria-label="Available dishes"></main>
+  </section><aside id="desktopOrderPanel" class="menu-order-panel" aria-label="Your order"><h2>Your Order</h2><div id="desktopOrderItems"></div><div id="desktopOrderBill" hidden><span>Order total</span><b id="desktopOrderTotal">₹0</b></div><button id="desktopOrderCheckout" type="button" class="primary-btn" onclick="openCartDrawer()" hidden>Review &amp; place order</button></aside></div>
+  <footer id="systemFooter" class="system-footer" hidden aria-label="System credit">
+    <p id="systemFooterCredit" hidden>This system is made by <strong>SHOI SYSTEMS</strong></p>
+    <a id="systemFooterLink" hidden rel="noopener noreferrer">Click here</a>
+  </footer>
+
+  <!-- Bottom Floating Cart Bar -->
+  <div class="floating-cart-bar" id="floatingCartBar" onclick="openCartDrawer()">
+    <div class="cart-summary-text">
+      <span class="cart-items-count" id="cartItemsCount">0 ITEMS</span>
+      <span class="cart-total-price" id="cartTotalPrice">₹0</span>
+    </div>
+    <div class="view-cart-btn-text">
+      <span>View Order</span>
+      <span>→</span>
+    </div>
+  </div>
+
+  <!-- Cart Drawer Overlay & Content -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeCartDrawer()"></div>
+  <div class="cart-drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+    <div class="drawer-header">
+      <div><h2 id="checkoutTitle">Your order</h2><p id="cartTableLabel" class="cart-table-label">Table T1</p></div>
+      <button class="btn-close-drawer" onclick="closeCartDrawer()" aria-label="Close checkout">×</button>
+    </div>
+    <div class="drawer-body">
+      <div id="cartItemsList"></div>
+
+      <!-- Customer Details (NO PHONE NUMBER - USER REQUIREMENT) -->
+      <div class="order-form-section">
+        <div class="form-group">
+          <label>Your Name (Optional)</label>
+          <input type="text" id="custNameInput" maxlength="80" placeholder="Enter your name (optional)">
+        </div>
+        <input type="hidden" id="custTableInput" readonly>
+        <div class="form-group">
+          <label>Special Instructions for Kitchen</label>
+          <div class="note-chips" role="group" aria-label="Quick kitchen notes"><button type="button" data-note-chip="Less spicy" aria-pressed="false">Less spicy</button><button type="button" data-note-chip="No onion" aria-pressed="false">No onion</button><button type="button" data-note-chip="Extra cheese" aria-pressed="false">Extra cheese</button></div><p class="note-hint">Extras may cost more. Confirm with staff.</p><textarea id="custNotesInput" rows="2" maxlength="1000" placeholder="e.g. Less spicy, extra plates, no onions..."></textarea>
+        </div>
+      </div>
+
+      <!-- Bill summary -->
+      <div class="bill-summary">
+        <div class="bill-row">
+          <span>Items Subtotal</span>
+          <span id="billSubtotal">₹0</span>
+        </div>
+        <div class="bill-row" id="billTaxRow" hidden>
+          <span id="billTaxLabel">Tax</span>
+          <span id="billTaxAmount">₹0.00</span>
+        </div>
+        <div class="bill-row total">
+          <span>Total to Pay</span>
+          <span id="billTotal">₹0</span>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <p id="cartOrderError" class="cart-order-error" role="alert"></p><button class="btn-place-order" id="btnPlaceOrder" onclick="placeOrder()">
+        <span>Place Order</span>
+        <span id="placeOrderAmount">₹0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Live Order Tracking Modal -->
+  <div class="tracking-modal" id="trackingModal" role="dialog" aria-modal="true" aria-labelledby="trackingTitle">
+    <div class="tracking-header">
+      <div><h3 id="trackingTitle" style="font-size:1.05rem; font-weight:800;">Order Status</h3><p id="trackingOrderIdentity" class="tracking-order-identity" aria-live="polite"></p></div>
+      <button class="btn-close-drawer" onclick="closeTrackingModal()" aria-label="Close order tracking">×</button>
+    </div>
+    <div class="tracking-status-hero" aria-live="polite" aria-atomic="true">
+      <div class="status-icon-circle" id="trackingStatusIcon">🍳</div>
+      <h2 id="trackingStatusTitle">Preparing your meal</h2>
+      <p id="trackingStatusSub">The kitchen is preparing your dishes with care.</p>
+    </div>
+
+    <div id="trackingEmpty" class="history-empty" hidden><h2>Sorry, no current order yet</h2><button class="btn-add-more" onclick="addMoreItems()">Browse the menu</button><button class="order-history-link" onclick="openOrderHistory()">Order history</button></div>
+    <div class="cancel-panel" id="trackingCancelPanel" style="margin-top:0;">
+      <p id="cancelCountdown" aria-live="off"></p>
+      <button class="cancel-btn" id="cancelOrderButton" onclick="cancelCustomerOrder()">Cancel this order</button>
+      <p id="trackingError" role="status"></p>
+    </div>
+    <!-- Compact progress: intermediate state stays in the live status heading. -->
+    <div class="stepper-container" id="trackingStepper">
+      <div class="stepper-step" id="step1"><div class="step-circle">✓</div><div class="step-details"><h4>1. Order received</h4><p>Order sent to the kitchen</p></div></div>
+      <div class="stepper-step" id="step2"><div class="step-circle">2</div><div class="step-details"><h4>2. Cooking</h4><p>The kitchen is preparing your food</p></div></div>
+      <div class="stepper-step" id="step3"><div class="step-circle">3</div><div class="step-details"><h4>3. Served &amp; complete</h4><p>Delivered to your table</p></div></div>
+    </div>
+
+    <div id="trackingItemsSection" style="padding: 20px 20px 0;">
+      <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:10px;">Ordered Items (<span id="trackingTableLabel">Table 1</span>)</h4>
+      <div id="trackingItemsList"></div>
+    </div>
+
+
+    <!-- Actions: Add more items! -->
+    <div class="tracking-actions" id="trackingActions">
+      <button class="btn-add-more" onclick="addMoreItems()">
+        <span>➕ Add More Items / Order Again</span>
+      </button>
+      <button type="button" class="order-history-link" onclick="openOrderHistory()">View order history</button>
+    </div>
+    <section id="otherOrdersPanel" class="other-orders-panel" hidden aria-labelledby="otherOrdersHeading">
+      <div class="other-orders-heading"><h4 id="otherOrdersHeading">Your other orders</h4><span>Tap to switch</span></div>
+      <nav id="otherOrderTabs" class="other-order-tabs" aria-label="Switch to another order on this device"></nav>
+    </section>
+  </div>
+
+  <div id="orderHistoryModal" class="order-history-modal" role="dialog" aria-modal="true" aria-labelledby="orderHistoryTitle" hidden>
+    <div class="order-history-header">
+      <div><h2 id="orderHistoryTitle">Order history</h2><p id="orderHistorySubtitle">Past orders saved on this device</p></div>
+      <button type="button" class="btn-close-drawer" onclick="closeOrderHistory()" aria-label="Close order history">×</button>
+    </div>
+    <div class="order-history-body">
+      <p id="historySyncMessage" role="status" aria-live="polite"></p>
+      <div id="orderHistoryList"></div>
+    </div>
+  </div>
+
+  <!-- Shows only after a confirmed order; food launches upward behind the message. -->
+  <dialog id="orderCelebration" class="order-celebration" aria-labelledby="orderCelebrationTitle" aria-describedby="orderCelebrationDescription">
+    <div id="celebrationParticles" class="celebration-particles" aria-hidden="true"></div>
+    <div class="celebration-card">
+      <div class="celebration-check" aria-hidden="true">✓</div>
+      <h2 id="orderCelebrationTitle">Order sent to the kitchen</h2>
+      <p id="orderCelebrationDescription">Your order is saved. Track acceptance and cooking below.</p>
+      <button id="celebrationTrackButton" class="celebration-track" type="button" autofocus>Track my order →</button>
+    </div>
+  </dialog>
+
+  <dialog id="reviewDialog" class="customer-review" aria-labelledby="reviewTitle">
+ <div class="review-card"><button type="button" class="btn-close-drawer review-close" onclick="closeReviewModal()" aria-label="Close review prompt">×</button><h2 id="reviewTitle">Thanks for your order!</h2><p>After you've tried your food, you're welcome to share an honest Google review. Any rating is welcome — reviewing is optional.</p><div class="review-actions"><a id="googleReviewBtn" target="_blank" rel="noopener noreferrer" class="btn-google-review" hidden>Open Google reviews ↗</a><button type="button" class="btn-maybe-later review-maybe-later" onclick="closeReviewModal()">Maybe later</button></div><p id="reviewLinkStatus" role="status"></p></div>
+ </dialog>
+
+  <!-- Hamburger nav drawer: consolidates call waiter / order status / history / song request -->
+  <div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+  <nav class="nav-drawer" id="navDrawer" aria-label="Menu" aria-hidden="true">
+    <div class="nav-drawer-head">
+      <img src="yummy-momo-logo.webp?v=yummy-44" alt="" class="nav-drawer-logo">
+      <div><strong id="navDrawerName">Yummy Momo</strong><span id="navDrawerTable">Table 1</span></div>
+      <button type="button" class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">×</button>
+    </div>
+    <div class="nav-drawer-body">
+      <button type="button" class="nav-drawer-item" id="navCallWaiter"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#bell"></use></svg><span>Call waiter</span></button>
+      <button type="button" class="nav-drawer-item" id="navOrderStatus"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#plate"></use></svg><span>Order status</span></button>
+      <button type="button" class="nav-drawer-item" id="navOrderHistory"><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#history"></use></svg><span>Order history</span></button>
+      <button type="button" class="nav-drawer-item" id="navSongRequest" hidden><svg class="ui-icon" aria-hidden="true"><use href="icons.svg#speaker"></use></svg><span>Request a song</span></button>
+    </div>
+    <div class="nav-drawer-foot" id="navDrawerFoot" hidden><p>This system is made by <strong>SHOI SYSTEMS</strong></p><a id="navDrawerCreditLink" rel="noopener noreferrer">Click here</a></div>
+  </nav>
+
+  <script src="config.js?v=yummy-46"></script>
+  <script src="menu-options.js?v=yummy-46"></script><script src="cloud.js?v=yummy-58"></script>
+  <script src="order-celebration.js?v=yummy-64"></script>
+  <script src="reviews.js?v=yummy-46"></script>
+  <script src="table-access.js?v=yummy-46"></script>
+  <script src="menu-experience.js?v=yummy-46"></script><script src="category-menu49.js?v=66"></script><script src="customer.js?v=66"></script>
+  <script src="customer-waiter.js?v=yummy-50"></script>
+  <script src="customer-requests56.js?v=yummy-56"></script>
+<script src="custom48.js?v=66"></script>
+<script src="nav-drawer.js?v=1" defer></script></body>
+</html>
