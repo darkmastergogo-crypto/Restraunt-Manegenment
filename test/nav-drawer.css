@@ -1,0 +1,262 @@
+/* Hamburger nav drawer — additive, self-contained. Loaded last so it is
+   never fought by the existing theme stylesheets. */
+
+.nav-menu-toggle {
+  appearance: none;
+  border: 1.5px solid var(--border, #e8e8ed);
+  background: #ffffff;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.nav-menu-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: #202124;
+  border-radius: 2px;
+  transition: transform .25s ease, opacity .25s ease;
+}
+
+.nav-menu-toggle.is-open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-menu-toggle.is-open span:nth-child(2) { opacity: 0; }
+.nav-menu-toggle.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.nav-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(2px);
+  z-index: 198;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease;
+}
+.nav-drawer-overlay.open { opacity: 1; visibility: visible; }
+
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(300px, 84vw);
+  background: #ffffff;
+  z-index: 199;
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.16,1,.3,1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -18px 0 40px rgba(0,0,0,.18);
+}
+.nav-drawer.open { transform: translateX(0); }
+
+.nav-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 50px 18px 18px;
+  border-bottom: 1px solid #e8e8ed;
+  position: relative;
+}
+
+.nav-drawer-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.nav-drawer-head strong {
+  display: block;
+  font-size: 1rem;
+  color: #202124;
+  overflow-wrap: anywhere;
+}
+
+.nav-drawer-head span {
+  display: block;
+  margin-top: 2px;
+  font-size: .78rem;
+  color: #71717a;
+  font-weight: 600;
+}
+
+.nav-drawer-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: #f4e8d5;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #71717a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-drawer-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.nav-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 14px 10px;
+  border-radius: 10px;
+  font: 700 .92rem/1.3 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #202124;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.nav-drawer-item:hover, .nav-drawer-item:active { background: #fff1eb; }
+.nav-drawer-item .ui-icon { width: 19px; height: 19px; color: #e23744; flex-shrink: 0; }
+.nav-drawer-item:disabled { opacity: .5; cursor: not-allowed; }
+.nav-drawer-item[hidden] { display: none; }
+
+.nav-drawer-divider {
+  height: 1px;
+  background: #e8e8ed;
+  margin: 8px 10px;
+}
+
+.nav-drawer-foot {
+  padding: 16px 18px;
+  border-top: 1px solid #e8e8ed;
+  font-size: .78rem;
+  color: #71717a;
+  line-height: 1.5;
+}
+.nav-drawer-foot a { color: #e23744; font-weight: 700; text-decoration: none; }
+
+@media (min-width: 860px) {
+  .nav-drawer { width: 320px; }
+}
+
+/* ---- Staff pages (waiter / kitchen): restyle the existing account
+   <details> trigger so it reads as a hamburger icon, matching the
+   customer page, without touching its working dropdown behaviour. ---- */
+.staff-account > summary {
+  list-style: none;
+}
+.staff-account > summary::-webkit-details-marker { display: none; }
+.staff-account .account-avatar {
+  display: none;
+}
+.staff-account > summary::before {
+  content: '';
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  background-color: rgba(159, 120, 90, .13);
+  background-image:
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor),
+    linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 18px 2px, 18px 2px, 18px 2px;
+  background-position: center 13px, center 19px, center 25px;
+  flex-shrink: 0;
+}
+
+/* ---- Kitchen admin nav: collapsible drawer on narrow screens ---- */
+@media (max-width: 860px) {
+  .kitchen-nav-toggle:not(.nav-toggle-hidden) {
+    display: inline-flex;
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 200;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  }
+  header .nav-tabs#managerNav {
+    display: flex !important;
+    position: fixed !important;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(300px, 84vw) !important;
+    background: var(--card-bg, #fff);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 70px 14px 20px;
+    transform: translateX(100%);
+    transition: transform .3s cubic-bezier(.16,1,.3,1);
+    z-index: 199;
+    overflow-y: auto;
+    box-shadow: -18px 0 40px rgba(0,0,0,.25);
+  }
+  header .nav-tabs#managerNav.open {
+    transform: translateX(0);
+  }
+  header .nav-tabs#managerNav .nav-tab-btn {
+    width: 100% !important;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+.kitchen-nav-toggle { display: none; }
+.kitchen-nav-toggle.nav-toggle-hidden { display: none !important; }
+
+/* ---- Call waiter / account / sync status mirrored into the kitchen drawer ---- */
+.nav-drawer-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 12px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #71717a;
+}
+.nav-drawer-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+}
+header .nav-tabs#managerNav .nav-drawer-item {
+  width: 100% !important;
+  justify-content: flex-start;
+  text-align: left;
+}
+header .nav-tabs#managerNav .nav-drawer-item .account-avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: #fff1eb;
+  color: #e23744;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+header .nav-tabs#managerNav .nav-drawer-item .account-avatar svg { width: 16px; height: 16px; }
