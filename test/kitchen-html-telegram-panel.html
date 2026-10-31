@@ -1,0 +1,79 @@
+<!-- Telegram Alerts panel — insert inside #managementSection              -->
+<!-- RIGHT BEFORE the closing </section> that ends managementSection         -->
+<!-- (after the Google reviews form, around line 642 of kitchen.html)        -->
+
+      <section class="panel" id="telegramAlertsPanel">
+        <h3>Telegram Alerts</h3>
+        <p class="hint">
+          Get instant Telegram messages for new orders, waiter calls, song requests, and stock alerts.
+          Create a bot with <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>,
+          add the bot to each person's Telegram, then add them as recipients below.
+        </p>
+
+        <!-- Config: token + enabled -->
+        <form id="telegramConfigForm" onsubmit="saveTelegramConfig(event)">
+          <label for="telegramBotToken">Bot token <span class="hint">(from @BotFather — shared by all recipients)</span></label>
+          <input id="telegramBotToken" type="text" maxlength="200" autocomplete="off" spellcheck="false"
+                 placeholder="Paste token from @BotFather" disabled>
+          <label class="waiter-permission" style="margin-top:10px">
+            <input id="telegramEnabled" type="checkbox" disabled>
+            Alerts enabled
+          </label>
+          <div class="toolbar" style="margin-top:12px">
+            <button id="telegramSaveConfig" class="primary-btn" type="submit" disabled>Save bot token &amp; enable</button>
+            <button id="telegramTestBtn" class="secondary-btn" type="button" onclick="testTelegramAlert()" disabled>Send test to all</button>
+          </div>
+          <p id="telegramSettingsStatus" role="status" aria-live="polite"></p>
+        </form>
+
+        <hr style="margin:20px 0; border:none; border-top:1px solid var(--border,#e0e0e0)">
+
+        <!-- Recipients list -->
+        <h4 style="margin:0 0 10px">Recipients</h4>
+        <p class="hint">Each person or group has a chat ID and a role. The bot must be started (for private chats) or added to the group before messages will arrive.</p>
+        <div id="telegramRecipientList"></div>
+
+        <!-- Add recipient form -->
+        <form id="telegramAddForm" onsubmit="addTelegramRecipient(event)" style="margin-top:16px">
+          <h4 style="margin:0 0 10px">Add recipient</h4>
+          <div class="two-cols">
+            <label for="telegramNewName">Name
+              <input id="telegramNewName" maxlength="80" placeholder="e.g. Chef Ramu" required>
+            </label>
+            <label for="telegramNewChatId">Chat ID
+              <input id="telegramNewChatId" maxlength="25" placeholder="-1001234567890" autocomplete="off" required>
+            </label>
+          </div>
+          <label for="telegramNewRole">Receives alerts for
+            <select id="telegramNewRole">
+              <option value="both">🔔 Both — orders &amp; waiter calls</option>
+              <option value="kitchen">🍳 Kitchen only — orders &amp; stock</option>
+              <option value="waiter">🙋 Waiter only — waiter calls &amp; songs</option>
+            </select>
+          </label>
+          <p class="hint">
+            To find a chat ID: add <a href="https://t.me/userinfobot" target="_blank" rel="noopener">@userinfobot</a>
+            to the group and type /start — it replies with the ID. For a personal chat, message @userinfobot directly.
+          </p>
+          <button id="telegramAddBtn" class="primary-btn" type="submit">Add recipient</button>
+          <p id="telegramAddStatus" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+<style>
+.telegram-recipient-card {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border: 1px solid var(--border, #e0e0e0);
+  border-radius: 8px; margin-bottom: 8px; gap: 12px;
+}
+.telegram-recipient-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.telegram-recipient-info strong { font-size: 0.95em; }
+.telegram-recipient-info .hint { font-size: 0.82em; word-break: break-all; }
+.telegram-role-badge {
+  display: inline-block; font-size: 0.78em; padding: 2px 7px;
+  border-radius: 12px; width: fit-content; margin-top: 2px;
+}
+.telegram-role-both    { background: #e8f4fd; color: #1a6fa8; }
+.telegram-role-kitchen { background: #fff3e0; color: #b45309; }
+.telegram-role-waiter  { background: #f0fdf4; color: #166534; }
+</style>
