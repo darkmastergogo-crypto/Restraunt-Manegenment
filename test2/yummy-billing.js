@@ -62,7 +62,18 @@ const YummyBilling=(()=>{
   try{const data=await Cloud.rpc('restaurant_table_names',{},false).catch(()=>null);const list=Array.isArray(data)?data:Array.isArray(data?.tables)?data.tables:[];tables=list.map(t=>t.table_number).filter(t=>/^T[1-9][0-9]{0,3}$/.test(t));
    const sel=el('pos68Table');if(sel)sel.innerHTML=['Counter',...tables].map(t=>`<option value="${esc(t)}"${t===table?' selected':''}>${esc(t==='Counter'?'Counter':(Cloud.tableName?.(t)||t))}</option>`).join('');}catch{}
  }
- function toggleTicket(open){document.body.classList.toggle('pos68-open',open);}
+ function toggleTicket(open){
+  // app69.css opens the mobile bill sheet through .is-open on the sheet/scrim.
+  // The old app68.css listened to body.pos68-open, which is no longer loaded.
+  document.body.classList.toggle('pos68-open',!!open);
+  const sheet=el('pos68Ticket'),scrim=el('pos68Scrim'),trigger=el('manualMobileDone');
+  sheet?.classList.toggle('is-open',!!open);
+  scrim?.classList.toggle('is-open',!!open);
+  if(sheet){sheet.setAttribute('role','region');sheet.setAttribute('aria-label','Current bill');}
+  if(trigger)trigger.setAttribute('aria-expanded',String(!!open));
+  if(open)el('pos68Close')?.focus({preventScroll:true});
+  else if(document.activeElement?.closest?.('#pos68Ticket'))trigger?.focus({preventScroll:true});
+ }
  function paintCats(){const box=el('pos68Cats');if(!box)return;box.innerHTML=['All',...categories].map(c=>`<button type="button" data-cat="${esc(c)}" aria-pressed="${c===category}">${esc(c==='All'?'All items':c)}</button>`).join('');}
  function options(){return menu.flatMap(m=>{if(!m.available)return [];return (m.sizes_enabled?MenuOptions.keys(m):[null]).map(size=>{const stock=size?m.size_stock?.[size]:m.stock;return {id:m.id,size,key:JSON.stringify([m.id,size]),name:m.name+(size?' — '+MenuOptions.label(m,size):''),dish:m.name,sizeLabel:size?MenuOptions.label(m,size):'',category:m.category,price:Number(size?m.size_prices[size]:m.price),veg:m.veg!==false,stock,available:!stock?.tracked||stock.remaining>0};});});}
  function addOption(key,n){
@@ -72,7 +83,20 @@ const YummyBilling=(()=>{
   cart.set(key,{id:o.id,size:o.size,qty,name:o.name,price:o.price,veg:o.veg});render();
   const card=el('manualMenu').querySelector(`[data-pos-add="${CSS.escape(key)}"]`);if(card){card.classList.remove('pos68-bump');void card.offsetWidth;card.classList.add('pos68-bump');}
  }
- function stepLine(key,n){if(pending||saving)return;const line=cart.get(key);if(!line)return;const qty=line.qty+n;if(qty<=0)cart.delete(key);else cart.set(key,{...line,qty:Math.min(50,qty)});render();}
+ function stepLine(key,n){
+  if(pending||saving)return;
+  const line=cart.get(key);if(!line)return;
+  const qty=line.qty+n;
+  if(qty<=0)cart.delete(key);
+  else {
+   const option=line.custom?null:options().find(o=>o.key===key);
+   if(!line.custom&&option?.stock?.tracked&&qty>Number(option.stock.remaining)){
+    status(`Only ${option.stock.remaining} left of ${line.name}.`);return;
+   }
+   cart.set(key,{...line,qty:Math.min(50,qty)});
+  }
+  render();
+ }
  function status(t){const s=el('manualStatus');if(s)s.textContent=t;}
  async function refreshSelectedMenuLines(){
   const removed=[],selected=[...cart.entries()].filter(([,line])=>!line.custom);
@@ -101,7 +125,7 @@ const YummyBilling=(()=>{
   let d=el('pos68CustomDialog');if(!d){d=document.createElement('dialog');d.id='pos68CustomDialog';d.className='dlg68';document.body.append(d);}
   d.innerHTML=`<form class="dlg68-form" method="dialog"><div class="dlg68-head"><h2>Item not on the menu</h2><button type="button" class="secondary-btn" data-close68 aria-label="Close">×</button></div><p class="hint">Added only to this bill. It does not change the menu or stock.</p><label>Item name<input name="name" maxlength="120" required placeholder="e.g. Water bottle"></label><div class="dlg68-2"><label>Price<input name="price" type="number" min="0.01" max="999999.99" step="0.01" inputmode="decimal" required></label><label>Qty<input name="qty" type="number" min="1" max="50" step="1" value="1" inputmode="numeric" required></label></div><div class="toolbar"><button class="primary-btn" type="submit">Add to bill</button><button class="secondary-btn" type="button" data-close68>Cancel</button></div></form>`;
   d.showModal();setTimeout(()=>d.querySelector('[name=name]').focus(),30);
-  d.querySelector('form').onsubmit=e=>{e.preventDefault();const f=e.target,name=f.name.value.trim(),price=Number(f.price.value),qty=Number(f.qty.value);
+  d.querySelector('form').onsubmit=e=>{e.preventDefault();const f=e.target,name=String(f.elements.namedItem('name')?.value||'').trim(),price=Number(f.elements.namedItem('price')?.value),qty=Number(f.elements.namedItem('qty')?.value);
    if(!name||!Number.isFinite(price)||price<=0||!Number.isInteger(qty)||qty<1||qty>50)return;
    const id='custom:'+crypto.randomUUID();cart.set(id,{id,custom:true,name,price:Math.round(price*100)/100,qty});d.close();render();status('Item added to this bill only.');};
  }
@@ -118,7 +142,7 @@ const YummyBilling=(()=>{
  function totals(){const cents=[...cart.values()].reduce((sum,line)=>sum+line.qty*Math.round(line.price*100),0);const taxCents=tax.tax_enabled?(tax.tax_mode==='percent'?Math.round(cents*Math.round(Number(tax.tax_value)*100)/10000):Math.round(Number(tax.tax_value)*100)):0;return {subtotal:cents/100,tax:taxCents/100,total:(cents+taxCents)/100};}
  function render(){
   renderMenu();const t=totals(),count=[...cart.values()].reduce((s,l)=>s+l.qty,0),lock=saving||!!pending;
-  el('manualCart').innerHTML=cart.size?[...cart.entries()].map(([key,line])=>`<div class="pos68-line${line.custom?' custom':''}"><span class="pos68-line-name"><b>${esc(line.name)}</b><small>${money(line.price)}${line.custom?' · not on menu':''}</small></span><span class="pos68-step"><button type="button" data-pos-step="-1" data-key="${esc(key)}" aria-label="One less ${esc(line.name)}" ${lock?'disabled':''}>−</button><b>${line.qty}</b><button type="button" data-pos-step="1" data-key="${esc(key)}" aria-label="One more ${esc(line.name)}" ${lock?'disabled':''}>+</button></span><strong>${money(line.qty*line.price)}</strong></div>`).join(''):'<div class="pos68-empty"><b>Bill is empty</b><span>Tap a dish to add it.</span></div>';
+  el('manualCart').innerHTML=cart.size?[...cart.entries()].map(([key,line])=>`<div class="pos68-line${line.custom?' custom':''}"><span class="pos68-line-name"><b>${esc(line.name)}</b><small>${money(line.price)}${line.custom?' · not on menu':''}</small></span><span class="pos68-qty"><button class="pos68-step" type="button" data-pos-step="-1" data-key="${esc(key)}" aria-label="One less ${esc(line.name)}" ${lock?'disabled':''}>−</button><b>${line.qty}</b><button class="pos68-step" type="button" data-pos-step="1" data-key="${esc(key)}" aria-label="One more ${esc(line.name)}" ${lock?'disabled':''}>+</button></span><strong>${money(line.qty*line.price)}</strong></div>`).join(''):'<div class="pos68-empty"><b>Bill is empty</b><span>Tap a dish to add it.</span></div>';
   el('manualTotals').innerHTML=`<div><span>Items (${count})</span><b>${money(t.subtotal)}</b></div>${tax.tax_enabled?`<div><span>Tax ${tax.tax_mode==='percent'?'('+Number(tax.tax_value)+'%)':'(fixed)'}</span><b>${money(t.tax)}</b></div>`:''}<div class="pos68-grand"><span>Total</span><b>${money(t.total)}</b></div>`;
   const canSubmit=!saving&&!!paymentMethod&&(pending||loaded&&cart.size>0);
   el('manualDone').disabled=!canSubmit;el('pos68Print').disabled=!canSubmit;

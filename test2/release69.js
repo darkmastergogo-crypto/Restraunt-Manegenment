@@ -26,7 +26,9 @@ function download(name, text, mime = 'application/json') {
   a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
 }
 const csvCell = v => {
-  const s = String(v ?? '');
+  const raw = String(v ?? '');
+  // Prevent Excel/Sheets formula execution from user-supplied dish names.
+  const s = /^[=+@\-\t\r]/.test(raw) ? "'" + raw : raw;
   return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
 const toCSV = rows => rows.map(r => r.map(csvCell).join(',')).join('\r\n');
@@ -104,7 +106,7 @@ function menuPanel() {
       </div>
     </div>
 
-    <div class="io69-block">
+    ${isAdmin() ? `    <div class="io69-block">
       <h4>Upload</h4>
       <p class="hint">JSON downloaded from here, or a CSV whose first row names the columns:
         <code>name, category, price, veg, description</code>. A dish whose name already exists is updated; the rest are added.</p>
@@ -134,6 +136,7 @@ function menuPanel() {
       </div>
       <p id="io69Status" role="status" class="hint"></p>
     </div>
+` : `<p class="hint">Menu uploading is restricted to administrators. You can download the menu above.</p>`}
 
     ${isAdmin() ? `<div class="io69-block io69-admin">
       <h4>Who else can use this</h4>
@@ -175,6 +178,9 @@ function wireMenu(p) {
       st(`Downloaded ${items.length} dishes${withCat ? ' with categories' : ' without categories'}.`);
     } catch (e) { st(e.message); }
   };
+
+  // Non-admin roles have export access only; SQL import is admin-only.
+  if (!isAdmin()) return;
 
   q('io69Tpl').onclick = () => download('menu-template.csv', toCSV([
     HEAD,
@@ -257,7 +263,7 @@ function rejectPanel() {
   const on = s.on !== false, hours = Number(s.hours) || 3;
   p.innerHTML = `
     <h3>Reject orders nobody accepted</h3>
-    <p class="hint">If an order is still waiting after this long, it is rejected on its own, so an order placed late at night is not still open in the morning. This happens on the server, so it works even when every tablet is asleep.</p>
+    <p class="hint">If an order is still waiting after this long, it is rejected on its own, so an order placed late at night is not still open in the morning. The check runs while a signed-in staff screen is active; if every device is closed, rejection occurs the next time staff reconnects. For unattended scheduling, configure a separate server-side cron job.</p>
     <label class="switch69"><input type="checkbox" id="ar69On" ${on ? 'checked' : ''}>
       <span class="sw69" aria-hidden="true"></span>
       <span class="sw-text69"><b>Reject orders nobody accepted</b><small>Off means an order waits until someone accepts or rejects it.</small></span></label>

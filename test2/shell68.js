@@ -46,7 +46,32 @@ function buildNav(){
  const brand=document.createElement('div');brand.className='side-brand68';
  brand.innerHTML=`<span class="logo-chip68"><img class="brand-logo" src="yummy-momo-logo.webp?v=yummy-44" alt=""></span><span class="staff-brand side-name68"><strong>${esc(Cloud.cfg.restaurantName||'Restaurant')}</strong><small id="sideTagline68">${esc(Cloud.cfg.tagline||'')}</small></span>`;
  nav.prepend(brand);
- const label=document.createElement('p');label.className='side-label68';label.textContent='Menu';brand.after(label);
+ // Group only the existing navigation buttons. Keep their IDs and native onclick
+ // handlers untouched so permissions and tab state remain authoritative.
+ const GROUPS=[
+  ['Operations',['Live','Billing','History','Requests','Tables']],
+  ['Business',['Dashboard','Expenses','Menu','Stocks']],
+  ['Administration',['Devices','Notifications','Management']]
+ ];
+ for(const [name,keys] of GROUPS){
+  const group=document.createElement('div');group.className='side-group71';
+  group.setAttribute('role','group');group.setAttribute('aria-label',name);
+  const label=document.createElement('p');label.className='side-label68';label.textContent=name;
+  group.append(label);
+  keys.forEach(key=>{const btn=$('tab'+key+'Btn');if(btn)group.append(btn);});
+  nav.append(group);
+ }
+ function syncGroups(){
+  for(const group of nav.querySelectorAll('.side-group71')){
+   const buttons=[...group.querySelectorAll('.nav-tab-btn')];
+   const visible=buttons.some(b=>!b.hidden&&!b.classList.contains('access-off')&&getComputedStyle(b).display!=='none');
+   if(group.hidden!==!visible)group.hidden=!visible;
+  }
+ }
+ // Role permissions arrive asynchronously; keep empty groups out of the sidebar.
+ new MutationObserver(m=>{if(m.some(x=>x.target.classList?.contains('nav-tab-btn')))syncGroups();})
+   .observe(nav,{subtree:true,attributes:true,attributeFilter:['class','hidden']});
+ queueMicrotask(syncGroups);
  const foot=document.createElement('div');foot.className='side-foot68';
  foot.innerHTML=`<button type="button" class="side-btn68" data-help68>${ic('help')}<span>Help & contact</span></button>
   <div class="who68">${ic('user','who-ic68')}<span><b id="whoName68">Signed in</b><small id="whoRole68"></small></span></div>

@@ -11,14 +11,14 @@
   if (!toggle || !nav || !overlay) return;
 
   function closeDrawer() {
-    nav.classList.remove('open');
+    nav.classList.remove('open', 'is-open');
     overlay.classList.remove('open');
     toggle.classList.remove('is-open');
     toggle.setAttribute('aria-expanded', 'false');
   }
 
   function openDrawer() {
-    nav.classList.add('open');
+    nav.classList.add('open', 'is-open');
     overlay.classList.add('open');
     toggle.classList.add('is-open');
     toggle.setAttribute('aria-expanded', 'true');
