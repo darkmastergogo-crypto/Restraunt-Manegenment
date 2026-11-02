@@ -18,6 +18,9 @@
 //   R2_ACCESS_KEY_ID      R2 API token's Access Key ID
 //   R2_SECRET_ACCESS_KEY  R2 API token's Secret Access Key
 //   R2_BUCKET_NAME        R2 bucket name, e.g. "restaurant-images"
+//   R2_RESTAURANT_SLUG   Exact restaurantSlug in this deployment's config.js
+//   R2_SUPABASE_URL      Exact supabaseUrl for this restaurant's own project
+//   R2_SUPABASE_ANON_KEY Public/anon key for that project (never service-role)
 //   R2_PUBLIC_BASE_URL    Public URL that serves that bucket, no trailing
 //                         slash, e.g. "https://images.yourdomain.com"
 //                         (must be the SAME value as config.js's imagesBaseUrl)
@@ -35,8 +38,12 @@ module.exports = async (req, res) => {
   const SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
   const BUCKET = process.env.R2_BUCKET_NAME;
   const PUBLIC_BASE_URL = process.env.R2_PUBLIC_BASE_URL;
+  // Each deployment MUST bind to its own restaurant and Supabase project.
+  const BOUND_RESTAURANT = process.env.R2_RESTAURANT_SLUG;
+  const BOUND_SUPABASE_URL = String(process.env.R2_SUPABASE_URL || '').replace(/\/$/, '');
+  const BOUND_SUPABASE_ANON_KEY = process.env.R2_SUPABASE_ANON_KEY;
 
-  if (!ACCOUNT_ID || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY || !BUCKET || !PUBLIC_BASE_URL) {
+  if (!ACCOUNT_ID || !ACCESS_KEY_ID || !SECRET_ACCESS_KEY || !BUCKET || !PUBLIC_BASE_URL || !BOUND_RESTAURANT || !BOUND_SUPABASE_URL || !BOUND_SUPABASE_ANON_KEY) {
     res.status(500).json({ error: 'R2 is not configured on the server yet (missing environment variables).' });
     return;
   }
@@ -46,8 +53,13 @@ module.exports = async (req, res) => {
     const restaurant = String(body.restaurant || '');
     const hash = String(body.hash || '');
     const ext = String(body.ext || '');
-    const supabaseUrl = String(body.supabaseUrl || '').replace(/\/$/, '');
-    const supabaseAnonKey = String(body.supabaseAnonKey || '');
+    const supabaseUrl = BOUND_SUPABASE_URL;
+    const supabaseAnonKey = BOUND_SUPABASE_ANON_KEY;
+    // Browser-provided project identity is never trusted as authorization.
+    if (restaurant !== BOUND_RESTAURANT || String(body.supabaseUrl || '').replace(/\/$/, '') !== supabaseUrl || String(body.supabaseAnonKey || '') !== supabaseAnonKey) {
+      res.status(403).json({ error: 'This upload is not for the configured restaurant.' });
+      return;
+    }
 
     if (!/^[a-z0-9-]{2,60}$/.test(restaurant)) {
       res.status(400).json({ error: 'Invalid restaurant slug.' });
@@ -80,15 +92,16 @@ module.exports = async (req, res) => {
       res.status(401).json({ error: 'Staff session is invalid or expired. Sign in again.' });
       return;
     }
-    // Only admins and managers may upload. Waiter accounts (and any other
-    // signed-in user) are real Supabase users too, so check the staff role.
-    const user = await who.json().catch(() => ({}));
-    const roleRes = await fetch(supabaseUrl + '/rest/v1/staff_users?select=role&user_id=eq.' + encodeURIComponent(String(user.id || '')), {
-      headers: { apikey: supabaseAnonKey, Authorization: 'Bearer ' + token }
+    // Use the same authenticated SECURITY DEFINER role verification as the staff UI;
+    // direct staff_users reads are denied by RLS in some restaurant installations.
+    const roleRes = await fetch(supabaseUrl + '/rest/v1/rpc/restaurant_admin_auth_status', {
+      method: 'POST',
+      headers: { apikey: supabaseAnonKey, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: '{}'
     });
-    const roles = roleRes.ok ? await roleRes.json().catch(() => []) : [];
-    if (!Array.isArray(roles) || !roles.some(r => r && (r.role === 'admin' || r.role === 'manager'))) {
-      res.status(403).json({ error: 'Only an admin or manager can upload photos.' });
+    const roleInfo = roleRes.ok ? await roleRes.json().catch(() => null) : null;
+    if (!roleRes.ok || roleInfo?.role !== 'admin') {
+      res.status(403).json({ error: 'Only an administrator may upload images.' });
       return;
     }
 
