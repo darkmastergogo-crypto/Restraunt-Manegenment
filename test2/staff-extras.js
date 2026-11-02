@@ -1,5 +1,5 @@
 'use strict';
-async function openCategoryArrangement(){if(!['admin','manager','cashier','waiter'].includes(staffRole))return;if(layoutDirty&&!confirm('Discard unsaved arrangement changes?'))return;layoutDirty=false;layoutGroup='';setMenuView('arrangement');if(layoutBusy)return;await reloadMenuArrangement();}
+async function openCategoryArrangement(){if(!['admin','manager'].includes(staffRole))return;if(layoutDirty&&!confirm('Discard unsaved arrangement changes?'))return;layoutDirty=false;layoutGroup='';setMenuView('arrangement');if(layoutBusy)return;await reloadMenuArrangement();}
 
 // Per-category ordering is saved atomically, with a revision check against other staff.
 let menuLayoutData=null,layoutGroup='',layoutDraft=[],layoutDirty=false,layoutBusy=false;
@@ -12,7 +12,7 @@ function setMenuView(view){
  for(const [id,value] of [['menuItemsTab','items']]){const el=document.getElementById(id);el.className=next===value?'primary-btn':'secondary-btn';el.setAttribute('aria-pressed',String(next===value));}
  if(next==='arrangement'&&!layoutDirty)reloadMenuArrangement();
 }
-async function openMenuArrangement(){if(['admin','manager','cashier','waiter'].includes(staffRole))setMenuView('arrangement');}
+async function openMenuArrangement(){if(['admin','manager'].includes(staffRole))setMenuView('arrangement');}
 async function reloadMenuArrangement(){
  if(layoutBusy)return;layoutBusy=true;document.getElementById('layoutStatus').textContent='Loading…';
  try{menuLayoutData=await Cloud.rpc('restaurant_menu_layout',{},true);const select=document.getElementById('layoutGroup');select.replaceChildren(new Option('Order of categories',''));layoutGroup='';select.value=layoutGroup;loadArrangementDraft();document.getElementById('layoutStatus').textContent='';}
@@ -39,7 +39,7 @@ window.RestaurantAlerts=(()=>{
  const presets={chime:[784,988,1319],doorbell:[659,523],bell:[880,1175,880]};
  function paint(){const n=el('notificationSoundButton');if(n){n.textContent=notificationArmed?'Notification sound on · mute':'Enable notification sound';n.setAttribute('aria-pressed',String(notificationArmed));}}
  async function sync(fillForm=false){
-  if(fillForm)fillRequested=true;if(settingsBusy||!['admin','manager','cashier','waiter'].includes(staffRole))return;fillForm=fillRequested;fillRequested=false;settingsBusy=true;if(el('alertSettingsSave'))el('alertSettingsSave').disabled=true;
+  if(fillForm)fillRequested=true;if(settingsBusy||!['admin','manager'].includes(staffRole))return;fillForm=fillRequested;fillRequested=false;settingsBusy=true;if(el('alertSettingsSave'))el('alertSettingsSave').disabled=true;
   try{settings=await Cloud.rpc('restaurant_alert_settings',{},true);paint();if(fillForm&&staffRole==='admin'){formRevision=settings.revision;for(const key of ['orders','waiter','notification'])el(key+'SoundPreset').value=settings[key+'_sound'];el('alertSettingsStatus').textContent='';AlertAudio.fill();}}
   catch(e){if(fillForm)el('alertSettingsStatus').textContent=e.message;}finally{settingsBusy=false;if(el('alertSettingsSave'))el('alertSettingsSave').disabled=formRevision===null;if(fillRequested)sync(true);}
  }

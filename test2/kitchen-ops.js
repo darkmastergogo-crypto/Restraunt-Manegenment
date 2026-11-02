@@ -4,7 +4,7 @@ window.KitchenOps=(()=>{
  const el=id=>document.getElementById(id),safe=Cloud.esc;
  function init(){
   document.body.classList.toggle('dark-site',Cloud.read('RESTAURANT_DARK_KITCHEN_v26',false)===true);
-  el('themeToggle').textContent=document.body.classList.contains('dark-site')?'Use light theme':'Use dark theme';el('staffAccount').hidden=false;el('staffAccountRole').textContent=({admin:'Admin',manager:'Manager',cashier:'Cashier',waiter:'Waiter'})[staffRole]||'Staff';el('kitchenDeviceTools').hidden=false;
+  el('themeToggle').textContent=document.body.classList.contains('dark-site')?'Use light theme':'Use dark theme';el('staffAccount').hidden=false;el('staffAccountRole').textContent=staffRole==='admin'?'Admin':'Manager';el('kitchenDeviceTools').hidden=false;
   desired=Cloud.read('RESTAURANT_WAKE_DESIRED_v26',false)===true;paintWake();ensureAwake();
  }
  function theme(){const dark=document.body.classList.toggle('dark-site');Cloud.write('RESTAURANT_DARK_KITCHEN_v26',dark);el('themeToggle').textContent=dark?'Use light theme':'Use dark theme';}

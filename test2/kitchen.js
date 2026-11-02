@@ -21,8 +21,8 @@ function cloudError(text){$('cloudError').textContent=text;$('cloudError').hidde
 function download(name,text,type='application/json'){const u=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 async function enterStaff(){
  staffRole=await Cloud.role();
- if(!['admin','manager','cashier','waiter'].includes(staffRole))throw Error('This account has no staff role. Ask the admin or manager to add it in Settings → Staff & logins.');
- $('tabManagementBtn').hidden=false;$('tabMembersBtn').hidden=!['admin','manager','cashier'].includes(staffRole);$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole==='admin';$('rotateWaiterButton').hidden=!['admin','manager'].includes(staffRole);$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';configureManagementAccess();
+ if(!['admin','manager'].includes(staffRole))throw Error('Admin or manager access required. Waiters should scan the private waiter QR.');
+ $('tabManagementBtn').hidden=!['admin','manager'].includes(staffRole);$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole!=='manager';$('rotateWaiterButton').hidden=!['admin','manager'].includes(staffRole);$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';configureManagementAccess();
  BackgroundAlerts.init('kitchen');loggedIn=true;$('loginPanel').hidden=true;$('managerNav').hidden=false;$('staffMain').hidden=false;$('staffSession').hidden=false;
  void window.Custom48?.sync(true);
  $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';KitchenOps.init();$('headerCallWaiter').hidden=false;
@@ -36,11 +36,7 @@ function setConnection(label){
  const badge=$('syncBadge'),box=badge.parentElement,live=label==='Live',when=lastSuccessfulSync?new Date(lastSuccessfulSync).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'';
  badge.textContent=(live?'Live':label==='Connecting'?'Connecting…':'Reconnecting…')+(when?' · Last successful sync '+when:'');
  badge.title=lastSuccessfulSync?'Last successful order sync: '+new Date(lastSuccessfulSync).toLocaleString():label;
- /* Colours come from the theme (app69.css), not hardcoded hex: a fixed dark
-    green on a translucent green is unreadable on dark themes. */
- box.dataset.sync=live?'live':label==='Connecting'?'connecting':'down';
- box.style.color=box.style.borderColor=box.style.background='';
- const dot=box.querySelector('span');if(dot)dot.style.background='';
+ const color=live?'#245c37':'#71717a';box.style.color=color;box.style.borderColor=color;box.style.background=live?'rgba(16,185,129,.12)':'rgba(148,163,184,.08)';box.querySelector('span').style.background=color;
 }
 async function signOutStaff(){
  if(orderActionsBusy.size){showToast('Wait for the saving action to finish.');return;}RestaurantAlerts.stop();await KitchenOps.stop();RestaurantAlerts.stopVolumeTest();
@@ -108,7 +104,7 @@ function refreshBackgroundData(){
 
 function configureManagementAccess(){
  const section=$('managementSection'),waiter=$('waiterAccessPanel');if(!section||!waiter)return;
- const manager=staffRole!=='admin';
+ const manager=staffRole==='manager';
  for(const child of section.children){if(child.tagName==='H2'||child===waiter)continue;child.hidden=manager;}
  const permissions=$('waiterPermissionsForm'),songSetting=$('songRequestsSetting');
  if(permissions)permissions.hidden=manager;
@@ -116,8 +112,8 @@ function configureManagementAccess(){
 }
 
 function switchTab(tab){
- const tabs=['live','history','dashboard','expenses','members','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
- if(window.Access68&&!Access68.tabAllowed(tab))return;if(tab==='devices'&&!canManageCustomerDevices())return;
+ const tabs=['live','history','dashboard','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
+ if(tab==='management'&&!['admin','manager'].includes(staffRole)||tab==='devices'&&!canManageCustomerDevices()||tab==='notifications'&&!['admin','manager'].includes(staffRole))return;
  const blocked=$('hiddenByAdminSection');
  if(window.Custom48?.sectionHidden(tab)){
   currentTab=tab;
@@ -128,7 +124,7 @@ function switchTab(tab){
  if(blocked){blocked.hidden=true;blocked.style.display='none';}
  if(tab==='stocks'&&YummyStocksSettings.hidden()){showToast('Stocks are hidden. An admin can show them in Management.');return;}
  currentTab=tab;tabs.forEach(t=>{const section=$(t+'Section');if(section){section.hidden=t!==tab;section.style.display=t===tab?'block':'none';}const button=$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn');if(button)button.classList.toggle('active',t===tab);});
- if(tab==='billing')YummyBilling.open();if(tab==='members')window.Members73?.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard'){window.Dashboard68?.open();refreshSalesAnalytics(false);}if(tab==='expenses')window.Expenses68?.open();if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();window.PaymentQrSettings?.load();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
+ if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(false);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
 }
 function setFilter(f){if(['all','Served'].includes(f)){recordStatusFilter=f==='all'?'All':f;recordOffset=0;$('recordStatusFilter').value=recordStatusFilter;switchTab('history');return;}currentFilter=['active','Pending','Cancelled'].includes(f)?f:'active';if(currentFilter==='Cancelled'){cancelledOffset=0;refreshCancelledOrders();}renderOrders();}
 function statusPill(o){return `<span class="status-pill ${esc(o.status.toLowerCase())}">${esc(o.status)}</span>`;}
@@ -137,7 +133,7 @@ function actionButtons(o,withDevice=true){
  let next={Pending:'Cooking',Cooking:'Served',Ready:'Served'}[o.status];
 
  return (next?`<button class="primary-btn" data-next="${next}" data-id="${esc(o.id)}">${(o.status==='Pending'?'Accept order':'Mark served')}</button>`:'')+
- (window.Access68?.can('orderReject')!==false&&o.status==='Pending'?`<button class="danger-btn" data-next="Rejected" data-id="${esc(o.id)}">Reject / unavailable</button>`:'')+`<button class="secondary-btn" data-bill="${esc(o.id)}">Bill</button>`+(withDevice?orderDeviceButton(o):" ");
+ (['admin','manager'].includes(staffRole)&&o.status==='Pending'?`<button class="danger-btn" data-next="Rejected" data-id="${esc(o.id)}">Reject / unavailable</button>`:'')+`<button class="secondary-btn" data-bill="${esc(o.id)}">Bill</button>`+(withDevice?orderDeviceButton(o):" ");
 }
 function shortId(o){return Cloud.orderLabel(o);}
 function renderOrders(){
@@ -162,23 +158,9 @@ async function setOrderStatus(id,next,button){
  try{const saved=await Cloud.rpc('restaurant_staff_status',{p_id:id,p_expected:o.status,p_next:next,p_reason:reason},true);Cloud.invalidateOrders();showToast('Order '+saved.status.toLowerCase()+'.');await refreshCloud();}
  catch(e){showToast(/This status change is not allowed/.test(e.message)?'Database upgrade required: run SUPABASE/UPGRADE-EXISTING-PROJECT.sql, then refresh kitchen.':e.message);await refreshCloud();}finally{orderActionsBusy.delete(id);if(button)button.disabled=false;renderOrders();}
 }
-let recordStatusFilter='All',recordQuery73='',recordPayment73='All',recordSource73='All',recordFilterTimer73=null;
+let recordStatusFilter='All';
 function selectRecordStatus(){recordStatusFilter=$('recordStatusFilter').value;recordOffset=0;refreshRecords();}
-function selectRecordFilters73(immediate=false){
- const q=String($('recordSearch73')?.value||'').trim(),pay=$('recordPaymentFilter73')?.value||'All',src=$('recordSourceFilter73')?.value||'All';
- clearTimeout(recordFilterTimer73);
- const apply=()=>{recordQuery73=q;recordPayment73=pay;recordSource73=src;recordOffset=0;refreshRecords();};
- if(immediate)apply();else recordFilterTimer73=setTimeout(apply,240);
-}
-async function fetchRecordPage(period,reference,offset,limit,status=recordStatusFilter){
- const args={p_period:period,p_reference:reference||null,p_offset:offset,p_limit:limit,p_status:status,p_query:recordQuery73||null,p_payment:recordPayment73,p_source:recordSource73};
- try{return await Cloud.rpc('restaurant_filtered_records73',args,true);}
- catch(e){
-  const legacy=(!recordQuery73&&recordPayment73==='All'&&recordSource73==='All'&&status!=='Rejected');
-  if(legacy&&/restaurant_filtered_records73|schema cache|Could not find the function/i.test(String(e?.message||e)))return Cloud.rpc('restaurant_filtered_records',{p_period:period,p_reference:reference||null,p_offset:offset,p_limit:limit,p_status:status},true);
-  throw e;
- }
-}
+function fetchRecordPage(period,reference,offset,limit,status=recordStatusFilter){return Cloud.rpc('restaurant_filtered_records',{p_period:period,p_reference:reference||null,p_offset:offset,p_limit:limit,p_status:status},true);}
 let recordPeriod='day',recordReference=null,recordOffset=0,recordsData=null,recordsBusy=false,recordsPending=false,daySummary=null,recordsServerOffset61=0,recordPaymentExpiryTimer61=null;
 function calendarLabel(value){return new Date(value+'T12:00:00Z').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'});}
 function setRecordPeriod(period){if(!['day','month'].includes(period))return;recordPeriod=period;recordReference=null;recordOffset=0;$('recordDate').type=period==='day'?'date':period==='month'?'month':'number';$('recordDate').value='';if(period==='year'){$('recordDate').min='2000';$('recordDate').max='2100';$('recordDate').placeholder='2026';}['day','month'].forEach(p=>$('period'+p[0].toUpperCase()+p.slice(1)).className=p===period?'primary-btn':'secondary-btn');refreshRecords();}
@@ -187,8 +169,8 @@ function followCurrentPeriod(){$('recordDate').value='';recordReference=null;rec
 function changeRecordPage(delta){recordOffset=Math.max(0,recordOffset+delta*50);refreshRecords();}
 async function refreshRecords(){
  if(!loggedIn)return;if(recordsBusy){recordsPending=true;return;}recordsBusy=true;
- const key=[recordPeriod,recordReference,recordOffset,recordStatusFilter,recordQuery73,recordPayment73,recordSource73].join('|');
- try{const result=await fetchRecordPage(recordPeriod,recordReference,recordOffset,50);if(key!==[recordPeriod,recordReference,recordOffset,recordStatusFilter,recordQuery73,recordPayment73,recordSource73].join('|'))return;recordsData=result;const serverMs=Date.parse(result?.server_now);recordsServerOffset61=Number.isFinite(serverMs)?serverMs-Date.now():0;await refreshOrderDeviceStates();renderHistory();if(recordsView==='dishes')await refreshDishSales();}
+ const key=[recordPeriod,recordReference,recordOffset,recordStatusFilter].join('|');
+ try{const result=await fetchRecordPage(recordPeriod,recordReference,recordOffset,50);if(key!==[recordPeriod,recordReference,recordOffset,recordStatusFilter].join('|'))return;recordsData=result;const serverMs=Date.parse(result?.server_now);recordsServerOffset61=Number.isFinite(serverMs)?serverMs-Date.now():0;await refreshOrderDeviceStates();renderHistory();if(recordsView==='dishes')await refreshDishSales();}
  catch(e){showToast('Records could not load: '+e.message);}
  finally{recordsBusy=false;if(recordsPending){recordsPending=false;refreshRecords();}}
 }
@@ -203,8 +185,7 @@ function recordPaymentCell(o){
  const expires=recordPaymentExpiresAt61(o);
  if(!Number.isFinite(expires)||recordPaymentNow61()>=expires)return '<span class="record-payment-readonly61">Not recorded</span>';
  const id=esc(o.id),name='recordPayment_'+String(o.id).replace(/[^a-zA-Z0-9_-]/g,'');
- const methods=window.Business73?.paymentMethods?.()||['Cash','Online'];
- return `<div class="record-payment59" role="group" aria-label="Set payment method for ${esc(Cloud.orderLabel(o))}">${methods.map(method=>`<label><input type="radio" name="${name}" value="${esc(method)}" data-record-payment="${id}"> ${esc(method==='Online'?'Online / UPI':method)}</label>`).join('')}</div>`;
+ return `<div class="record-payment59" role="group" aria-label="Set payment method for ${esc(Cloud.orderLabel(o))}"><label><input type="radio" name="${name}" value="Cash" data-record-payment="${id}"> Cash</label><label><input type="radio" name="${name}" value="Online" data-record-payment="${id}"> Online</label></div>`;
 }
 function scheduleRecordPaymentExpiry61(){
  clearTimeout(recordPaymentExpiryTimer61);recordPaymentExpiryTimer61=null;
@@ -256,7 +237,7 @@ function renderAdminMenu(){
  <div class="staff-dish-header"><div class="menu-emoji">${Cloud.safeImage(i.image)?`<img class="menu-photo" src="${esc(Cloud.safeImage(i.image))}" alt="${esc(i.name)}" loading="lazy">`:'🍽️'}</div><div class="menu-copy"><h4>${esc(i.name)}</h4><p class="muted">${esc(i.category)}</p></div><div class="staff-dish-price"><b>${i.sizes_enabled?'From ':''}${money(staffDisplayedPrice(i))}</b><span class="staff-availability">${i.stock_sold_out?'Sold out':i.available?'Available':'Unavailable · hidden'}</span></div></div>
  ${i.description?`<p class="staff-dish-description">${esc(i.description)}</p>`:''}
  ${i.sizes_enabled?`<div class="staff-size-summary">${MenuOptions.keys(i).map(size=>`<span>${esc(staffSizeLabel(size,i))} <b>${money(i.size_prices[size])}</b>${i.size_stock?.[size]?.tracked?' · '+(i.size_stock[size].remaining===0?'Sold out':i.size_stock[size].remaining+' left'):''}</span>`).join('')}</div>`:''}
- <div class="staff-menu-actions"><button class="primary-btn" data-pricing="${esc(i.id)}">Prices &amp; sizes</button>${staffRole!=='admin'&&!i.sizes_enabled?`<button class="secondary-btn" data-price-only="${esc(i.id)}">Change price</button>`:''}<button class="secondary-btn availability" data-availability="${esc(i.id)}" aria-pressed="${i.manual_available??i.available}">${(i.manual_available??i.available)?(i.stock_sold_out?'Listed · hide manually':'Available ✓ · set unavailable'):'Hidden · show manually'}</button><button class="secondary-btn" data-recommended="${esc(i.id)}" aria-pressed="${i.recommended===true}">${i.recommended?'Recommended ✓ · remove':'Mark recommended'}</button><button class="secondary-btn" data-best-seller="${esc(i.id)}" aria-pressed="${i.best_seller===true}">${i.best_seller?'Best seller ✓ · remove':'Mark best seller'}</button></div>
+ <div class="staff-menu-actions"><button class="primary-btn" data-pricing="${esc(i.id)}">Prices &amp; sizes</button>${staffRole==='manager'&&!i.sizes_enabled?`<button class="secondary-btn" data-price-only="${esc(i.id)}">Change price</button>`:''}<button class="secondary-btn availability" data-availability="${esc(i.id)}" aria-pressed="${i.manual_available??i.available}">${(i.manual_available??i.available)?(i.stock_sold_out?'Listed · hide manually':'Available ✓ · set unavailable'):'Hidden · show manually'}</button><button class="secondary-btn" data-recommended="${esc(i.id)}" aria-pressed="${i.recommended===true}">${i.recommended?'Recommended ✓ · remove':'Mark recommended'}</button><button class="secondary-btn" data-best-seller="${esc(i.id)}" aria-pressed="${i.best_seller===true}">${i.best_seller?'Best seller ✓ · remove':'Mark best seller'}</button></div>
  ${staffRole==='admin'?`<details class="staff-item-settings" data-item-settings="${esc(i.id)}"${expanded.has(i.id)?' open':''}><summary>Item settings · category, details &amp; photo</summary><div class="staff-item-settings-body"><label>Category<select data-dish-category="${esc(i.id)}">${Cloud.categories.slice(1).map(c=>`<option value="${esc(c)}" ${c===i.category?'selected':''}>${esc(c)}</option>`).join('')}</select></label><div class="staff-detail-actions"><button class="secondary-btn" data-edit="${esc(i.id)}">Edit details</button><button class="secondary-btn" data-item-photo="${esc(i.id)}">Change photo</button><button class="danger-btn" data-delete-item="${esc(i.id)}">Delete</button></div></div></details>`:''}</article>`).join(''):'<p class="empty">'+(menuItems.length?'No dishes match these filters.':'Your menu is empty. Admin can use + Add Item to add dishes.')+'</p>';
 }
 function filterStaffMenu(){staffMenuQuery=$('staffMenuSearch').value;staffMenuCategory=$('staffMenuCategory').value;staffMenuAvailability=$('staffMenuAvailability').value;renderAdminMenu();}
@@ -372,17 +353,15 @@ async function shareLinkNative(){if(!privateWaiterUrl)return;try{if(navigator.sh
 function findOrder(id){return orders.find(x=>x.id===id)||cancelledOrdersData?.records.find(x=>x.id===id)||analyticsData?.recent?.find(x=>x.id===id)||recordsData?.records.find(x=>x.id===id);}
 let currentBillSnapshot=null;
 function receiptHtml(o){return YummyReceipt.html(o);}
-async function showBillPreview(id){let o=findOrder(id);if(!o){showToast('Bill not found. Refresh records and try again.');return;}currentBillOrderId=id;currentBillSnapshot=structuredClone(o);if((o.order_source==='manual'||String(o.order_id||'').startsWith('MAN-'))&&o.id){try{const extra=await Cloud.rpc('restaurant_order_bill73',{p_order:o.id},true);if(extra&&typeof extra==='object')currentBillSnapshot={...currentBillSnapshot,...extra};}catch{}}$('billPreview').innerHTML=receiptHtml(currentBillSnapshot);if(!$('billModal').open)$('billModal').showModal();}
+function showBillPreview(id){const o=findOrder(id);if(!o){showToast('Bill not found. Refresh records and try again.');return;}currentBillOrderId=id;currentBillSnapshot=structuredClone(o);$('billPreview').innerHTML=receiptHtml(currentBillSnapshot);if(!$('billModal').open)$('billModal').showModal();}
 function closeBillModal(){$('billModal').close();}
 async function printBill(){try{await window.Custom48?.sync();}catch(error){showToast('Bill settings could not load: '+error.message);return;}const o=currentBillSnapshot||findOrder(currentBillOrderId);if(!o){showToast('Open a bill before printing.');return;}$('printReceipt').innerHTML=receiptHtml(o);await YummyReceipt.ready($('printReceipt'));closeBillModal();window.print();}
-async function shareBill73(){const o=currentBillSnapshot||findOrder(currentBillOrderId);if(!o){showToast('Open a bill before sharing.');return;}try{await YummyReceipt.share(o);}catch(e){showToast('Could not share bill: '+e.message);}}
 let exportBusy=false;
 async function exportRecords(){
  if(exportBusy)return;exportBusy=true;showToast('Preparing the selected period export…');
  const period=recordPeriod,reference=recordReference||recordsData?.period_start,status=recordStatusFilter;
  try{const all=[];let offset=0;for(;;){const page=await fetchRecordPage(period,reference,offset,200,status);all.push(...page.records);offset+=page.records.length;if(offset>=page.total_orders||!page.records.length)break;}
- try{const ids=all.filter(o=>o.id&&(o.order_source==='manual'||String(o.order_id||'').startsWith('MAN-'))).map(o=>o.id);for(let i=0;i<ids.length;i+=500){const meta=await Cloud.rpc('restaurant_order_bills73',{p_ids:ids.slice(i,i+500)},true);for(const x of Array.isArray(meta)?meta:[]){const o=all.find(r=>r.id===x.order_id);if(o)Object.assign(o,x);}}}catch{}
- const quote=v=>'\"'+String(v??'').replace(/^[=+@\-\t\r]/,"'$&").replace(/\"/g,'\"\"')+'\"',rows=[['Time','Order number','Table','Customer','Phone','Address','Custom fields','Items','Items subtotal','Tax','Discount','Round off','Total','Cash received','Change returned','Short cash','Payment method','Status'],...all.map(o=>[o.created_at,Cloud.orderLabel(o),Cloud.tableName(o.table_number),o.customer_name,o.customer_phone||'',o.customer_address||'',o.custom_fields&&typeof o.custom_fields==='object'?Object.entries(o.custom_fields).map(([k,v])=>k+': '+v).join('; '):'',o.items.map(i=>i.qty+'x '+i.name+' @ '+money(i.price)+' = '+money(i.subtotal??Number(i.qty)*Number(i.price))).join('; '),o.items_subtotal??o.total,o.tax_amount??0,o.discount_amount??0,o.round_adjustment??0,o.total,o.cash_received??'',o.change_returned??'',o.short_cash??'',o.payment_method||'',o.status])];download('restaurant-orders-'+period+'.csv','\uFEFF'+rows.map(r=>r.map(quote).join(',')).join('\r\n'),'text/csv');showToast('Exported '+all.length+' orders from the selected period.');}
+ const quote=v=>'"'+String(v??'').replace(/^[=+@\-\t\r]/,"'$&").replace(/"/g,'""')+'"',rows=[['Time','Order number','Table','Customer','Items','Items subtotal','Tax','Total','Payment method','Status'],...all.map(o=>[o.created_at,Cloud.orderLabel(o),Cloud.tableName(o.table_number),o.customer_name,o.items.map(i=>i.qty+'x '+i.name+' @ '+money(i.price)+' = '+money(i.subtotal??Number(i.qty)*Number(i.price))).join('; '),o.items_subtotal??o.total,o.tax_amount??0,o.total,o.payment_method||'',o.status])];download('restaurant-orders-'+period+'.csv','\uFEFF'+rows.map(r=>r.map(quote).join(',')).join('\r\n'),'text/csv');showToast('Exported '+all.length+' orders from the selected period.');}
  catch(e){showToast('Export failed: '+e.message);}finally{exportBusy=false;}
 }
 async function toggleRecommended(id,b){const item=menuItems.find(i=>i.id===id);if(!item)return;const next=!item.recommended;b.disabled=true;try{const saved=await patchMenuOptions(id,{recommended:next});item.recommended=saved?.recommended===true;renderAdminMenu();await refreshCloud();showToast(next?'Marked Recommended. Customer menus update within 30 seconds.':'Recommended label removed. Customer menus update within 30 seconds.');}catch(e){showToast(/restaurant_manager_menu_flags|recommended|schema cache/i.test(e.message)?'Menu flag setup is missing. Run SUPABASE/UPGRADE-EXISTING-PROJECT.sql, then refresh this page.':e.message);}finally{b.disabled=false;}}
@@ -442,14 +421,14 @@ async function loadRecordPage63(reset=false){
  if(!loggedIn||currentTab!=='history'||recordsView!=='orders')return;
  if(recordsBusy){recordsPending=reset||recordsPending;return;}
  if(reset){recordsGeneration63++;recordsData=null;recordOffset=0;recordsHasMore63=false;$('historyTableBody').innerHTML='<tr><td colspan="9" class="empty">Loading order records…</td></tr>';}
- const generation=recordsGeneration63,offset=reset?0:(recordsData?.records?.length||0),queryKey=[recordPeriod,recordReference,recordStatusFilter,recordQuery73,recordPayment73,recordSource73,generation].join('|');recordsBusy=true;updateRecordsSentinel63();
+ const generation=recordsGeneration63,offset=reset?0:(recordsData?.records?.length||0),queryKey=[recordPeriod,recordReference,recordStatusFilter,generation].join('|');recordsBusy=true;updateRecordsSentinel63();
  try{
   const page=await fetchRecordPage(recordPeriod,recordReference,offset,15);
-  if(generation!==recordsGeneration63||queryKey!==[recordPeriod,recordReference,recordStatusFilter,recordQuery73,recordPayment73,recordSource73,generation].join('|'))return;
+  if(generation!==recordsGeneration63||queryKey!==[recordPeriod,recordReference,recordStatusFilter,generation].join('|'))return;
   const previous=reset?[]:(recordsData?.records||[]),seen=new Set(previous.map(o=>o.id)),merged=[...previous];for(const row of page.records||[])if(!seen.has(row.id)){seen.add(row.id);merged.push(row);}
   recordsData={...page,offset:0,records:merged};recordOffset=merged.length;const total=Number(page.retained_orders??page.total_orders??0);recordsHasMore63=merged.length<total&&(page.records||[]).length>0;
   const serverMs=Date.parse(page?.server_now);recordsServerOffset61=Number.isFinite(serverMs)?serverMs-Date.now():0;await refreshOrderDeviceStates();renderHistory();
- }catch(e){showToast(/restaurant_filtered_records73|restaurant_filtered_records|schema cache/i.test(e.message)?'Order Records filters need Release 73 SQL. Run the supplied database update.':'Records could not load: '+e.message);}
+ }catch(e){showToast(/restaurant_filtered_records|schema cache/i.test(e.message)?'Order Records setup is missing. Run the supplied database updates.':'Records could not load: '+e.message);}
  finally{recordsBusy=false;updateRecordsSentinel63();if(recordsPending){recordsPending=false;void loadRecordPage63(true);}}
 }
 refreshRecords=function(){return recordsView==='dishes'?refreshDishSales():loadRecordPage63(true);};

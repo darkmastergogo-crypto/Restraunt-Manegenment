@@ -22,7 +22,7 @@ async function refreshTables(){
 }
 async function changeManagedTable(action,table,status=null){try{await Cloud.rpc('restaurant_manage_tables',{p_action:action,p_table:table,p_status:status},true);await refreshTables();showToast(action==='remove'?'Table removed. Existing order records are preserved.':'Table saved.');return true;}catch(e){tableNode('tableMessage').textContent=e.message;return false;}}
 async function saveNamedTable(table,name){
- if(staffRole!=='admin'&&window.Custom48?.canRenameTables()===false){tableNode('tableMessage').textContent='Table name editing is disabled by the administrator.';return false;}
+ if(staffRole==='manager'&&window.Custom48?.canRenameTables()===false){tableNode('tableMessage').textContent='Table name editing is disabled by the administrator.';return false;}
  const clean=name.trim().replace(/\s+/gu,' ');
  if(!clean||[...clean].length>60||/[\x00-\x1f\x7f]/.test(name)){tableNode('tableMessage').textContent='Enter a table name with 1–60 characters and no control characters.';return false;}
  try{

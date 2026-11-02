@@ -136,13 +136,13 @@ document.addEventListener('click',async e=>{
 function show(el,visible){if(!el)return;el.hidden=!visible;const g=el.closest('details.management48-group');if(g)g.hidden=!visible;}
 function applyVisibility(){
  const r=role(),staff=['admin','manager'].includes(r);
- show($('waiterAccounts66'),staff);show($('themeStudio'),r==='admin');show($('telegramAlertsPanel'),r==='admin');show($('managerPerms66'),r==='admin');
+ show($('waiterAccounts66'),staff);show($('themeStudio'),r==='admin');show($('managerPerms66'),r==='admin');
  const cat=$('categoryList')?.closest('section.panel');if(cat&&r==='manager')show(cat,can.add||can.rename||can.remove||can.hide);
  const ts=$('themeStudio')?.closest('details.management48-group');if(ts&&!ts.dataset.opened66){ts.open=true;ts.dataset.opened66='1';}
 }
 function refreshManagement(){
  const r=role();if(!['admin','manager'].includes(r))return;
- renderPerms();applyVisibility();window.ThemeEngine?.renderStudio();if(r==='admin'&&typeof loadTelegramSettings==='function')loadTelegramSettings();
+ renderPerms();applyVisibility();window.ThemeEngine?.renderStudio();
  loadCategories66().catch(e=>{const s=$('categoryStatus');if(s)s.textContent=e.message;});
  refreshWaiters();clearInterval(waTimer);waTimer=setInterval(()=>{if(typeof currentTab!=='undefined'&&currentTab==='management'&&!document.hidden)refreshWaiters();else clearInterval(waTimer);},15000);
 }

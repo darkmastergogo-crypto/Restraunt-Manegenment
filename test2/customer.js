@@ -392,22 +392,7 @@ function receiptTaxRows(o){if(!o.tax_enabled&&!(Number(o.tax_amount)>0))return '
 function renderSystemFooter(settings){
  const footer=document.getElementById('systemFooter'),credit=document.getElementById('systemFooterCredit'),link=document.getElementById('systemFooterLink');
  let url=null;try{const raw=String(settings?.url||'');const parsed=new URL(raw);if(/^https?:\/\//i.test(raw)&&['http:','https:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password&&!/[\s<>"\\]/.test(raw))url=parsed.href;}catch{}
- /* Release 69: the credit wording and an optional phone number are editable
-    in Settings -> Brand & look, and stored in the shared settings JSON. */
- const f=(window.Custom48?.get?.()||{}).footer69||{};
- const creditOn=f.creditOn!==false&&settings?.show_credit===true;
- credit.hidden=!creditOn;
- if(creditOn){
-  const txt=String(f.creditText||'').trim()||'This system is made by SHOI SYSTEMS';
-  credit.textContent=txt;
- }
- let tel=$('systemFooterPhone');
- const digits=String(f.phone||'').replace(/[^\d+]/g,'');
- if(f.phoneOn&&digits){
-  if(!tel){tel=document.createElement('a');tel.id='systemFooterPhone';tel.className='system-footer-phone';credit.after(tel);}
-  tel.hidden=false;tel.href='tel:'+digits;
-  tel.textContent=(String(f.phoneLabel||'Call us').trim()||'Call us')+' '+String(f.phone).trim();
- }else if(tel)tel.hidden=true;
+ credit.hidden=settings?.show_credit!==true;
  link.hidden=!(settings?.show_link===true&&url);if(link.hidden)link.removeAttribute('href');else link.href=url;
  footer.hidden=credit.hidden&&link.hidden;
 }
