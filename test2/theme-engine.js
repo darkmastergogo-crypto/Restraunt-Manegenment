@@ -1,4 +1,4 @@
-/* Theme engine — 40 complete looks (20 classic + 20 signature layouts) for the customer menu, kitchen/admin and waiter app.
+/* Theme engine — 41 complete looks (40 restaurant looks + Billing Blue) for the customer menu, kitchen/admin and waiter app.
    The admin picks one in Management → Themes; it is saved with the shared customization
    (restaurant_custom48.settings.theme) so every screen switches together.
    Loaded synchronously in <head> so the saved theme paints before the page appears. */
@@ -10,7 +10,7 @@ const SERIF='Georgia, "Times New Roman", serif',SANS='Inter, system-ui, -apple-s
 const FONTS={
  'Fraunces':'Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700','Plus Jakarta Sans':'Plus+Jakarta+Sans:wght@400;500;600;700;800',
  'Cormorant Garamond':'Cormorant+Garamond:wght@500;600;700','Manrope':'Manrope:wght@400;500;600;700;800','Playfair Display':'Playfair+Display:wght@500;600;700;800',
- 'Inter':'Inter:wght@400;500;600;700;800','Fredoka':'Fredoka:wght@400;500;600;700','Nunito':'Nunito:wght@400;600;700;800','Space Grotesk':'Space+Grotesk:wght@400;500;600;700',
+ 'Inter':'Inter:wght@400;500;600;700;800','Public Sans':'Public+Sans:wght@400;500;600;700;800','IBM Plex Mono':'IBM+Plex+Mono:wght@400;600;700','Fredoka':'Fredoka:wght@400;500;600;700','Nunito':'Nunito:wght@400;600;700;800','Space Grotesk':'Space+Grotesk:wght@400;500;600;700',
  'DM Serif Display':'DM+Serif+Display','Cinzel':'Cinzel:wght@500;600;700','Lora':'Lora:wght@400;500;600;700','Archivo Black':'Archivo+Black','Sora':'Sora:wght@400;500;600;700',
  'Instrument Serif':'Instrument+Serif:ital@0;1','Poppins':'Poppins:wght@400;500;600;700;800','Outfit':'Outfit:wght@400;500;600;700;800','Oswald':'Oswald:wght@400;500;600;700',
  'Righteous':'Righteous','Unbounded':'Unbounded:wght@500;600;700',
@@ -29,6 +29,8 @@ const fallbackFor=f=>/Fraunces|Cormorant|Playfair|DM Serif|Cinzel|Lora|Instrumen
    chips    pill | underline | boxed                          (category navigation)
    corners  number in px                                      (base radius)            */
 const THEMES={
+ 'billing-blue':{name:'Billing Blue',note:'Shop Billing palette · clear and professional',scheme:'light',display:'Public Sans',body:'Public Sans',surface:'elevated',hero:'minimal',chips:'boxed',corners:8,
+  c:{bg:'#eef1f4',bg2:'#e7ebf0',surface:'#ffffff',surface2:'#f6f8fa',ink:'#1c2433',ink2:'#445063',line:'#d9dfe6',accent:'#1f5fbf',accent2:'#13795b',onAccent:'#ffffff',heroBg:'#e4edfa',heroInk:'#1c2433'}},
  'royal-momo':{name:'Royal Momo',note:'Warm cream, momo red, refined serif',scheme:'light',display:'Fraunces',body:'Plus Jakarta Sans',surface:'elevated',hero:'split',chips:'pill',corners:20,
   c:{bg:'#FBF7F2',bg2:'#F4ECE2',surface:'#FFFFFF',surface2:'#FFF8F1',ink:'#231815',ink2:'#6E5E57',line:'#EADFD3',accent:'#C8102E',accent2:'#F2A541',onAccent:'#FFFFFF',heroBg:'linear-gradient(135deg,#FFF1E8 0%,#FFE1D6 100%)',heroInk:'#5A0F1B'}},
  'obsidian-gold':{name:'Obsidian Gold',note:'Black lacquer, gold leaf, fine dining',scheme:'dark',display:'Cormorant Garamond',body:'Manrope',surface:'outlined',hero:'poster',chips:'underline',corners:6,
@@ -113,7 +115,7 @@ const THEMES={
  'void':{name:'Void',note:'Pure black, white type, nothing extra',scheme:'dark',display:'Michroma',body:'Inter',surface:'hairline',hero:'minimal',chips:'underline',corners:0,upper:true,layout:{dish:'wide',btn:'text',cart:'dock',nav:'top'},
   c:{bg:'#000000',bg2:'#0A0A0A',surface:'#000000',surface2:'#111111',ink:'#FFFFFF',ink2:'#A8A8A8',line:'#2E2E2E',accent:'#FFFFFF',accent2:'#FF3B30',onAccent:'#000000',heroBg:'#000000',heroInk:'#FFFFFF'}}
 };
-const DEFAULT='royal-momo',CACHE='YUMMY_THEME_v66';
+const DEFAULT='billing-blue',CACHE='YUMMY_THEME_v66';
 const hex=h=>{const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim());return m?m[1]:null;};
 /* ---- Colour maths: every text/background pair is checked against WCAG AA (4.5:1) ---- */
 const rgb=v=>{v=String(v||'').trim();let m=/^#([0-9a-f]{6})$/i.exec(v);if(m)return [0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)).concat(1);m=/^rgba?\(([^)]+)\)$/i.exec(v);if(m){const p=m[1].split(/[ ,/]+/).filter(Boolean).map(Number);return [p[0],p[1],p[2],p.length>3?p[3]:1];}return null;};
@@ -194,7 +196,7 @@ function cssVars(r){
 }
 let fontLink=null,current=null;
 function loadFonts(r){
- const fams=[...new Set([r.display,r.body])].map(f=>FONTS[f]).filter(Boolean);if(!fams.length)return;
+ const requested=[r.display,r.body,...(r.id==='billing-blue'?['IBM Plex Mono']:[])];const fams=[...new Set(requested)].map(f=>FONTS[f]).filter(Boolean);if(!fams.length)return;
  const href='https://fonts.googleapis.com/css2?'+fams.map(f=>'family='+f).join('&')+'&display=swap';
  if(fontLink&&fontLink.href===href)return;
  if(!fontLink){fontLink=document.createElement('link');fontLink.rel='stylesheet';fontLink.dataset.themeFonts='';(document.head||document.documentElement).append(fontLink);}

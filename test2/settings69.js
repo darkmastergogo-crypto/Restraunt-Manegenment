@@ -47,8 +47,8 @@ const SECTIONS = [
     ids:['autoReject69'], heads:['Order device controls','Customer order reset times'] },
 
   { key:'bills',    label:'Bills & tax',      icon:'bill',   can:'settings',
-    desc:'Tax, bill design and what is printed on every bill.',
-    heads:['Bill tax'] },
+    desc:'Tax, payment QR, bill design and what is printed on every bill.',
+    ids:['paymentQrPanel'], heads:['Bill tax'] },
 
   { key:'alerts',   label:'Alerts & sounds',  icon:'bell',   can:'notifications',
     desc:'Telegram, alarm sounds and how long alerts stay on screen.',

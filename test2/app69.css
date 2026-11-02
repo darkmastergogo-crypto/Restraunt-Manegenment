@@ -8,7 +8,7 @@
    nav-drawer.css, polish.css, qr-splash.css, dark-theme.css and yaar-theme.css.
 
    Every colour comes from the --t-* tokens set by theme-engine.js. Those are the
-   engine's private copies: no other stylesheet writes them, so all 40 themes
+   engine's private copies: no other stylesheet writes them, so every selected theme
    stay readable by construction. Nothing here hardcodes a colour except pure
    black/white used inside color-mix().
 
@@ -33,7 +33,7 @@
   --line-strong: color-mix(in srgb, var(--line) 70%, var(--ink) 30%);
 
   /* Accent */
-  --accent: var(--t-accent, #e23744);
+  --accent: var(--t-accent, #1f5fbf);
   --accent-2: var(--t-accent-2, var(--accent));
   --on-accent: var(--t-on-accent, #fff);
   --accent-soft: var(--t-accent-soft, color-mix(in srgb, var(--accent) 16%, var(--surface)));
@@ -49,7 +49,7 @@
   --bad-soft: color-mix(in srgb, var(--bad) 15%, var(--surface));
   --warn-c: var(--warn, #d97706);
   /* Status colours blended toward ink for TEXT use, same idea as --accent-ink:
-     the raw hue can land just under 4.5:1 on some of the 40 themes. */
+     the raw hue can land just under 4.5:1 on some themes. */
   --ok-ink: color-mix(in srgb, var(--ok) 72%, var(--ink));
   --bad-ink: color-mix(in srgb, var(--bad) 72%, var(--ink));
   --warn-ink: color-mix(in srgb, var(--warn-c) 72%, var(--ink));
@@ -1526,7 +1526,7 @@ body.staff-site code {
 .lazy-sentinel63, .lazy-load-footer63 { padding: var(--s5); text-align: center; color: var(--ink-2); font-size: var(--fs-sm); }
 
 /* ---- 5l. Receipt ----
-   Deliberately independent of the 40 themes: a bill is printed on white paper
+   Deliberately independent of the dashboard theme: a bill is printed on white paper
    and shown in a preview that must look like the printed result. Colours are
    fixed here, with --bc the one accent band colour the admin can set. */
 .receipt, .yummy-receipt {

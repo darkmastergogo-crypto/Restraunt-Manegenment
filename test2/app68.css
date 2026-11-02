@@ -366,7 +366,7 @@ html[data-theme] body.staff-site #managementSection>h2{margin:0 0 4px!important}
 @media (max-width:760px){html[data-theme] body.staff-site .staff-account{min-width:0!important}html[data-theme] body.staff-site .staff-account>summary{padding:3px!important;gap:4px!important;min-height:0!important}}
 body.temp-waiter68 #waiterPairGate .secondary-btn[href="kitchen.html"]{display:flex;align-items:center;justify-content:center;margin-top:12px;min-height:44px;text-decoration:none}
 
-/* ---------- Contrast pass (all 40 themes): legacy text colours → theme tokens ---------- */
+/* ---------- Contrast pass (all themes): legacy text colours → theme tokens ---------- */
 html[data-theme] body:is(.staff-site,.waiter-site) :is(.lazy-sentinel63,.request-empty,.stock-share,.stock-row-status,.stock-loop-status,.stock-empty,.stock-card-heading p,#stocksStatus,.staff-availability,.staff-dish-description,.stock-legend small,.hint,.empty-state,.records-empty,.table-meta,.device-meta){color:var(--k-ink2)!important;opacity:1!important}
 html[data-theme] body:is(.staff-site,.waiter-site) :is(.stock-value-row b,.stock-value-row span,.stock-legend b,.stock-card h3,.stock-track,.stock-editor label,.stock-loop-controls h4){color:var(--k-ink)!important}
 html[data-theme] body:is(.staff-site,.waiter-site) :is(#menuSection,#stocksSection,#historySection,#requestsSection,#tablesSection,#devicesSection,#notificationsSection,#managementSection,#billingSection) label{color:var(--k-ink)}
