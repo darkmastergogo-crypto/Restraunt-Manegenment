@@ -14,6 +14,7 @@ async function refreshStocks(){
 }
 function renderStocks(){
  const root=document.getElementById('stockList');if(!root||!stockLoaded)return;
+ const expanded=new Set([...root.querySelectorAll('[data-stock-card]')].filter(c=>c.querySelector('.stock72-editor')?.open).map(c=>c.dataset.stockCard));
  // Preserve focus/caret across online refreshes; drafts retain their original revision.
  const active=document.activeElement,focus=active?.closest('[data-stock-card]')?{key:active.closest('[data-stock-card]').dataset.stockCard,field:active.dataset.stockField}:null;
  const q=document.getElementById('stockSearch').value.toLowerCase().trim(),cat=document.getElementById('stockCategory').value,filter=document.getElementById('stockFilter').value,sort=document.getElementById('stockSort').value;
@@ -24,12 +25,19 @@ function renderStocks(){
  const ranked=[...tracked].filter(r=>r.remaining>0).sort((a,b)=>b.remaining-a.remaining),segments=ranked.slice(0,4).map(r=>({name:stockName(r),quantity:r.remaining}));if(ranked.length>4)segments.push({name:'Others',quantity:ranked.slice(4).reduce((n,r)=>n+r.remaining,0)});
  let offset=0;const gradient=segments.map((s,i)=>{const next=offset+s.quantity/units*100,part=`${stockColors[i]} ${offset}% ${next}%`;offset=next;return part;}).join(',');
  document.getElementById('stockOverview').innerHTML=units?`<div class="stock-chart-wrap"><div class="stock-donut" aria-hidden="true" style="background:conic-gradient(${gradient})"><span><b>${units.toLocaleString()}</b><small>units left</small></span></div><ul class="stock-legend">${segments.map((s,i)=>`<li><span class="stock-swatch" style="background:${stockColors[i]}"></span><span>${esc(s.name)}</span><b>${s.quantity.toLocaleString()} <small>(${(s.quantity/units*100).toFixed(1)}%)</small></b></li>`).join('')}</ul></div>`:'<p class="stock-empty">No tracked stock remaining in these filters. Enter quantities below to start tracking.</p>';
- root.innerHTML=rows.length?rows.map(r=>{const key=stockKey(r),draft=stockDrafts.get(key),qty=draft?draft.quantity:r.remaining,tracking=draft?draft.tracked:r.tracked,pending=stockSaveBusy.has(key),share=r.tracked&&units?r.remaining/units*100:0;
-  return `<article class="stock-card" data-stock-card="${esc(key)}"><div class="stock-card-heading"><div><h3>${esc(stockName(r))}</h3><p>${esc(r.category)}${!r.manual_available?' · Hidden manually in Menu':''}</p></div><span class="stock-state ${r.tracked&&r.remaining===0?'stock-out':''}">${r.tracked?(r.remaining===0?'Sold out':r.remaining.toLocaleString()+' remaining'):'Not tracked'}</span></div>
-   <div class="stock-value-row"><span>${r.tracked?r.remaining.toLocaleString()+' × '+money(r.unit_price):'Unit price '+money(r.unit_price)}</span><b>${r.tracked?money(r.remaining*Number(r.unit_price)):'—'}</b></div><div class="stock-progress" aria-hidden="true"><span style="width:${share.toFixed(2)}%"></span></div><p class="stock-share">${r.tracked?share.toFixed(1)+'% of tracked units in these filters':'Not included in stock totals or limits'}</p>
-   <form class="stock-editor" data-stock-form="${esc(key)}"><label class="stock-track"><input type="checkbox" data-stock-field="tracking"${tracking?' checked':''}${pending?' disabled':''}> Track stock</label><label>Counted quantity available now<input data-stock-field="quantity" type="number" min="0" max="1000000" step="1" inputmode="numeric" value="${esc(qty)}"${!tracking||pending?' disabled':''} required></label><button type="submit" class="primary-btn"${pending?' disabled':''}>${pending?'Saving…':'Save quantity'}</button><button type="button" class="secondary-btn" data-stock-reload${pending?' disabled':''}>Reload row</button></form>
-   ${stockLoopControls35(r,key,pending)}<p class="stock-row-status" role="status">${esc(draft?.message||(draft?'Unsaved count · Save quantity to apply.':r.updated_at?'Last stock update: '+new Date(r.updated_at).toLocaleString():'Tracking is off. Enter your actual stock to enable it.'))}</p></article>`;
- }).join(''):'<p class="stock-empty">No dishes or sizes match these filters.</p>';
+ root.innerHTML=rows.length?`<div class="stock72-table" role="table" aria-label="Restaurant stock levels"><div class="stock72-thead" role="row"><span role="columnheader">Item</span><span role="columnheader">In stock</span><span role="columnheader">Value</span><span role="columnheader">Actions</span></div>${rows.map(r=>{
+ const key=stockKey(r),draft=stockDrafts.get(key),qty=draft?draft.quantity:r.remaining,tracking=draft?draft.tracked:r.tracked,pending=stockSaveBusy.has(key),open=expanded.has(key);
+ const value=r.tracked?money(r.remaining*Number(r.unit_price)):'—';
+ return `<article class="stock-card" role="rowgroup" data-stock-card="${esc(key)}"><div class="stock72-row" role="row">
+  <div role="cell"><h3>${esc(stockName(r))}</h3><p>${esc(r.category)}${!r.manual_available?' · Hidden in menu':''}</p></div>
+  <div class="stock72-stock" role="cell"><span class="stock-state ${r.tracked&&r.remaining===0?'stock-out':''}">${r.tracked?r.remaining.toLocaleString()+' pcs':'Not tracked'}</span>${r.tracked&&r.remaining<=5?`<small class="${r.remaining?'warn68':'neg68'}">${r.remaining?'Running low':'Sold out'}</small>`:''}</div>
+  <div role="cell" class="stock72-value">${value}</div>
+  <div role="cell" class="stock72-actions"><button type="button" class="secondary-btn" data-stock-adjust="add"${pending||!r.tracked?' disabled':''} title="Add received stock">+ Add</button><button type="button" class="secondary-btn" data-stock-adjust="remove"${pending||!r.tracked||r.remaining===0?' disabled':''} title="Remove stock">Remove</button><button type="button" class="secondary-btn" data-stock-edit aria-expanded="${open}">Set count</button></div>
+ </div><details class="stock72-editor" ${open?'open':''}><summary>Stock count and 24-hour loop</summary>
+ <form class="stock-editor" data-stock-form="${esc(key)}"><label class="stock-track"><input type="checkbox" data-stock-field="tracking"${tracking?' checked':''}${pending?' disabled':''}> Track stock</label><label>Count available now<input data-stock-field="quantity" type="number" min="0" max="1000000" step="1" inputmode="numeric" value="${esc(qty)}"${!tracking||pending?' disabled':''} required></label><button type="submit" class="primary-btn"${pending?' disabled':''}>${pending?'Saving…':'Save quantity'}</button><button type="button" class="secondary-btn" data-stock-reload${pending?' disabled':''}>Reload row</button></form>
+ ${stockLoopControls35(r,key,pending)}<p class="stock-row-status" role="status">${esc(draft?.message||(draft?'Unsaved count · Save quantity to apply.':r.updated_at?'Last updated: '+new Date(r.updated_at).toLocaleString():'Tracking is off. Enter your quantity to start.'))}</p>
+ </details></article>`;
+ }).join('')}</div>`:'<p class="stock-empty">No dishes or sizes match these filters.</p>';
  if(focus){const card=[...root.querySelectorAll('[data-stock-card]')].find(e=>e.dataset.stockCard===focus.key);card?.querySelector('[data-stock-field="'+focus.field+'"]')?.focus({preventScroll:true});}
 }
 function stockDraftFromControl(control){const card=control.closest('[data-stock-card]'),key=card.dataset.stockCard,row=stockRows.find(r=>stockKey(r)===key);if(!row)return;
@@ -52,3 +60,39 @@ async function saveStockLoop35(card,enabled){const key=card.dataset.stockCard,ro
  stockSaveBusy.add(key);renderStocks();try{await Cloud.rpc('restaurant_set_stock_loop',{p_id:row.menu_id,p_variant:row.variant,p_enabled:enabled,p_quantity:quantity,p_revision:draft.revision},true);stockLoopDrafts.delete(key);document.getElementById('stocksStatus').textContent=enabled?'24-hour loop saved. The next scheduled reset restores the saved quantity.':'Loop stopped. Current remaining stock is unchanged.';await refreshStocks();}catch(e){draft.message=e.message;stockLoopDrafts.set(key,draft);}finally{stockSaveBusy.delete(key);renderStocks();}}
 document.addEventListener('submit',event=>{const form=event.target.closest('[data-stock-loop-form]');if(!form)return;event.preventDefault();saveStockLoop35(form.closest('[data-stock-card]'),true);});
 document.addEventListener('click',event=>{const b=event.target.closest('[data-stock-loop-stop]');if(b)saveStockLoop35(b.closest('[data-stock-card]'),false);});
+
+/* Release 72: the reference Add and Remove shortcuts reuse the existing
+   revision-checked restaurant_set_stock RPC. No client-only stock edits. */
+document.addEventListener('click',async event=>{
+ const edit=event.target.closest('[data-stock-edit]');
+ if(edit){
+  const card=edit.closest('[data-stock-card]'),panel=card?.querySelector('.stock72-editor');
+  if(!panel)return;panel.open=!panel.open;edit.setAttribute('aria-expanded',String(panel.open));
+  if(panel.open)panel.querySelector('[data-stock-field=quantity]')?.focus({preventScroll:true});
+  return;
+ }
+ const button=event.target.closest('[data-stock-adjust]');
+ if(!button)return;
+ const card=button.closest('[data-stock-card]'),key=card?.dataset.stockCard;
+ const row=stockRows.find(r=>stockKey(r)===key),mode=button.dataset.stockAdjust;
+ if(!row||!row.tracked||stockSaveBusy.has(key)||stockDrafts.has(key)){
+  if(stockDrafts.has(key))document.getElementById('stocksStatus').textContent='Save or reload the pending stock count before adjusting it.';
+  return;
+ }
+ const raw=prompt(`${mode==='add'?'How many units arrived':'How many units should be removed'} for ${stockName(row)}?`,'1');
+ if(raw===null)return;
+ const delta=Number(raw);
+ if(!/^\d+$/.test(raw.trim())||!Number.isSafeInteger(delta)||delta<=0||delta>1000000){document.getElementById('stocksStatus').textContent='Enter a positive whole number of units (maximum 1,000,000).';return;}
+ const current=Number(row.remaining);
+ if(!Number.isSafeInteger(current)||current<0){document.getElementById('stocksStatus').textContent='Current stock is invalid. Refresh stocks before adjusting.';return;}
+ const next=current+(mode==='add'?delta:-delta);
+ if(next<0||next>1000000){document.getElementById('stocksStatus').textContent=next<0?'Cannot remove more stock than currently available.':'Maximum stock quantity is 1,000,000.';return;}
+ stockSaveBusy.add(key);renderStocks();
+ try{
+  await Cloud.rpc('restaurant_set_stock',{p_id:row.menu_id,p_variant:row.variant,p_tracking:true,p_quantity:next,p_revision:row.revision},true);
+  document.getElementById('stocksStatus').textContent=(mode==='add'?'Added ':'Removed ')+delta+' unit(s) for '+stockName(row)+'.';
+  await refreshStocks();
+  if(typeof refreshCloud==='function')await refreshCloud();
+ }catch(e){document.getElementById('stocksStatus').textContent='Stock update failed: '+e.message+' Refresh stocks before retrying.';}
+ finally{stockSaveBusy.delete(key);renderStocks();}
+});
