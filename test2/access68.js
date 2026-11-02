@@ -13,6 +13,7 @@ const Access68=(()=>{
  const FEATURES=[
   ['live','Pending orders','See and work on incoming orders','Screens'],
   ['billing','Billing (counter bills)','Make bills at the counter','Screens'],
+  ['members','Members','Membership plans, renewals and attendance','Screens'],
   ['history','Order records','Past orders, reprint bills','Screens'],
   ['dashboard','Dashboard','Sales, profit and best sellers','Screens'],
   ['expenses','Expenses','See and add expenses','Screens'],
@@ -26,7 +27,7 @@ const Access68=(()=>{
   ['orderAccept','Accept orders','“Accept order” button','Actions'],
   ['orderServe','Mark served','“Mark served” button','Actions'],
   ['orderReject','Reject orders','“Reject / unavailable” button','Actions'],
-  ['recordPayment','Change payment in records','Set Cash / Online on a record','Actions'],
+  ['recordPayment','Change payment in records','Set Cash / UPI / Card on a record','Actions'],
   ['expensesManage','Edit & delete expenses','Expense types and auto expenses','Actions'],
   ['callWaiter','Call waiter button','Header “Call waiter”','Actions'],
   ['staff','Staff & logins','Add cashier and waiter logins','Admin powers'],
@@ -36,10 +37,10 @@ const Access68=(()=>{
  const ON=k=>true;
  const DEF={roles:{
   manager:Object.fromEntries(FEATURES.map(([k])=>[k,k!=='themes'])),
-  cashier:Object.fromEntries(FEATURES.map(([k])=>[k,['live','billing','history','requests','tables','tempWaiter','callWaiter','orderAccept','orderServe','recordPayment'].includes(k)])),
+  cashier:Object.fromEntries(FEATURES.map(([k])=>[k,['live','billing','members','history','requests','tables','tempWaiter','callWaiter','orderAccept','orderServe','recordPayment'].includes(k)])),
   waiter:Object.fromEntries(FEATURES.map(([k])=>[k,['live','requests','tables','callWaiter','orderAccept','orderServe'].includes(k)]))
  },grant:Object.fromEntries(FEATURES.map(([k])=>[k,!['expensesManage','devices','notifications','settings','staff','themes'].includes(k)]))};
- const TAB_FEATURE={live:'live',billing:'billing',history:'history',dashboard:'dashboard',expenses:'expenses',requests:'requests',tables:'tables',menu:'menu',stocks:'stocks',management:'settings',devices:'devices',notifications:'notifications'};
+ const TAB_FEATURE={live:'live',billing:'billing',members:'members',history:'history',dashboard:'dashboard',expenses:'expenses',requests:'requests',tables:'tables',menu:'menu',stocks:'stocks',management:'settings',devices:'devices',notifications:'notifications'};
  const $=id=>document.getElementById(id),esc=v=>Cloud.esc(String(v??''));
  const role=()=>typeof staffRole!=='undefined'?staffRole:null;
  const stored=()=>window.Custom48?.get()?.access68||{};
