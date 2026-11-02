@@ -29,8 +29,6 @@ const fallbackFor=f=>/Fraunces|Cormorant|Playfair|DM Serif|Cinzel|Lora|Instrumen
    chips    pill | underline | boxed                          (category navigation)
    corners  number in px                                      (base radius)            */
 const THEMES={
- 'shoi-teal':{name:'SHOI Teal Clean',note:'Compact teal billing workspace · SHOI reference',scheme:'light',display:'Public Sans',body:'Public Sans',surface:'outlined',hero:'minimal',chips:'boxed',corners:6,
-  c:{bg:'#ecf6f6',bg2:'#e6f1f1',surface:'#ffffff',surface2:'#f4f9f9',ink:'#103438',ink2:'#638085',line:'#d8e7e8',accent:'#087c73',accent2:'#09665e',onAccent:'#ffffff',heroBg:'#e6f1f1',heroInk:'#103438'}},
  'billing-blue':{name:'Billing Blue',note:'Shop Billing palette · clear and professional',scheme:'light',display:'Public Sans',body:'Public Sans',surface:'elevated',hero:'minimal',chips:'boxed',corners:8,
   c:{bg:'#eef1f4',bg2:'#e7ebf0',surface:'#ffffff',surface2:'#f6f8fa',ink:'#1c2433',ink2:'#445063',line:'#d9dfe6',accent:'#1f5fbf',accent2:'#13795b',onAccent:'#ffffff',heroBg:'#e4edfa',heroInk:'#1c2433'}},
  'royal-momo':{name:'Royal Momo',note:'Warm cream, momo red, refined serif',scheme:'light',display:'Fraunces',body:'Plus Jakarta Sans',surface:'elevated',hero:'split',chips:'pill',corners:20,
@@ -117,7 +115,7 @@ const THEMES={
  'void':{name:'Void',note:'Pure black, white type, nothing extra',scheme:'dark',display:'Michroma',body:'Inter',surface:'hairline',hero:'minimal',chips:'underline',corners:0,upper:true,layout:{dish:'wide',btn:'text',cart:'dock',nav:'top'},
   c:{bg:'#000000',bg2:'#0A0A0A',surface:'#000000',surface2:'#111111',ink:'#FFFFFF',ink2:'#A8A8A8',line:'#2E2E2E',accent:'#FFFFFF',accent2:'#FF3B30',onAccent:'#000000',heroBg:'#000000',heroInk:'#FFFFFF'}}
 };
-const DEFAULT='shoi-teal',CACHE='YUMMY_THEME_v66';
+const DEFAULT='billing-blue',CACHE='YUMMY_THEME_v66';
 const hex=h=>{const m=/^#?([0-9a-f]{6})$/i.exec(String(h||'').trim());return m?m[1]:null;};
 /* ---- Colour maths: every text/background pair is checked against WCAG AA (4.5:1) ---- */
 const rgb=v=>{v=String(v||'').trim();let m=/^#([0-9a-f]{6})$/i.exec(v);if(m)return [0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)).concat(1);m=/^rgba?\(([^)]+)\)$/i.exec(v);if(m){const p=m[1].split(/[ ,/]+/).filter(Boolean).map(Number);return [p[0],p[1],p[2],p.length>3?p[3]:1];}return null;};

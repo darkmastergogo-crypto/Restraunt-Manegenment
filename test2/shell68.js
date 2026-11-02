@@ -29,7 +29,7 @@ const I={
  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'
 };
 const ic=(n,c='')=>`<svg class="ui-icon s68-ic ${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]||''}</svg>`;
-const NAV=[['Live','orders','Orders','activeOrdersBadge'],['Billing','bill','Billing'],['History','list','Records'],['Dashboard','chart','Dashboard'],['Expenses','wallet','Expenses'],['Requests','bell','Requests','requestsBadge'],['Tables','table','Tables'],['Menu','menu','Menu'],['Stocks','box','Stocks'],['Devices','phone','Customer devices'],['Notifications','alert','Notifications','securityUnread'],['Management','gear','Settings']];
+const NAV=[['Live','orders','Orders','activeOrdersBadge'],['Billing','bill','Billing'],['History','list','Records'],['Dashboard','chart','Dashboard'],['Expenses','wallet','Expenses'],['Members','user','Members'],['Requests','bell','Requests','requestsBadge'],['Tables','table','Tables'],['Menu','menu','Menu'],['Stocks','box','Stocks'],['Devices','phone','Customer devices'],['Notifications','alert','Notifications','securityUnread'],['Management','gear','Settings']];
 const ROLE_LABEL={admin:'Admin',manager:'Manager',cashier:'Cashier',waiter:'Waiter'};
 let me=null;
 
@@ -50,7 +50,7 @@ function buildNav(){
  // handlers untouched so permissions and tab state remain authoritative.
  const GROUPS=[
   ['Operations',['Live','Billing','History','Requests','Tables']],
-  ['Business',['Dashboard','Expenses','Menu','Stocks']],
+  ['Business',['Dashboard','Expenses','Members','Menu','Stocks']],
   ['Administration',['Devices','Notifications','Management']]
  ];
  for(const [name,keys] of GROUPS){

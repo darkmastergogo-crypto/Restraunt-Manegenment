@@ -40,16 +40,16 @@ const Dashboard68=(()=>{
  function delta(cur,prev){if(!Number(prev))return Number(cur)?'<span class="up68">New vs previous period</span>':'<span class="flat68">No sales in the previous period</span>';const p=(cur-prev)/prev*100;return `<span class="${p>=0?'up68':'down68'}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(0)}% vs previous period</span>`;}
  function paint(raw){
   const body=$('dashBody68');if(!body)return;
-  const [rf,rt]=range();const d={from:rf,to:rt,days:rf===rt?1:2,sales:0,prev_sales:0,bills:0,cancelled:0,pending:0,avg_bill:0,units:0,tax:0,qr_sales:0,counter_sales:0,qr_bills:0,counter_bills:0,payments:[],top_items:[],trend:[],tables:[],expense_heads:[],low_stock:[],...(raw&&!Array.isArray(raw)?raw:{})};
+  const [rf,rt]=range();const d={from:rf,to:rt,days:rf===rt?1:2,sales:0,prev_sales:0,bills:0,cancelled:0,pending:0,avg_bill:0,units:0,tax:0,qr_sales:0,counter_sales:0,qr_bills:0,counter_bills:0,payments:[],top_items:[],trend:[],tables:[],expense_heads:[],low_stock:[],cost_ready:false,food_cost:0,gross_profit:0,net_profit:0,coverage_percent:0,...(raw&&!Array.isArray(raw)?raw:{})};
   const [f,t]=[d.from,d.to],fmt=x=>new Date(x+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
   $('dashDate68').textContent=f===t?fmt(f):`${fmt(f)} – ${fmt(t)}`;
-  const profit=Number(d.sales)-Number(d.expenses||0),max=Math.max(1,...(d.trend||[]).map(x=>Number(x.amount))),pay=d.payments||[],paySum=pay.reduce((s,x)=>s+Number(x.amount),0)||1;
+  const beforeCost=Number(d.sales)-Number(d.expenses||0),profit=d.cost_ready?Number(d.net_profit):beforeCost,max=Math.max(1,...(d.trend||[]).map(x=>Number(x.amount))),pay=d.payments||[],paySum=pay.reduce((s,x)=>s+Number(x.amount),0)||1;
   const topMax=Math.max(1,...(d.top_items||[]).map(x=>Number(x.qty)));
   body.innerHTML=`<div class="kpi-grid68">
    <article class="kpi68 kpi68-hero"><span>Sales</span><b>${money(d.sales)}</b><small>${delta(Number(d.sales),Number(d.prev_sales))}</small></article>
    <article class="kpi68"><span>Bills</span><b>${d.bills}</b><small>${d.cancelled?`${d.cancelled} rejected / cancelled`:'No cancelled orders'}${d.pending?` · ${d.pending} pending`:''}</small></article>
    ${d.expenses_on?`<article class="kpi68"><span>Expenses</span><b>${money(d.expenses)}</b><small>${(d.expense_heads||[])[0]?`<a href="#" data-goto="expenses">${esc(d.expense_heads[0].head)}</a> is the biggest`:'None in this period'}</small></article>
-   <article class="kpi68"><span>Profit after expenses</span><b class="${profit>=0?'good68':'neg68'}">${money(profit)}</b><small>Sales − expenses</small></article>`:''}
+   ${d.cost_ready?`<article class="kpi68"><span>Item cost</span><b>${money(d.food_cost)}</b><small>${Number(d.coverage_percent).toFixed(1)}% of sold lines have cost data</small></article><article class="kpi68"><span>Net profit</span><b class="${profit>=0?'good68':'neg68'}">${money(profit)}</b><small>Sales − item cost − expenses</small></article>`:`<article class="kpi68"><span>After expenses</span><b class="${profit>=0?'good68':'neg68'}">${money(profit)}</b><small>Item cost is not installed yet</small></article>`}`:''}
    <article class="kpi68"><span>Average bill</span><b>${money(d.avg_bill)}</b><small>${Number(d.units)} items sold</small></article>
    <article class="kpi68"><span>QR orders · Counter</span><b>${d.qr_bills} · ${d.counter_bills}</b><small>${short(d.qr_sales)} · ${short(d.counter_sales)}</small></article>
    <article class="kpi68"><span>Tax collected</span><b>${money(d.tax)}</b><small>${d.busiest_hour?'Busiest hour '+esc(d.busiest_hour):'—'}</small></article>
@@ -66,7 +66,7 @@ const Dashboard68=(()=>{
  document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(!g||!$('dash68')?.contains(g))return;e.preventDefault();switchTab(g.dataset.goto);});
  async function load(){
   frame();const id=++req,[f,t]=range();
-  try{const d=await Cloud.rpc('restaurant_dashboard68',{p_from:f,p_to:t},true);if(id===req)paint(d);}
+  try{const d=await Cloud.rpc('restaurant_dashboard68',{p_from:f,p_to:t},true);try{const p=await Cloud.rpc('restaurant_profit73',{p_from:f,p_to:t},true);if(p&&typeof p==='object')Object.assign(d,p);}catch{}if(id===req)paint(d);}
   catch(e){if(id===req&&$('dashBody68'))$('dashBody68').innerHTML=`<div class="empty68">${esc(missing(e)?NEED_SQL:e.message)}</div>`;}
  }
  function open(){load();clearInterval(timer);timer=setInterval(()=>{if(typeof currentTab!=='undefined'&&currentTab==='dashboard'&&!document.hidden)load();else clearInterval(timer);},60000);}
