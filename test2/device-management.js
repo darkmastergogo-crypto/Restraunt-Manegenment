@@ -2,7 +2,7 @@
 'use strict';
 let managerDevicesAllowed=false,managerAccessLoading=false,managerAccessSaving=false,managerAccessRevision=0;
 let devicePageOffset=0,deviceData=null,deviceLoading=false,deviceAgain=false,deviceMutating=new Set();
-function canManageCustomerDevices(){return staffRole==='admin'||staffRole!=='admin'&&managerDevicesAllowed&&window.Access68?.can('devices')!==false;}
+function canManageCustomerDevices(){return staffRole==='admin'||staffRole==='manager'&&managerDevicesAllowed;}
 function applyManagerDeviceAccess(allowed,orderAllowed=false){
  managerDevicesAllowed=allowed===true;applyOrderDevicePermission(orderAllowed);
  if(staffRole==='admin'){$('managerDeviceAccessPanel').hidden=false;$('managerDevicesAccess').checked=managerDevicesAllowed;}

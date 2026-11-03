@@ -9,19 +9,13 @@ const NAME_KEY='YUMMY_WAITER_NAME_v66';
 let scannerWanted=false,beat=null;
 const missingSql=e=>/restaurant_waiter_(account_session66|heartbeat66)|schema cache|PGRST202|Could not find the function/i.test(e?.message||'');
 
-// Opened from the kitchen sign-in screen (“Temporary waiter? Scan the waiter QR”): no app install needed.
-try{if(new URLSearchParams(location.search).has('temp'))sessionStorage.setItem('YUMMY_TEMP_WAITER','1');}catch{}
-const tempMode=(()=>{try{return sessionStorage.getItem('YUMMY_TEMP_WAITER')==='1';}catch{return false;}})();
-if(tempMode&&typeof isWaiterStandalone==='function'){window.isWaiterStandalone=()=>true;document.body.classList.add('temp-waiter68');}
-if(tempMode){scannerWantedInit();}
-function scannerWantedInit(){setTimeout(()=>{const h=el('waiterPairTitle');if(h){h.textContent='Temporary waiter';const e=h.previousElementSibling;if(e)e.textContent='For this shift only';const lead=h.nextElementSibling;if(lead&&lead.tagName==='P')lead.textContent='Ask the cashier or manager to show the waiter QR, then scan it. Your session ends when they sign you out or the time runs out.';}const st=el('waiterScannerStatus');if(st&&/instead/.test(st.textContent))st.textContent='';const p=el('waiterLoginForm66');if(p){p.hidden=true;const d=p.nextElementSibling;if(d)d.hidden=true;}const back=document.createElement('a');back.href='kitchen.html';back.className='secondary-btn';back.textContent='Back to staff sign-in';el('waiterScannerStatus')?.after(back);},0);}
 // The QR camera now opens only when the waiter asks for it.
 el('waiterScannerStart')?.addEventListener('click',()=>{scannerWanted=true;el('waiterPairGate')?.classList.add('scanning66');},true);
 if(typeof openWaiterScanner==='function'){const original=openWaiterScanner;window.openWaiterScanner=function(){if(!scannerWanted)return;return original.apply(this,arguments);};}
 window.showPairGate=function(reason=''){
  if(typeof stopWaiterScanner==='function')stopWaiterScanner();
  el('waiterInstallGate').hidden=true;el('waiterPairGate').hidden=false;el('waiterAppShell').hidden=true;
- el('waiterScannerStatus').textContent=tempMode?'':'Tap “Open camera scanner” to use the waiter QR instead.';
+ el('waiterScannerStatus').textContent='Tap “Open camera scanner” to use the waiter QR instead.';
  const status=el('waiterLoginStatus66');if(status)status.textContent=reason&&!/scan the waiter qr to start/i.test(reason)?reason:'';
  setTimeout(()=>el('waiterEmail66')?.focus(),60);
 };

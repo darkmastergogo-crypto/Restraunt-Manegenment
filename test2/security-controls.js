@@ -1,13 +1,13 @@
 'use strict';
 let managerOrderBlockAllowed=false,orderDeviceStates=new Map(),orderDeviceBusy=new Set();
 let securityOffset=0,securityData=null,securityLoading=false,securityKnown=null,securityKey=0,notificationDeviceBusy=new Set();
-function canOrderDeviceBlock(){return staffRole==='admin'||staffRole!=='admin'&&managerOrderBlockAllowed;}
-function canSeeSecurityNotifications(){return staffRole==='admin'||staffRole!=='admin'&&(managerDevicesAllowed||managerOrderBlockAllowed);}
+function canOrderDeviceBlock(){return staffRole==='admin'||staffRole==='manager'&&managerOrderBlockAllowed;}
+function canSeeSecurityNotifications(){return staffRole==='admin'||staffRole==='manager'&&(managerDevicesAllowed||managerOrderBlockAllowed);}
 function applyOrderDevicePermission(value){
  managerOrderBlockAllowed=value===true;
  if(staffRole==='admin'){$('managerOrderDeviceAccess').checked=managerOrderBlockAllowed;$('managerOrderDeviceAccess').disabled=false;}
  if(!canOrderDeviceBlock())orderDeviceStates.clear();
- $('tabNotificationsBtn').hidden=false;$('browserNotificationsPanel').hidden=!canSeeSecurityNotifications();
+ $('tabNotificationsBtn').hidden=!['admin','manager'].includes(staffRole);$('browserNotificationsPanel').hidden=!canSeeSecurityNotifications();
  if(!canSeeSecurityNotifications()){securityKey++;securityData=null;securityKnown=null;$('securityNotificationsList').replaceChildren();paintNotificationsBadge();}
  if(typeof orders!=='undefined')renderOrders();
 }

@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id), esc=Cloud.esc, config=Cloud.cfg;
-const money=n=>(config.currency||'₹')+Number(n||0).toFixed(2);
+const money=n=>{const value=Number(n);return (config.currency||'₹')+(Number.isFinite(value)?value:0).toFixed(2);};
 const timeText=v=>new Date(v).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 const dateText=v=>new Date(v).toLocaleDateString();
 let kitchenRequests=null;
@@ -21,8 +21,8 @@ function cloudError(text){$('cloudError').textContent=text;$('cloudError').hidde
 function download(name,text,type='application/json'){const u=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 async function enterStaff(){
  staffRole=await Cloud.role();
- if(!['admin','manager','cashier','waiter'].includes(staffRole))throw Error('This account has no staff role. Ask the admin or manager to add it in Settings → Staff & logins.');
- $('tabManagementBtn').hidden=false;$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole==='admin';$('rotateWaiterButton').hidden=!['admin','manager'].includes(staffRole);$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';configureManagementAccess();
+ if(!['admin','manager'].includes(staffRole))throw Error('Admin or manager access required. Waiters should scan the private waiter QR.');
+ $('tabManagementBtn').hidden=!['admin','manager'].includes(staffRole);$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole!=='manager';$('rotateWaiterButton').hidden=!['admin','manager'].includes(staffRole);$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';configureManagementAccess();
  BackgroundAlerts.init('kitchen');loggedIn=true;$('loginPanel').hidden=true;$('managerNav').hidden=false;$('staffMain').hidden=false;$('staffSession').hidden=false;
  void window.Custom48?.sync(true);
  $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';KitchenOps.init();$('headerCallWaiter').hidden=false;
@@ -36,11 +36,7 @@ function setConnection(label){
  const badge=$('syncBadge'),box=badge.parentElement,live=label==='Live',when=lastSuccessfulSync?new Date(lastSuccessfulSync).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'';
  badge.textContent=(live?'Live':label==='Connecting'?'Connecting…':'Reconnecting…')+(when?' · Last successful sync '+when:'');
  badge.title=lastSuccessfulSync?'Last successful order sync: '+new Date(lastSuccessfulSync).toLocaleString():label;
- /* Colours come from the theme (app69.css), not hardcoded hex: a fixed dark
-    green on a translucent green is unreadable on dark themes. */
- box.dataset.sync=live?'live':label==='Connecting'?'connecting':'down';
- box.style.color=box.style.borderColor=box.style.background='';
- const dot=box.querySelector('span');if(dot)dot.style.background='';
+ const color=live?'#245c37':'#71717a';box.style.color=color;box.style.borderColor=color;box.style.background=live?'rgba(16,185,129,.12)':'rgba(148,163,184,.08)';box.querySelector('span').style.background=color;
 }
 async function signOutStaff(){
  if(orderActionsBusy.size){showToast('Wait for the saving action to finish.');return;}RestaurantAlerts.stop();await KitchenOps.stop();RestaurantAlerts.stopVolumeTest();
@@ -108,7 +104,7 @@ function refreshBackgroundData(){
 
 function configureManagementAccess(){
  const section=$('managementSection'),waiter=$('waiterAccessPanel');if(!section||!waiter)return;
- const manager=staffRole!=='admin';
+ const manager=staffRole==='manager';
  for(const child of section.children){if(child.tagName==='H2'||child===waiter)continue;child.hidden=manager;}
  const permissions=$('waiterPermissionsForm'),songSetting=$('songRequestsSetting');
  if(permissions)permissions.hidden=manager;
@@ -116,8 +112,8 @@ function configureManagementAccess(){
 }
 
 function switchTab(tab){
- const tabs=['live','history','dashboard','expenses','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
- if(window.Access68&&!Access68.tabAllowed(tab))return;if(tab==='devices'&&!canManageCustomerDevices())return;
+ const tabs=['live','history','dashboard','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
+ if(tab==='management'&&!['admin','manager'].includes(staffRole)||tab==='devices'&&!canManageCustomerDevices()||tab==='notifications'&&!['admin','manager'].includes(staffRole))return;
  const blocked=$('hiddenByAdminSection');
  if(window.Custom48?.sectionHidden(tab)){
   currentTab=tab;
@@ -128,7 +124,7 @@ function switchTab(tab){
  if(blocked){blocked.hidden=true;blocked.style.display='none';}
  if(tab==='stocks'&&YummyStocksSettings.hidden()){showToast('Stocks are hidden. An admin can show them in Management.');return;}
  currentTab=tab;tabs.forEach(t=>{const section=$(t+'Section');if(section){section.hidden=t!==tab;section.style.display=t===tab?'block':'none';}const button=$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn');if(button)button.classList.toggle('active',t===tab);});
- if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard'){window.Dashboard68?.open();refreshSalesAnalytics(false);}if(tab==='expenses')window.Expenses68?.open();if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();window.PaymentQrSettings?.load();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
+ if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(false);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
 }
 function setFilter(f){if(['all','Served'].includes(f)){recordStatusFilter=f==='all'?'All':f;recordOffset=0;$('recordStatusFilter').value=recordStatusFilter;switchTab('history');return;}currentFilter=['active','Pending','Cancelled'].includes(f)?f:'active';if(currentFilter==='Cancelled'){cancelledOffset=0;refreshCancelledOrders();}renderOrders();}
 function statusPill(o){return `<span class="status-pill ${esc(o.status.toLowerCase())}">${esc(o.status)}</span>`;}
@@ -137,7 +133,7 @@ function actionButtons(o,withDevice=true){
  let next={Pending:'Cooking',Cooking:'Served',Ready:'Served'}[o.status];
 
  return (next?`<button class="primary-btn" data-next="${next}" data-id="${esc(o.id)}">${(o.status==='Pending'?'Accept order':'Mark served')}</button>`:'')+
- (window.Access68?.can('orderReject')!==false&&o.status==='Pending'?`<button class="danger-btn" data-next="Rejected" data-id="${esc(o.id)}">Reject / unavailable</button>`:'')+`<button class="secondary-btn" data-bill="${esc(o.id)}">Bill</button>`+(withDevice?orderDeviceButton(o):" ");
+ (['admin','manager'].includes(staffRole)&&o.status==='Pending'?`<button class="danger-btn" data-next="Rejected" data-id="${esc(o.id)}">Reject / unavailable</button>`:'')+`<button class="secondary-btn" data-bill="${esc(o.id)}">Bill</button>`+(withDevice?orderDeviceButton(o):" ");
 }
 function shortId(o){return Cloud.orderLabel(o);}
 function renderOrders(){
@@ -241,7 +237,7 @@ function renderAdminMenu(){
  <div class="staff-dish-header"><div class="menu-emoji">${Cloud.safeImage(i.image)?`<img class="menu-photo" src="${esc(Cloud.safeImage(i.image))}" alt="${esc(i.name)}" loading="lazy">`:'🍽️'}</div><div class="menu-copy"><h4>${esc(i.name)}</h4><p class="muted">${esc(i.category)}</p></div><div class="staff-dish-price"><b>${i.sizes_enabled?'From ':''}${money(staffDisplayedPrice(i))}</b><span class="staff-availability">${i.stock_sold_out?'Sold out':i.available?'Available':'Unavailable · hidden'}</span></div></div>
  ${i.description?`<p class="staff-dish-description">${esc(i.description)}</p>`:''}
  ${i.sizes_enabled?`<div class="staff-size-summary">${MenuOptions.keys(i).map(size=>`<span>${esc(staffSizeLabel(size,i))} <b>${money(i.size_prices[size])}</b>${i.size_stock?.[size]?.tracked?' · '+(i.size_stock[size].remaining===0?'Sold out':i.size_stock[size].remaining+' left'):''}</span>`).join('')}</div>`:''}
- <div class="staff-menu-actions"><button class="primary-btn" data-pricing="${esc(i.id)}">Prices &amp; sizes</button>${staffRole!=='admin'&&!i.sizes_enabled?`<button class="secondary-btn" data-price-only="${esc(i.id)}">Change price</button>`:''}<button class="secondary-btn availability" data-availability="${esc(i.id)}" aria-pressed="${i.manual_available??i.available}">${(i.manual_available??i.available)?(i.stock_sold_out?'Listed · hide manually':'Available ✓ · set unavailable'):'Hidden · show manually'}</button><button class="secondary-btn" data-recommended="${esc(i.id)}" aria-pressed="${i.recommended===true}">${i.recommended?'Recommended ✓ · remove':'Mark recommended'}</button><button class="secondary-btn" data-best-seller="${esc(i.id)}" aria-pressed="${i.best_seller===true}">${i.best_seller?'Best seller ✓ · remove':'Mark best seller'}</button></div>
+ <div class="staff-menu-actions"><button class="primary-btn" data-pricing="${esc(i.id)}">Prices &amp; sizes</button>${staffRole==='manager'&&!i.sizes_enabled?`<button class="secondary-btn" data-price-only="${esc(i.id)}">Change price</button>`:''}<button class="secondary-btn availability" data-availability="${esc(i.id)}" aria-pressed="${i.manual_available??i.available}">${(i.manual_available??i.available)?(i.stock_sold_out?'Listed · hide manually':'Available ✓ · set unavailable'):'Hidden · show manually'}</button><button class="secondary-btn" data-recommended="${esc(i.id)}" aria-pressed="${i.recommended===true}">${i.recommended?'Recommended ✓ · remove':'Mark recommended'}</button><button class="secondary-btn" data-best-seller="${esc(i.id)}" aria-pressed="${i.best_seller===true}">${i.best_seller?'Best seller ✓ · remove':'Mark best seller'}</button></div>
  ${staffRole==='admin'?`<details class="staff-item-settings" data-item-settings="${esc(i.id)}"${expanded.has(i.id)?' open':''}><summary>Item settings · category, details &amp; photo</summary><div class="staff-item-settings-body"><label>Category<select data-dish-category="${esc(i.id)}">${Cloud.categories.slice(1).map(c=>`<option value="${esc(c)}" ${c===i.category?'selected':''}>${esc(c)}</option>`).join('')}</select></label><div class="staff-detail-actions"><button class="secondary-btn" data-edit="${esc(i.id)}">Edit details</button><button class="secondary-btn" data-item-photo="${esc(i.id)}">Change photo</button><button class="danger-btn" data-delete-item="${esc(i.id)}">Delete</button></div></div></details>`:''}</article>`).join(''):'<p class="empty">'+(menuItems.length?'No dishes match these filters.':'Your menu is empty. Admin can use + Add Item to add dishes.')+'</p>';
 }
 function filterStaffMenu(){staffMenuQuery=$('staffMenuSearch').value;staffMenuCategory=$('staffMenuCategory').value;staffMenuAvailability=$('staffMenuAvailability').value;renderAdminMenu();}
@@ -257,11 +253,11 @@ function addPricingSize(key='',label='',price=''){
 }
 function openMenuPricing(id){
  const item=menuItems.find(i=>i.id===id);if(!item)return;pricingMenuId=id;pricingVersion=item.updated_at;pricingSnapshot={name:item.name,description:item.description||'',category:item.category,veg:item.veg!==false,sizes_enabled:item.sizes_enabled===true,price:Number(item.price),size_prices:item.size_prices||{},size_labels:item.size_labels||{}};
- $('pricingItemName').textContent=item.name;$('pricingUseSizes').checked=item.sizes_enabled===true;$('pricingBasePrice').value=Number(item.price).toFixed(2);
+ $('pricingItemName').textContent=item.name;$('pricingUseSizes').checked=item.sizes_enabled===true;$('pricingBasePrice').value=(Number.isFinite(Number(item.price))?Number(item.price):0).toFixed(2);
  $('pricingDishName').value=item.name;$('pricingDescription').value=item.description||'';$('pricingVeg').checked=item.veg!==false;
  $('pricingCategory').replaceChildren(...Cloud.categories.slice(1).map(c=>new Option(c,c)));$('pricingCategory').value=item.category;
  $('pricingDetails').hidden=staffRole!=='admin';$('pricingDetails').disabled=staffRole!=='admin';
- $('pricingSizeRows').replaceChildren();for(const key of MenuOptions.keys(item))addPricingSize(key,MenuOptions.label(item,key),Number(item.size_prices[key]).toFixed(2));
+ $('pricingSizeRows').replaceChildren();for(const key of MenuOptions.keys(item)){const value=Number(item.size_prices?.[key]);addPricingSize(key,MenuOptions.label(item,key),(Number.isFinite(value)?value:0).toFixed(2));}
  $('pricingStatus').textContent='';updatePricingMode();$('menuPricingModal').showModal();
 }
 function updatePricingMode(){

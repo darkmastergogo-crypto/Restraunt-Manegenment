@@ -21,7 +21,7 @@ function applyMenu51(){
  }
  const can=canRenameTables();for(const fieldset of document.querySelectorAll('[data-table-rename51]'))fieldset.disabled=!can;for(const hint of document.querySelectorAll('[data-table-rename-hint51]'))hint.hidden=can;
 }
-function canRenameTables(){return staffPage&&typeof staffRole!=='undefined'&&(staffRole==='admin'||staffRole!=='admin'&&settings.managerCanRenameTables!==false);}
+function canRenameTables(){return staffPage&&typeof staffRole!=='undefined'&&(staffRole==='admin'||staffRole==='manager'&&settings.managerCanRenameTables!==false);}
 function fillMenu51(){
  draft.menuContent51||={};draft.menuImages51||={};draft.menuImages51.hero||={};const content=draft.menuContent51;
  $('menu51TextFields').innerHTML=menuFields51.map(([key,label,,fallback])=>`<label>${e(label)}<textarea data-menu-text51="${key}" maxlength="2000" rows="2">${e(content[key]??fallback)}</textarea></label>`).join('');
@@ -55,7 +55,7 @@ function apply(){
  if($('restaurantName'))$('restaurantName').textContent=settings.name;
  for(const el of document.querySelectorAll('.staff-brand strong'))el.textContent=settings.name;
  for(const el of document.querySelectorAll('img')){if(!el.matches('.brand-logo,.restaurant-logo,.hero-logo,[data-brand48]')&&!/yummy-momo-logo/.test(el.getAttribute('src')||''))continue;
-  if(!brandOriginals.has(el))brandOriginals.set(el,{src:el.dataset.brandOrig||el.getAttribute('src'),alt:el.alt});el.dataset.brand48='';const original=brandOriginals.get(el),target=Cloud.safeImage(settings.logo)||original.src;if(el.getAttribute('src')!==target)el.src=target;el.alt=settings.logo?settings.name+' logo':original.alt;
+  if(!brandOriginals.has(el))brandOriginals.set(el,{src:el.getAttribute('src'),alt:el.alt});el.dataset.brand48='';const original=brandOriginals.get(el),target=Cloud.safeImage(settings.logo)||original.src;if(el.getAttribute('src')!==target)el.src=target;el.alt=settings.logo?settings.name+' logo':original.alt;
  }
  if($('managerNav'))$('managerNav').dataset.brand48=settings.name;
  if(!location.pathname.endsWith('waiter.html'))document.title=settings.name+(staffPage?' · Kitchen & Admin':' · Menu');
@@ -64,7 +64,7 @@ function apply(){
  const blocked=settings.locked&&!isAdmin();let overlay=$('custom48Lock');
  if(blocked&&!overlay){overlay=document.createElement('section');overlay.id='custom48Lock';overlay.setAttribute('role','alert');overlay.setAttribute('data-custom48-ignore','');document.body.append(overlay);}
  if(overlay){overlay.hidden=!blocked;overlay.replaceChildren();const title=document.createElement('h1');title.textContent=settings.name;const msg=document.createElement('p');msg.textContent=settings.lockMessage||'System paused by administrator.';overlay.append(title,msg);if(staffPage){const link=document.createElement('a');link.href='kitchen.html';link.textContent='Administrator sign in';link.onclick=()=>{overlay.hidden=true;document.querySelector('#staffMain')?.setAttribute('hidden','');document.querySelector('#loginPanel')?.removeAttribute('hidden');};overlay.append(link);}}
- document.documentElement.dataset.photoMode=settings.photoMode;window.ThemeEngine?.fromSettings(settings);if(staffPage)window.ThemeEngine?.renderStudio();try{localStorage.setItem('YUMMY_BRAND_v68',JSON.stringify({name:settings.name||'',tagline:settings.tagline||'',logo:Cloud.safeImage(settings.logo)||''}));}catch{}document.dispatchEvent(new CustomEvent('custom48:applied'));
+ document.documentElement.dataset.photoMode=settings.photoMode;window.ThemeEngine?.fromSettings(settings);if(staffPage&&isAdmin())window.ThemeEngine?.renderStudio();
  applyText();applyMenu51();updateManifest();
 }
 async function sync(force=false){
@@ -178,7 +178,7 @@ function exportMenu(){try{if(!menuItems.length)throw Error('Open Menu first to l
 let imported=null;
 async function previewImport(){try{const file=$('c48Import').files[0];if(!file)return;if(file.size>3000000)throw Error('Use a menu JSON under 3 MB.');const value=JSON.parse(await file.text());if(value.format!=='yummy-menu-48'||!Array.isArray(value.items)||!Array.isArray(value.categories)||value.items.length>2000)throw Error('Choose a downloaded Yummy menu JSON.');const ids=new Set();for(const item of value.items){if(typeof item.id!=='string'||!item.name||!Number.isFinite(Number(item.price))||Number(item.price)<0||ids.has(item.id))throw Error('Invalid or duplicate dish.');ids.add(item.id);}imported=value;$('c48ImportPreview').textContent=`Local preview: ${value.items.length} dishes and ${value.categories.length} categories. Nothing was sent to the database.`;$('c48LocalPreview').innerHTML=value.items.map(item=>`<article class="custom48-category"><h4>${e(item.name)}</h4><p>${e(item.category)} · ${e(Cloud.cfg.currency||'₹')}${e(item.price)}</p><p>${e(item.description||'')}</p></article>`).join('');}catch(err){imported=null;$('c48LocalPreview').replaceChildren();status(err.message);}}
 async function checkpoint(){const button=$('c48Checkpoint');button.disabled=true;try{const gb=Number($('c48Usage').value);if(!$('c48Usage').value||!Number.isFinite(gb)||gb<0)throw Error('Enter verified dashboard usage.');const result=await Cloud.rpc('restaurant_egress_checkpoint48',{p_bytes:Math.round(gb*1e9),p_start:$('c48UsageStart').value,p_end:$('c48UsageEnd').value},true);$('c48UsageStatus').textContent=`Verified checkpoint recorded. ${result.archived} old records archived; analytics preserved.`;}catch(err){$('c48UsageStatus').textContent=err.message;}finally{button.disabled=false;}}
-window.Custom48={sync,open,photoMode:()=>settings.photoMode,sectionHidden,renderCategoryPhotos,canRenameTables,refreshManagementDishes:()=>{if($('menu51Dishes')?.dataset.loaded)return loadMenuDishes51();},get:()=>settings,applyText,patch:async changes=>{if(!revision)await sync(true);return persist({...structuredClone(settings),...changes});},patchBill:async changes=>{if(!revision)await sync(true);const next=structuredClone(settings);next.bill={...(next.bill||{}),...changes};const saved=await persist(next);if(draft)draft.bill={...(draft.bill||{}),...changes};return saved;}};
+window.Custom48={sync,open,photoMode:()=>settings.photoMode,sectionHidden,renderCategoryPhotos,canRenameTables,refreshManagementDishes:()=>{if($('menu51Dishes')?.dataset.loaded)return loadMenuDishes51();},get:()=>settings,applyText,patch:async changes=>{if(!revision)await sync(true);return persist({...structuredClone(settings),...changes});}};
 let queued=false;observer=new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;observer.disconnect();applyText();applyMenu51();observer.observe(document.body,{childList:true,subtree:true,characterData:true});});});observer.observe(document.body,{childList:true,subtree:true,characterData:true});
 navigator.serviceWorker?.addEventListener('controllerchange',updateManifest);
 void sync().catch(()=>{});Cloud.schedule('shared-customization48',30000,()=>sync());

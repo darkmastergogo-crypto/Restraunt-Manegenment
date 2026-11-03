@@ -3,7 +3,7 @@ const waiterPermissionKeys=['enabled','view_orders','accept_orders','serve_order
 async function loadWaiterPermissions(){if(staffRole!=='admin')return;const form=document.getElementById('waiterPermissionsForm');for(const input of form.elements)input.disabled=true;try{const s=await Cloud.rpc('restaurant_waiter_permissions',{},true);waiterPermissionKeys.forEach(key=>document.getElementById('waiterPermission_'+key).checked=s[key]);document.getElementById('waiterPermissionsStatus').textContent='';for(const input of form.elements)input.disabled=false;}catch(e){document.getElementById('waiterPermissionsStatus').textContent=e.message;}}
 async function saveWaiterPermissions(e){e.preventDefault();const button=document.getElementById('waiterPermissionsSave');button.disabled=true;try{const args={};waiterPermissionKeys.forEach(key=>args['p_'+key]=document.getElementById('waiterPermission_'+key).checked);await Cloud.rpc('restaurant_waiter_permissions',args,true);document.getElementById('waiterPermissionsStatus').textContent='Waiter capability permissions saved.';}catch(e){document.getElementById('waiterPermissionsStatus').textContent=e.message;}finally{button.disabled=false;}}
 async function loadWaiterAccessSettings(){
- if(!['admin','manager','cashier','waiter'].includes(staffRole))return;
+ if(!['admin','manager'].includes(staffRole))return;
  const input=document.getElementById('waiterAccessHours'),name=document.getElementById('waiterAppName'),song=document.getElementById('songRequestsEnabled'),button=document.getElementById('waiterAccessHoursSave'),status=document.getElementById('waiterAccessHoursStatus');
  if(!input||!name||!button)return;
  input.disabled=name.disabled=button.disabled=true;if(song)song.disabled=true;
