@@ -1,0 +1,257 @@
+/* Release 71: Shop Billing-derived workspace, not a theme-color replacement.
+ * Derived from supplied shop-billing/WEBSITE/css/app.css: a 232px organized
+ * sidebar, 52px utility bar, compact forms/tables, connected summary metrics,
+ * and a catalog+ticket POS. Colors continue to come from theme-engine.js.
+ * Do not apply these staff-management rules to the public QR menu. */
+:root {
+  --side-w: 232px;
+  --top-h: 52px;
+  --workspace-radius: 8px;
+  --workspace-control: 40px;
+  --workspace-fg-subtle: var(--ink-2);
+  --workspace-hairline: var(--line-2);
+  --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+body.staff-site {
+  font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.46;
+}
+body.staff-site h1,body.staff-site h2,body.staff-site h3,body.staff-site h4 {
+  font-family: 'Public Sans', system-ui, sans-serif;
+  letter-spacing: -.016em;
+}
+/* Sidebar follows the billing app's grouped, dense navigation model. */
+body.staff-site #managerNav {
+  gap: 0;
+  padding: 12px 10px;
+  background: var(--side);
+  border-right: 1px solid var(--side-line);
+}
+body.staff-site #managerNav .side-brand68 {
+  margin-bottom: 8px;
+  padding: 5px 7px 15px;
+  min-height: 62px;
+  border-bottom: 1px solid var(--side-line);
+}
+body.staff-site #managerNav .side-brand68 strong { font-size: .97rem; line-height: 1.28; }
+body.staff-site #managerNav .side-brand68 small { font-size: .76rem; }
+body.staff-site #managerNav .logo-chip68 { width: 38px; height: 38px; border-radius: 8px; }
+.side-group71 { display: grid; gap: 2px; padding-bottom: 7px; }
+.side-group71[hidden] { display: none !important; }
+body.staff-site #managerNav .side-label68 {
+  margin: 2px 0 1px;
+  padding: 11px 9px 5px;
+  color: var(--side-ink-2);
+  opacity: .9;
+  font-size: .69rem;
+  font-weight: 750;
+  letter-spacing: .095em;
+}
+body.staff-site #managerNav .nav-tab-btn {
+  min-height: 39px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  font-size: .89rem;
+  font-weight: 600;
+  line-height: 1.18;
+  transition: color .14s,background .14s;
+}
+body.staff-site #managerNav .nav-tab-btn .s68-ic { width: 17px; height: 17px; flex: none; opacity: .9; }
+body.staff-site #managerNav .nav-tab-btn:is(.active,.is-active,[aria-pressed="true"]) {
+  background: var(--side-on);
+  box-shadow: inset 3px 0 0 var(--side-accent);
+  color: var(--side-ink);
+}
+body.staff-site #managerNav .nav-tab-btn:focus-visible {
+  outline: 2px solid var(--side-accent);
+  outline-offset: -2px;
+}
+body.staff-site #managerNav .side-foot68 {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--side-line);
+}
+body.staff-site #managerNav .side-foot68 .side-btn68 { min-height: 36px; padding: 8px 10px; font-size: .85rem; }
+body.staff-site #managerNav .who68 { padding: 8px 10px; }
+/* Compact, fixed visual relationship between rail, white utility bar and canvas. */
+body.staff-site > header { height: var(--top-h); min-height: var(--top-h); padding: 0 20px; }
+body.staff-site > header h1 { font-size: .98rem; font-weight: 650; color: var(--ink); }
+body.staff-site > header .badge-live { font-size: .73rem; }
+body.staff-site > header .staff-header-actions { gap: 10px; }
+body.staff-site > header .clock68 { font-size: .79rem; font-weight: 500; }
+body.staff-site > main { padding: 24px 28px 48px; }
+body.staff-site > main > section { max-width: 1320px; margin-inline: auto; }
+body.staff-site > main > section .page-tools { margin-bottom: 18px; align-items: center; }
+body.staff-site > main > section .page-tools :is(h2,h3) { font-size: 1.35rem; letter-spacing: -.02em; }
+body.staff-site > main > section .page-tools .toolbar { gap: 7px; }
+/* Strong control hierarchy borrowed from source buttons, same across every tab. */
+body.staff-site .primary-btn,body.staff-site .secondary-btn,body.staff-site .danger-btn,
+body.staff-site .toolbar button,body.staff-site .page-tools button {
+  border-radius: 6px;
+  font: 600 .89rem/1.2 'Public Sans',system-ui,sans-serif;
+  min-height: 38px;
+  padding: 8px 12px;
+  box-shadow: none;
+}
+body.staff-site .primary-btn { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); }
+body.staff-site .secondary-btn { background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); }
+body.staff-site .danger-btn { background: var(--bad); color: white; border: 1px solid var(--bad); }
+body.staff-site button:disabled { opacity: .55; cursor: not-allowed; }
+body.staff-site :is(button,a,input,select,textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.staff-site input:not([type=checkbox]):not([type=radio]):not([type=file]),
+body.staff-site select,body.staff-site textarea {
+  min-height: var(--workspace-control); font-size: .9rem;
+  border-radius: 6px; padding: 8px 11px;
+}
+body.staff-site input[type="search"] { appearance: auto; }
+body.staff-site label { line-height: 1.35; }
+body.staff-site .toolbar { gap: 8px; }
+/* Use surfaces only for work areas, not decorative nested cards. */
+body.staff-site :is(.panel,.card69) {
+  border-radius: var(--workspace-radius);
+  border: 1px solid var(--line);
+  padding: 18px;
+  box-shadow: none;
+}
+body.staff-site :is(.panel,.card69) :is(h2,h3) { letter-spacing: -.015em; }
+body.staff-site main details,body.staff-site #set69Pane > details {
+  border-radius: var(--workspace-radius);
+  box-shadow: none;
+  margin-bottom: 10px;
+}
+body.staff-site main details > summary,body.staff-site #set69Pane > details > summary {
+  padding: 13px 16px; font-size: .92rem; font-weight: 650;
+}
+body.staff-site .hint,body.staff-site .muted { color: var(--ink-2); }
+/* Consolidate adjacent KPI tiles into a single summary strip. */
+body.staff-site :is(.stats-row,.kpi-grid68,.stock-overview) {
+  gap: 1px;
+  padding: 1px;
+  background: var(--line);
+  border-radius: var(--workspace-radius);
+  border: 0;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+body.staff-site :is(.stats-row,.kpi-grid68,.stock-overview) > :is(.stat-card,.kpi68,article,.stock-stat) {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--surface);
+  padding: 13px 15px;
+}
+body.staff-site :is(.stat-card,.kpi68) :is(h4,.k-label) {
+  color: var(--ink-2); font-size: .78rem; font-weight: 650;
+}
+body.staff-site :is(.stat-card,.kpi68) :is(.val,.k-value,strong) {
+  font-size: 1.32rem; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+/* Shop Billing table treatment: compact header, horizontal overflow within container. */
+body.staff-site :is(.record-table,.table69,.data-table,.stock-table) {
+  width: 100%; border-collapse: collapse; font-size: .88rem;
+}
+body.staff-site :is(.record-table,.table69,.data-table,.stock-table) th {
+  font-size: .76rem; font-weight: 700;
+  padding: 10px 13px; white-space: nowrap;
+  text-transform: none; letter-spacing: 0;
+  background: var(--surface-2); color: var(--ink-2);
+  border-bottom: 1px solid var(--line);
+}
+body.staff-site :is(.record-table,.table69,.data-table,.stock-table) td {
+  padding: 10px 13px; border-bottom: 1px solid var(--line-2);
+}
+body.staff-site :is(.table-scroll,.table-wrap69) {
+  max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
+  border-radius: var(--workspace-radius);
+}
+/* Billing catalog and ticket, as a workbench, not a stack of marketing cards. */
+body.staff-site .pos68 { grid-template-columns: minmax(0,1fr) minmax(338px,360px); gap: 15px; }
+body.staff-site .pos68-search { padding: 0; margin-bottom: 12px; }
+body.staff-site .pos68-search input { height: 44px; }
+body.staff-site .pos68-grid { grid-template-columns: repeat(auto-fill,minmax(150px,1fr)); gap: 9px; }
+body.staff-site .pos68-card {
+  min-height: 95px; padding: 12px 13px; border-radius: 7px;
+  box-shadow: none; gap: 9px;
+}
+body.staff-site .pos68-card:hover:not(:disabled) { border-color: var(--accent); }
+body.staff-site .pos68-card.in-bill { border-color: var(--accent); background: var(--accent-soft); }
+body.staff-site .pos68-card.is-out { opacity: .52; }
+body.staff-site .pos68-card .pos68-card-top b { font-size: .89rem; }
+body.staff-site .pos68-card .pos68-card-bottom strong { font-size: .99rem; }
+body.staff-site .pos68-ticket {
+  top: calc(var(--top-h) + 14px);
+  max-height: calc(100dvh - var(--top-h) - 28px);
+  border-radius: var(--workspace-radius);
+  box-shadow: none;
+}
+body.staff-site .pos68-ticket-head { background: var(--surface); padding: 15px 17px; }
+body.staff-site .pos68-ticket-head h3 { font: 700 .93rem/1.2 'Public Sans',system-ui,sans-serif; letter-spacing: 0; text-transform: none; color: var(--ink); }
+body.staff-site .pos68-meta { padding: 12px 17px; }
+body.staff-site .pos68-lines { min-height: 85px; }
+body.staff-site .pos68-line { border-bottom: 1px solid var(--line-2); }
+body.staff-site .pos68-grand { padding-top: 12px; }
+body.staff-site .pos68-grand b { font-size: 1.48rem !important; font-family: var(--mono) !important; }
+body.staff-site .pos68-actions > button { min-height: 44px; }
+/* Settings uses a smaller index and larger content pane. */
+body.staff-site .set69 { grid-template-columns: minmax(190px,215px) minmax(0,1fr); gap: 18px; }
+body.staff-site .set69-rail { border-radius: 8px; }
+body.staff-site .set69-pane { min-width: 0; }
+body.staff-site #managementSection details[open] { border-color: var(--line); }
+/* Sign-in is an ordinary product-auth card with one primary action. */
+body.staff-site #loginPanel { border-radius: 10px; padding: 27px 26px; box-shadow: none; }
+body.staff-site #loginPanel .primary-btn { width: 100%; min-height: 43px; }
+/* Effective 44px touch hit areas without increasing desktop density. */
+@media (pointer:coarse) {
+ body.staff-site .pos68-card { min-height: 104px; }
+ body.staff-site .pos68-step,body.staff-site #managerNav .nav-tab-btn { min-height: 44px; }
+ body.staff-site .primary-btn,body.staff-site .secondary-btn { min-height: 44px; }
+}
+@media (max-width:1180px) {
+ :root { --side-w: 216px; }
+ body.staff-site .pos68 { grid-template-columns:minmax(0,1fr) minmax(300px,330px); }
+}
+@media (max-width:900px) {
+ body.staff-site,body.staff-site:has(#managerNav:not([hidden])) { padding-left: 0; }
+ body.staff-site > header { padding: 0 14px; }
+ body.staff-site > main { padding: 18px 14px 82px; }
+ body.staff-site .set69 { grid-template-columns:1fr; }
+ body.staff-site .pos68 { grid-template-columns:1fr; }
+ body.staff-site .pos68-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ body.staff-site .pos68-ticket {
+   top:auto; max-height:86dvh; border-radius:14px 14px 0 0;
+   box-shadow: 0 -8px 36px rgba(0,0,0,.13);
+ }
+ body.staff-site .pos68-ticket.is-open { transform:translateY(0); }
+ body.staff-site .pos68-scrim.is-open { display:block; }
+ body.staff-site .stats-row,body.staff-site .kpi-grid68,body.staff-site .stock-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ body.staff-site .page-tools { align-items:start; }
+ body.staff-site :is(.panel,.card69) { padding: 15px; }
+ body.staff-site #managerNav { width:min(288px,86vw); }
+}
+@media (max-width:420px) {
+ body.staff-site .pos68-grid { gap:8px; }
+ body.staff-site .pos68-card { min-height:98px; padding:11px; }
+ body.staff-site .page-tools :is(h2,h3) { font-size:1.2rem; }
+ body.staff-site .record-controls,body.staff-site .analytics-controls { gap:7px; }
+}
+@media (prefers-reduced-motion:reduce) {
+ body.staff-site *,body.staff-site *::before,body.staff-site *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+@media print {
+ body.staff-site .pos68-ticket { box-shadow:none !important; }
+}
+
+/* Mobile drawer overlay and state. Release 69 expects .is-open for the rail;
+ * the legacy script used .open, so this skin supports both during migration. */
+body.staff-site #kitchenNavOverlay { display:none; }
+@media (max-width:900px) {
+ body.staff-site #kitchenNavOverlay {
+   display:block;position:fixed;inset:0;z-index:44;
+   background:rgba(3,10,18,.56);opacity:0;visibility:hidden;
+   transition:opacity .22s,visibility .22s;
+ }
+ body.staff-site #kitchenNavOverlay.open { opacity:1;visibility:visible; }
+ body.staff-site #managerNav.open { transform:translateX(0); }
+}
