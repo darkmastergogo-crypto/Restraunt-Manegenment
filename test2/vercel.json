@@ -1,4 +1,5 @@
 {
+ "rewrites": [{"source":"/billing-suite/manifest.webmanifest","destination":"/api/billing-suite-manifest"}],
  "headers": [
   {
    "source": "/(.*)",

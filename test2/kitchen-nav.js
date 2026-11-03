@@ -9,6 +9,14 @@
   var nav = $('managerNav');
   var overlay = $('kitchenNavOverlay');
   if (!toggle || !nav || !overlay) return;
+  if (!document.getElementById('billingSuiteLink')) {
+    var suiteLink = document.createElement('a');
+    suiteLink.id = 'billingSuiteLink';
+    suiteLink.className = 'nav-tab-btn';
+    suiteLink.href = 'billing-suite/index.html#/billing';
+    suiteLink.textContent = 'Billing workspace';
+    nav.appendChild(suiteLink);
+  }
 
   /* Reference-style drawer footer. Uses existing account/contact/sign-out actions. */
   if (!nav.querySelector('.manager-drawer-footer')) {

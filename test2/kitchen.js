@@ -27,7 +27,7 @@ async function enterStaff(){
  void window.Custom48?.sync(true);
  $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';KitchenOps.init();$('headerCallWaiter').hidden=false;
  kitchenRequests=CallRequests.mount({root:$('kitchenRequests'),kind:'kitchen',onUpdate:data=>{$('requestsBadge').textContent=data.pending_count;renderRequestAlerts(data.pending_calls);},onError:()=>{$('requestsBadge').textContent='!';requestRows=[];requestRing.update([]);}});
- setConnection('Connecting');switchTab(location.hash==='#notifications'?'notifications':location.hash==='#requests'?'requests':'live');await refreshCloud();await refreshStaffPulse46();
+ setConnection('Connecting');const requested=location.hash.slice(1);switchTab(['notifications','requests','menu','management','tables','devices'].includes(requested)?requested:'live');await refreshCloud();await refreshStaffPulse46();
  if(typeof pollTimer==='function')pollTimer();if(typeof summaryPollTimer==='function')summaryPollTimer();
  pollTimer=Cloud.schedule('staff-pulse',5000,()=>{if(loggedIn)return refreshStaffPulse46();});
  summaryPollTimer=Cloud.schedule('staff-screen',30000,()=>{if(loggedIn)return refreshBackgroundData();});
@@ -112,6 +112,8 @@ function configureManagementAccess(){
 }
 
 function switchTab(tab){
+ const cloneRoutes={billing:'billing',history:'records',dashboard:'dashboard',menu:'items',stocks:'stocks',management:'settings'};
+ if(cloneRoutes[tab]&&!new URLSearchParams(location.search).has('restaurant')&&!window.Custom48?.sectionHidden(tab)){location.assign('billing-suite/index.html#/'+cloneRoutes[tab]);return;}
  const tabs=['live','history','dashboard','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
  if(tab==='management'&&!['admin','manager'].includes(staffRole)||tab==='devices'&&!canManageCustomerDevices()||tab==='notifications'&&!['admin','manager'].includes(staffRole))return;
  const blocked=$('hiddenByAdminSection');
