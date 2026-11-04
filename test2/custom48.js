@@ -2,7 +2,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id),e=v=>Cloud.esc(String(v??''));
-const staffPage=location.pathname.endsWith('kitchen.html');
+const staffPage=document.body.classList.contains('staff-site');
 const sections=['live','billing','history','dashboard','requests','tables','menu','stocks','devices','notifications'];
 let settings={name:Cloud.cfg.restaurantName||'Yummy Momo',tagline:'Yummy in your tummy',photoMode:'category',menuLayout:'category-list',showCategoryLinks:true,showCategoryImages:true,categoryOptions:{},categoryPhotos:{},categoryImageTransforms:{},categoryLabels:{},texts:{},hiddenSections:[],locked:false,orderRecordPaymentEdit:true,orderRecordPaymentEditMinutes:120,bill:{}},revision=null,busy=null,editing=false,draft=null,manifestURL=null,observer;
 const originals=new WeakMap(),attrOriginals=new WeakMap(),brandOriginals=new WeakMap(),iconOriginals=new WeakMap(),catalog=new Set();

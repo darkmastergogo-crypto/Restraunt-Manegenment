@@ -8,6 +8,7 @@ let staffMenuQuery='',staffMenuCategory='All',staffMenuAvailability='all',pricin
 const staffSizeLabel=(size,item)=>MenuOptions.label(item,size);
 const staffDisplayedPrice=item=>{if(!item.sizes_enabled)return item.price;const offered=MenuOptions.keys(item).filter(size=>Object.prototype.hasOwnProperty.call(item.size_prices||{},size)&&!(item.size_stock?.[size]?.tracked&&item.size_stock[size].remaining<=0));return offered.length?Math.min(...offered.map(size=>Number(item.size_prices[size]))):item.price;};
 let staffRole=null,orders=[],menuItems=[],currentTab='live',currentFilter='active',currentBillOrderId=null,currentTableId=null;
+const workspacePanel=new URLSearchParams(location.search).get('panel')==='1'||window.frameElement?.dataset.panel==='true';
 const photoSelections={new:0,edit:0};
 let state=Cloud.read('KITCHEN_ADMIN_STATE_v1',{}),tables=[],photoDrafts={new:{data:''},edit:{data:''}},editingPhotoItemId=null;
 let soundEnabled=false,audioContext=null,alarmNodes=[],alarmIds=[],alarmState=Cloud.read('RESTAURANT_ALARMS_v2',{}),toastTimer,pollTimer=null,summaryPollTimer=null;
@@ -23,14 +24,14 @@ async function enterStaff(){
  staffRole=await Cloud.role();
  if(!['admin','manager'].includes(staffRole))throw Error('Admin or manager access required. Waiters should scan the private waiter QR.');
  $('tabManagementBtn').hidden=!['admin','manager'].includes(staffRole);$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole!=='manager';$('rotateWaiterButton').hidden=!['admin','manager'].includes(staffRole);$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';configureManagementAccess();
- BackgroundAlerts.init('kitchen');loggedIn=true;$('loginPanel').hidden=true;$('managerNav').hidden=false;$('staffMain').hidden=false;$('staffSession').hidden=false;
+ if(!workspacePanel)BackgroundAlerts.init('kitchen');loggedIn=true;$('loginPanel').hidden=true;$('managerNav').hidden=false;$('staffMain').hidden=false;$('staffSession').hidden=false;
  void window.Custom48?.sync(true);
- $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';KitchenOps.init();$('headerCallWaiter').hidden=false;
- kitchenRequests=CallRequests.mount({root:$('kitchenRequests'),kind:'kitchen',onUpdate:data=>{$('requestsBadge').textContent=data.pending_count;renderRequestAlerts(data.pending_calls);},onError:()=>{$('requestsBadge').textContent='!';requestRows=[];requestRing.update([]);}});
- setConnection('Connecting');const requested=location.hash.slice(1);switchTab(['notifications','requests','menu','management','tables','devices'].includes(requested)?requested:'live');await refreshCloud();await refreshStaffPulse46();
+ $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';if(!workspacePanel)KitchenOps.init();$('headerCallWaiter').hidden=false;
+ if(!workspacePanel)kitchenRequests=CallRequests.mount({root:$('kitchenRequests'),kind:'kitchen',onUpdate:data=>{$('requestsBadge').textContent=data.pending_count;renderRequestAlerts(data.pending_calls);},onError:()=>{$('requestsBadge').textContent='!';requestRows=[];requestRing.update([]);}});
+ setConnection('Connecting');const requested=location.hash.slice(1);switchTab(['notifications','requests','menu','management','tables','devices'].includes(requested)?requested:'live');if(!workspacePanel){await refreshCloud();await refreshStaffPulse46();}
  if(typeof pollTimer==='function')pollTimer();if(typeof summaryPollTimer==='function')summaryPollTimer();
- pollTimer=Cloud.schedule('staff-pulse',5000,()=>{if(loggedIn)return refreshStaffPulse46();});
- summaryPollTimer=Cloud.schedule('staff-screen',30000,()=>{if(loggedIn)return refreshBackgroundData();});
+ if(!workspacePanel){pollTimer=Cloud.schedule('staff-pulse',5000,()=>{if(loggedIn)return refreshStaffPulse46();});
+ summaryPollTimer=Cloud.schedule('staff-screen',30000,()=>{if(loggedIn)return refreshBackgroundData();});}
 }
 function setConnection(label){
  const badge=$('syncBadge'),box=badge.parentElement,live=label==='Live',when=lastSuccessfulSync?new Date(lastSuccessfulSync).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'';
@@ -112,8 +113,6 @@ function configureManagementAccess(){
 }
 
 function switchTab(tab){
- const cloneRoutes={billing:'billing',history:'records',dashboard:'dashboard',menu:'items',stocks:'stocks',management:'settings'};
- if(cloneRoutes[tab]&&!new URLSearchParams(location.search).has('restaurant')&&!window.Custom48?.sectionHidden(tab)){location.assign('billing-suite/index.html#/'+cloneRoutes[tab]);return;}
  const tabs=['live','history','dashboard','requests','tables','menu','stocks','management','devices','notifications','billing'];if(!tabs.includes(tab))return;
  if(tab==='management'&&!['admin','manager'].includes(staffRole)||tab==='devices'&&!canManageCustomerDevices()||tab==='notifications'&&!['admin','manager'].includes(staffRole))return;
  const blocked=$('hiddenByAdminSection');
