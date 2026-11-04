@@ -1,9 +1,9 @@
 /* Caches the app files so it opens fast. Bills always go to the server. */
-const CACHE = 'shopbill-suite-v15';
-const FILES = ['./', 'index.html', 'config.js?v=4', 'css/app.css?v=4', 'js/cloud.js?v=4', 'js/themes.js?v=4', 'js/ui.js?v=4', 'js/calc.js?v=4', 'js/qr.js?v=4', 'js/receipt.js?v=4', 'js/billing.js?v=4',
-  'js/records.js?v=4', 'js/dashboard.js?v=4', 'js/items.js?v=4', 'js/stocks.js?v=4', 'js/expenses.js?v=4', 'js/members.js?v=4', 'js/portal.js?v=4', 'js/settings.js?v=4', 'js/admin.js?v=4', 'js/app.js?v=4',
+const CACHE = 'shopbill-suite-v16';
+const FILES = ['./', 'index.html', 'config.js?v=5', 'css/app.css?v=4', 'workspace.css?v=16', 'workspace.js?v=16', 'js/themes.js?v=4', 'js/ui.js?v=16', 'js/calc.js?v=4', 'js/qr.js?v=4', 'js/receipt.js?v=4', 'js/billing.js?v=16',
+  'js/records.js?v=16', 'js/dashboard.js?v=16', 'js/items.js?v=16', 'js/stocks.js?v=16', 'js/expenses.js?v=4', 'js/members.js?v=4', 'js/portal.js?v=4', 'js/settings.js?v=16', 'js/admin.js?v=4', 'js/app.js?v=16',
   'icons/icon.svg', 'icons/icon-192.png'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll([...FILES,'../config.js','config.js?v=5','compat.js','restaurant-cloud.js?v=15','restaurant-adapter.js?v=15'])).then(() => self.skipWaiting())); });
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll([...FILES,'../config.js','compat.js','restaurant-cloud.js?v=15','restaurant-adapter.js?v=16','../restaurant-engine.html','../workspace-engine.css?v=16','../workspace-engine.js?v=16'])).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('shopbill-suite-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
