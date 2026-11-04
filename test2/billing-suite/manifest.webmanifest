@@ -1,7 +1,7 @@
 {
-  "name": "Shop Billing",
-  "short_name": "Billing",
-  "description": "Billing, members and records.",
+  "name": "Restaurant",
+  "short_name": "Restaurant",
+  "description": "Kitchen orders, tables, billing and records.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

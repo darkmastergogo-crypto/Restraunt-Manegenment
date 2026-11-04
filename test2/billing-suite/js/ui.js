@@ -9,6 +9,7 @@ const ROLE_LABEL = { superadmin: 'Admin', owner: 'Owner', manager: 'Manager', ca
 /* What each permission means, grouped for the Admin → Roles & permissions screen. */
 const PERMISSIONS = [
   ['Screens', [['billing', 'Billing counter'], ['records', 'Records (today)'], ['records_all', 'Records (any date)'], ['dashboard', 'Dashboard'], ['items', 'Items'], ['stocks', 'Stocks']]],
+  ['Restaurant', [['kitchen', 'Kitchen orders'], ['requests', 'Customer requests'], ['tables', 'Tables & QR codes'], ['notifications', 'Notifications'], ['devices', 'Customer devices'], ['item_details', 'Menu photos & portions'], ['restaurant_settings', 'Restaurant settings']]],
   ['Billing', [['discount', 'Give discounts'], ['short_cash', 'Accept less cash than the total'], ['cancel_bills', 'Cancel bills'], ['export', 'Export records to CSV']]],
   ['Expenses', [['expenses', 'See and add expenses'], ['expenses_manage', 'Edit, delete, expense types & auto expenses']]],
   ['Members', [['members', 'See members'], ['members_add', 'Add and edit members'], ['members_renew', 'Renew or change a membership'], ['members_plans', 'Plans, dates & check-in code'], ['members_login', 'Member logins'], ['attendance', 'Attendance (check members in)']]],
@@ -33,7 +34,7 @@ const Store = {
   feature(name) { const f = this.sys.features || {}; return name in f ? f[name] !== false : !['customer_details', 'customer_address'].includes(name); },
   can(perm) {
     const p = this.me?.perms || [];
-    if (perm === 'settings') return ['settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'reset', 'roles_manager', 'roles_cashier'].some(x => p.includes(x));
+    if (perm === 'settings') return ['settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'reset', 'roles_manager', 'roles_cashier', 'restaurant_settings'].some(x => p.includes(x));
     if (perm === 'stocks') return p.includes('stocks') && this.stockShown();
     return p.includes(perm);
   },

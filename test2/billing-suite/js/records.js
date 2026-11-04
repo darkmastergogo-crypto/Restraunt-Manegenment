@@ -40,24 +40,34 @@ const Records = (() => {
   }
 
   function openBill(b) {
-    const manage = Store.can('cancel_bills') && b.status === 'Paid';
+    const manage = Cloud.canCancelBill !== false && Store.can('cancel_bills') && b.status === 'Paid';
+    const state = b.status === 'Cancelled' ? `<span class="badge badge-red">Cancelled</span>${b.cancel_reason ? `<small>${esc(b.cancel_reason)}</small>` : ''}` : `<span class="badge ${b.status === 'Paid' ? 'badge-green' : 'badge-soft'}">${esc(b.status || 'Paid')}</span>`;
+    const paymentEditable = Cloud.recordPaymentEditable?.(b);
     const d = modal(`Bill ${b.bill_no}`, `<div class="bill-view">
         <div class="bill-paper">${Receipt.html(b)}</div>
         <div class="bill-side">
           <dl class="facts">
-            <dt>Status</dt><dd>${b.status === 'Cancelled' ? `<span class="badge badge-red">Cancelled</span>${b.cancel_reason ? `<small>${esc(b.cancel_reason)}</small>` : ''}` : '<span class="badge badge-green">Paid</span>'}</dd>
-            <dt>Paid by</dt><dd><b>${esc(b.payment_method)}</b>${b.cash_received != null ? `<small>Cash received ${Fmt.money(b.cash_received)}${Number(b.change_amount) > 0 ? ` · returned ${Fmt.money(b.change_amount)}` : ''}${Number(b.less_amount) > 0 ? ` · short ${Fmt.money(b.less_amount)}` : ''}</small>` : ''}</dd>
+            <dt>Status</dt><dd>${state}</dd>
+            <dt>Payment</dt><dd><b>${esc(b.payment_method)}</b>${b.cash_received != null ? `<small>Cash received ${Fmt.money(b.cash_received)}${Number(b.change_amount) > 0 ? ` · returned ${Fmt.money(b.change_amount)}` : ''}${Number(b.less_amount) > 0 ? ` · short ${Fmt.money(b.less_amount)}` : ''}</small>` : ''}</dd>
             <dt>Billed by</dt><dd>${esc(b.cashier_name || '—')}</dd>
             <dt>Time</dt><dd>${esc(Fmt.dateTime(b.created_at))}</dd>
           </dl>
           <div class="stack">
+            ${paymentEditable ? `<div class="sub-box stack" data-record-payment><h3>Record QR payment</h3><p class="hint">Choose once before this order’s edit window expires. The saved method is permanent.</p><div class="toolbar"><button type="button" class="btn" data-pay="Cash">Cash</button><button type="button" class="btn" data-pay="Online">Online</button></div></div>` : ''}
             <button type="button" class="btn btn-primary" data-print>${Icon('printer')} Print bill</button>
             ${Store.feature('whatsapp') ? `<button type="button" class="btn" data-wa>${Icon('whatsapp')} Send on WhatsApp</button>` : ''}
             ${manage ? `<button type="button" class="btn btn-danger-ghost" data-cancel>${Icon('ban')} Cancel bill</button><p class="hint">Cancelling puts the stock back and removes the bill from sales. The bill number stays in the records.</p>` : ''}
           </div>
         </div></div>`, { size: 'modal-lg' });
     d.addEventListener('click', async e => {
-      if (e.target.closest('[data-print]')) Receipt.print(b);
+      const pay = e.target.closest('[data-pay]');
+      if (pay) {
+        if (!Cloud.recordPaymentEditable?.(b)) { toast('The payment edit window is closed. Refresh Records.', 'error'); return; }
+        const controls = $$('[data-pay]', d); controls.forEach(x => x.disabled = true);
+        try { const saved = await Cloud.rpc('shop_record_payment_save', { p_id: b.id, p_method: pay.dataset.pay }); Object.assign(b, saved); d.close(); openBill(b); if (root?.isConnected) load(); toast('Payment saved permanently.', 'ok'); }
+        catch (err) { toast(err.message, 'error'); controls.forEach(x => x.disabled = false); }
+      }
+      else if (e.target.closest('[data-print]')) Receipt.print(b);
       else if (e.target.closest('[data-wa]')) Receipt.whatsapp(b);
       else if (e.target.closest('[data-cancel]')) {
         const reason = await ask({ title: `Cancel bill ${b.bill_no}?`, body: `${Fmt.money(b.total)} will be removed from sales and tracked stock will be added back.`, confirm: 'Cancel bill', cancel: 'Keep bill', danger: true, input: { label: 'Reason (optional)', placeholder: 'e.g. Customer returned items', maxlength: 200 } });
@@ -94,7 +104,7 @@ const Records = (() => {
     if (!['all', ...Store.payments()].includes(f.payment)) f.payment = 'all';
     view.innerHTML = `<div class="page">
       <header class="page-head"><div><h1>Records</h1><p class="sub">${all ? 'Every bill, with search, reprint and export.' : 'Bills made today. Tap a bill to reprint it.'}</p></div>
-        <div class="head-actions"><button type="button" class="btn" id="rRefresh">${Icon('refresh')} Refresh</button>${Store.can('export') ? `<button type="button" class="btn" id="rExport">${Icon('download')} Export CSV</button>` : ''}</div></header>
+        <div class="head-actions"><a class="btn" href="#/dishSales">${Icon('chart')} Dish sales</a><button type="button" class="btn" id="rRefresh">${Icon('refresh')} Refresh</button>${Store.can('export') ? `<button type="button" class="btn" id="rExport">${Icon('download')} Export CSV</button>` : ''}</div></header>
       <div class="filters">
         ${all ? `<div class="seg" id="rPeriods">${PERIODS.map(([k, l]) => `<button type="button" data-p="${k}" class="${f.period === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <div class="range" id="rRange" ${f.period === 'custom' ? '' : 'hidden'}><input type="date" id="rFrom" aria-label="From date"><span>to</span><input type="date" id="rTo" aria-label="To date"></div>` : ''}

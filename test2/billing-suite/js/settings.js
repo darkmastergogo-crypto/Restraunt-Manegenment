@@ -5,7 +5,7 @@ const Settings = (() => {
   const SECTIONS = [
     ['shop', 'Shop details', 'settings_shop', 'store'], ['billing', 'Billing', 'settings_tax', 'bill'], ['design', 'Bill design', 'settings_design', 'printer'],
     ['extras', 'Bill extras', 'settings_design', 'qr'], ['staff', 'Staff & logins', 'staff', 'users'], ['perms', 'Permissions', ['roles_manager', 'roles_cashier'], 'lock'],
-    ['contact', 'Contact info', 'settings_contact', 'phone'], ['data', 'Data', 'reset', 'download']];
+    ['contact', 'Contact info', 'settings_contact', 'phone'], ['restaurant', 'Restaurant', 'restaurant_settings', 'store'], ['data', 'Data', 'reset', 'download']];
   const TIMEZONES = ['Asia/Kolkata', 'Asia/Kathmandu', 'Asia/Dhaka', 'Asia/Karachi', 'Asia/Colombo', 'Asia/Dubai', 'Asia/Singapore', 'Europe/London', 'America/New_York'];
   const FEATURES = [
     ['extra_items', 'Extra items', 'Bill something that is not in the item list.'],
@@ -84,7 +84,7 @@ const Settings = (() => {
           <label><input type="radio" name="exp_profit" value="yes" ${s.expenses_in_profit !== false ? 'checked' : ''}><span><b>Yes</b><small>Net profit = sales − expenses</small></span></label>
           <label><input type="radio" name="exp_profit" value="no" ${s.expenses_in_profit === false ? 'checked' : ''}><span><b>No</b><small>Net profit = selling price − buying price</small></span></label></div></div></section>` : ''}
       <section class="card"><header class="card-head"><h2>Payment methods</h2><p class="hint">Only these appear on the billing screen.</p></header>
-        <div class="pay-toggles">${['Cash', 'UPI', 'Card'].map(m => sw('pay_' + m, p[m] !== false, m)).join('')}</div></section>
+        <div class="pay-toggles">${['Cash', 'UPI', 'Card'].map(m => m === 'Card' && Cloud.hasAddon ? sw('pay_' + m, false, 'Card', 'Restaurant orders record Cash or Online (UPI).', 'disabled') : sw('pay_' + m, p[m] !== false, m === 'UPI' && Cloud.hasAddon ? 'UPI / Online' : m)).join('')}</div></section>
       <section class="card"><header class="card-head"><h2>Billing screen</h2></header>
         <div class="switches two">${FEATURES.map(([k, t, dsc]) => sw('f_' + k, Store.feature(k), t, dsc)).join('')}</div></section>
       <section class="card"><header class="card-head"><h2>Item form fields</h2><p class="hint">Extra fields on the Add item screen. Turn on only what your shop needs.</p></header>
@@ -256,14 +256,16 @@ const Settings = (() => {
       <div class="data-row danger-zone"><div><h3>Delete all bills</h3><p class="hint">Removes every bill and its sales history for good. Items and stock stay. Use only to clear test bills.</p></div><button type="button" class="btn btn-danger" id="resetBills">Delete all bills…</button></div></div>`;
   }
 
-  const allowed = () => SECTIONS.filter(([, , p]) => Array.isArray(p) ? p.some(x => Store.can(x)) : Store.can(p));
+  const allowed = () => SECTIONS.filter(([k, , p]) => k !== 'perms' && (Array.isArray(p) ? p.some(x => Store.can(x)) : Store.can(p)));
 
-  function show(sec) {
+  function show(sec, scroll = false) {
     section = sec;
     $$('#setNav button', root).forEach(b => b.classList.toggle('on', b.dataset.s === sec));
     const s = Store.settings, body = $('#setBody', root);
+    if (sec === 'restaurant') { RestaurantSettings.mount(body); return; }
+    if (sec === 'staff') { RestaurantSettings.waiters(body); return; }
     body.innerHTML = { shop: shopSection, billing: billingSection, design: designSection, extras: extrasSection, staff: staffSection, perms: permsSection, contact: contactSection, data: dataSection }[sec](s);
-    body.scrollIntoView?.({ block: 'nearest' });
+    if (scroll) body.scrollIntoView?.({ block: 'nearest' });
     if (sec === 'shop') {
       paintLogo();
       $('#logoFile', root).onchange = async e => { try { draftLogo = await imageToDataURL(e.target.files[0]); paintLogo(); toast('Logo ready. Press Save to keep it.'); } catch (ex) { toast(ex.message, 'error'); } e.target.value = ''; };
@@ -368,9 +370,9 @@ const Settings = (() => {
     root = view;
     const secs = allowed();
     if (!secs.some(([k]) => k === section)) section = secs[0]?.[0];
-    view.innerHTML = `<div class="page"><header class="page-head"><div><h1>Settings</h1><p class="sub">Your shop, bills, billing screen and staff.</p></div></header>
+    view.innerHTML = `<div class="page"><header class="page-head"><div><h1>Settings</h1><p class="sub">Your restaurant, bills, billing screen and staff.</p></div></header>
       <div class="settings"><nav class="set-nav" id="setNav">${secs.map(([k, l, , ic]) => `<button type="button" data-s="${k}">${Icon(ic)}<span>${l}</span></button>`).join('')}</nav><div id="setBody"></div></div></div>`;
-    $('#setNav', view).onclick = e => { const b = e.target.closest('[data-s]'); if (b) { show(b.dataset.s); b.scrollIntoView({ inline: 'center', block: 'nearest' }); } };
+    $('#setNav', view).onclick = e => { const b = e.target.closest('[data-s]'); if (b) { show(b.dataset.s, true); b.scrollIntoView({ inline: 'center', block: 'nearest' }); } };
     if (section) show(section);
   }
   return { mount, unmount() { root = null; } };

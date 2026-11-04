@@ -106,7 +106,7 @@ const Dashboard = (() => {
     root = view;
     view.innerHTML = `<div class="page">
       <header class="page-head"><div><h1>Dashboard</h1><p class="sub" id="dStatus" role="status"></p></div>
-        <div class="head-actions"><button type="button" class="btn" id="dRefresh">${Icon('refresh')} Refresh</button></div></header>
+        <div class="head-actions"><a class="btn" href="#/restaurantReports">${Icon('chart')} Restaurant reports</a><button type="button" class="btn" id="dRefresh">${Icon('refresh')} Refresh</button></div></header>
       <div class="filters"><div class="seg" id="dPeriods">${PERIODS.map(([k, l]) => `<button type="button" data-p="${k}" class="${period === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <div class="range" id="dRange" ${period === 'custom' ? '' : 'hidden'}><input type="date" id="dFrom" aria-label="From date"><span>to</span><input type="date" id="dTo" aria-label="To date"></div></div>
       <div class="kpis" id="dKpis"></div>

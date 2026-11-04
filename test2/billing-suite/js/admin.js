@@ -12,7 +12,7 @@ const Admin = (() => {
     ['billing', 'Limits', 'sliders', 'Biggest discount and short cash'],
     ['roles', 'Roles & permissions', 'users', 'What owner, manager and cashier can do'],
     ['admins', 'Admin logins', 'shield', 'Who can open this page']
-  ];
+  ].filter(([k]) => !(Cloud.hiddenAdmin || []).includes(k));
   const FEATURES = [
     ['extra_items', 'Extra items', 'Bill something that is not in the item list.'],
     ['cash_received', 'Cash received box', 'Type the cash given to see the change.'],
@@ -413,7 +413,7 @@ const Admin = (() => {
     const h = $('#adminSummary', root); if (!h) return;
     const s = sys().support || {}, locked = !!sys().access?.locked, pr = sys().preset || {};
     h.innerHTML = `<div class="sum ${locked ? 'is-bad' : ''}"><span>System</span><b>${locked ? 'Shut down' : 'Running'}</b><small>${locked ? 'Only admin can sign in' : 'Everyone can sign in'}</small></div>
-      <div class="sum"><span>Preset</span><b>${esc(pr.name || '—')}</b><small><button type="button" class="linkish" data-goto="presets">Change</button></small></div>
+      ${(Cloud.hiddenAdmin || []).includes('presets') ? `<div class="sum"><span>Business</span><b>${esc(Store.settings.shop_name || 'Restaurant')}</b><small>Restaurant workspace</small></div>` : `<div class="sum"><span>Preset</span><b>${esc(pr.name || '—')}</b><small><button type="button" class="linkish" data-goto="presets">Change</button></small></div>`}
       <div class="sum"><span>Theme</span><b>${esc(Themes.get(sys().appearance?.theme).name)}</b><small><button type="button" class="linkish" data-goto="appearance">Change</button></small></div>
       <div class="sum"><span>Support</span><b>${esc(s.name || '—')}</b><small>${esc(s.phone || 'No number')}</small></div>`;
   }

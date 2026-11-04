@@ -2,13 +2,23 @@
 'use strict';
 const App = (() => {
   const ROUTES = {
+    kitchen: { label: 'Kitchen orders', icon: 'store', perm: 'kitchen', view: () => Kitchen },
+    requests: { label: 'Requests', icon: 'bell', perm: 'requests', view: () => Requests },
+    tables: { label: 'Tables & QR codes', icon: 'qr', perm: 'tables', view: () => Tables },
     billing: { mod: 'billing', icon: 'bill', perm: 'billing', view: () => Billing },
     dashboard: { mod: 'dashboard', icon: 'chart', perm: 'dashboard', view: () => Dashboard },
     records: { mod: 'records', icon: 'list', perm: 'records', view: () => Records },
-    members: { mod: 'members', icon: 'idcard', perm: 'members', view: () => Members },
     items: { mod: 'items', icon: 'tag', perm: 'items', view: () => Items },
     stocks: { mod: 'stocks', icon: 'box', perm: 'stocks', view: () => Stocks },
+    members: { mod: 'members', icon: 'idcard', perm: 'members', view: () => Members },
     expenses: { mod: 'expenses', icon: 'wallet', perm: 'expenses', view: () => Expenses },
+    notifications: { label: 'Notifications', icon: 'bell', perm: 'notifications', view: () => Notices },
+    devices: { label: 'Customer devices', icon: 'users', perm: 'devices', view: () => Devices },
+    itemDetails: { label: 'Photos & portions', icon: 'image', perm: 'item_details', nav: false, view: () => MenuDetails },
+    restaurantReports: { label: 'Restaurant reports', icon: 'chart', perm: 'dashboard', nav: false, view: () => RestaurantReports },
+    dishSales: { label: 'Dish sales', icon: 'chart', perm: 'records', nav: false, view: () => DishSales },
+    stockRules: { label: 'Stock rules', icon: 'repeat', perm: 'stocks', nav: false, view: () => StockRules },
+    alerts: { label: 'Kitchen orders', icon: 'bell', perm: 'kitchen', nav: false, view: () => ({ mount(v) { Kitchen.mount(v); setTimeout(() => AlertsPanel.open(), 50); }, unmount: Kitchen.unmount }) },
     settings: { label: 'Settings', icon: 'gear', perm: 'settings', view: () => Settings },
     admin: { label: 'Admin', icon: 'shield', perm: 'admin', view: () => Admin }
   };
@@ -116,7 +126,8 @@ const App = (() => {
   }
 
   /* ---------- shell ---------- */
-  const navKeys = () => Object.keys(ROUTES).filter(k => Store.can(ROUTES[k].perm));
+  const routeOn = k => Store.can(ROUTES[k].perm) && (!ROUTES[k].mod || Store.moduleOn(ROUTES[k].mod));
+  const navKeys = () => Object.keys(ROUTES).filter(k => ROUTES[k].nav !== false && routeOn(k));
   const navHTML = () => navKeys().map(k => `<a href="#/${k}" data-route="${k}" class="${k === 'admin' ? 'nav-admin' : ''}">${Icon(ROUTES[k].icon)}<span>${esc(routeLabel(ROUTES[k]))}</span>${k === 'billing' && !isTouch() ? '<kbd>F2</kbd>' : ''}</a>`).join('');
   function shell() {
     const me = Store.me;
@@ -125,9 +136,6 @@ const App = (() => {
         <div class="side-brand"><div class="logo-chip" id="shopLogo"></div><div><b id="shopName"></b><small id="shopTag"></small></div></div>
         <nav class="side-nav" id="sideNav" aria-label="Main">${navHTML()}</nav>
         <div class="side-foot">
-          <a class="side-btn" href="../kitchen.html">${Icon('store')}<span>Kitchen &amp; QR orders</span></a>
-          <a class="side-btn" href="../kitchen.html?restaurant=1#menu">${Icon('tag')}<span>Menu photos &amp; portions</span></a>
-          <a class="side-btn" href="../kitchen.html?restaurant=1#management">${Icon('gear')}<span>Restaurant settings</span></a>
           <button type="button" class="side-btn" data-help>${Icon('help')}<span>Help & contact</span></button>
           <div class="who">${Icon(Store.isAdmin ? 'shield' : 'user')}<span><b>${esc(me.name)}</b><small>${ROLE_LABEL[me.role] || ''} · ${esc(me.email)}</small></span></div>
           <button type="button" class="side-btn" id="logoutBtn">${Icon('logout')}<span>Sign out</span></button>
@@ -151,11 +159,13 @@ const App = (() => {
     $('#scrim').onclick = () => document.body.classList.remove('nav-open');
     const tick = () => { const c = $('#clock'); if (c) c.textContent = new Date().toLocaleString('en-IN', { timeZone: Fmt.tz(), weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
     tick(); clearInterval(App._clock); App._clock = setInterval(tick, 20000);
-    net(); paintLock();
+    net(); paintLock(); RestaurantWorkspace.start(); RestaurantWorkspace.syncTheme();
   }
   async function signOut() {
     if (!(await ask({ title: 'Sign out?', body: 'You will need your password to sign in again on this device.', confirm: 'Sign out' }))) return;
+    try { await RestaurantWorkspace.prepareSignOut(); } catch (e) { if (!(await ask({title:'Alert cleanup did not finish',body:e.message+' Background alerts may continue on this device. Sign out anyway?',confirm:'Sign out',cancel:'Stay signed in'}))) return; }
     current?.unmount?.(); current = null; if (Store.isMember) Portal.unmount();
+    RestaurantWorkspace.stop();
     await Cloud.logout(); Store.me = null; history.replaceState(null, '', location.pathname); loginView();
   }
   function paintLock() { const c = $('#lockChip'); if (c) c.hidden = !(Store.isAdmin && Store.sys.access?.locked); }
@@ -168,6 +178,7 @@ const App = (() => {
     App.publicInfo = { ...(App.publicInfo || {}), support: Store.sys.support, brand: Store.sys.brand, shop_name: Store.settings.shop_name, access: { locked: true, message } };
     $$('dialog[open]').forEach(d => d.close());
     current?.unmount?.(); current = null; if (Store.isMember) Portal.unmount();
+    RestaurantWorkspace.stop();
     await Cloud.logout(); Store.me = null; history.replaceState(null, '', location.pathname);
     loginView(); kicking = false;
   }
@@ -206,7 +217,7 @@ const App = (() => {
     applyShop(); paintLock();
     const nav = navKeys().join() + '|' + navKeys().map(k => routeLabel(ROUTES[k])).join();
     if (nav !== prevNav && $('#sideNav')) {
-      $('#sideNav').innerHTML = navHTML();
+      $('#sideNav').innerHTML = navHTML(); RestaurantWorkspace.paintCounts();
       const key = (location.hash.match(/^#\/(\w+)/) || [])[1];
       if (!key || !Store.can(ROUTES[key]?.perm)) route(); else markNav(key);
     }
@@ -220,13 +231,15 @@ const App = (() => {
     applyBrand();
     if ($('#shopName')) { $('#shopName').textContent = s.shop_name || 'My Shop'; $('#shopTag').textContent = s.tagline || appName(); }
     const l = $('#shopLogo'); if (l) l.innerHTML = s.logo ? `<img src="${esc(s.logo)}" alt="">` : esc((s.shop_name || 'S').trim().charAt(0).toUpperCase());
+    RestaurantWorkspace.syncTheme();
   }
 
   function net() { const n = $('#net'); if (!n) return; const on = navigator.onLine; n.className = 'net ' + (on ? 'on' : 'off'); n.innerHTML = Icon('wifi') + `<span>${on ? 'Online' : 'Offline — bills cannot be saved'}</span>`; }
   addEventListener('online', () => { net(); sync(true); }); addEventListener('offline', net);
 
   function markNav(key) {
-    $$('.side-nav a').forEach(a => a.classList.toggle('on', a.dataset.route === key));
+    const parent = ({ itemDetails: 'items', restaurantReports: 'dashboard', dishSales: 'records', stockRules: 'stocks', alerts: 'kitchen' })[key] || key;
+    $$('.side-nav a').forEach(a => a.classList.toggle('on', a.dataset.route === parent));
     const t = $('#topTitle'); if (t && ROUTES[key]) t.textContent = routeLabel(ROUTES[key]);
   }
   function route() {
@@ -234,14 +247,17 @@ const App = (() => {
     if (Store.isMember) return;
     $$('dialog[open]').forEach(d => d.close());   // a link inside a dialog must not leave the dialog covering the new screen
     let key = (location.hash.match(/^#\/(\w+)/) || [])[1];
-    if (!ROUTES[key] || !Store.can(ROUTES[key].perm)) key = Object.keys(ROUTES).find(k => Store.can(ROUTES[k].perm)) || 'billing';
+    if (!ROUTES[key] || !routeOn(key)) key = Object.keys(ROUTES).find(k => ROUTES[k].nav !== false && routeOn(k)) || 'billing';
     if (location.hash !== '#/' + key) history.replaceState(null, '', '#/' + key);
     current?.unmount?.();
+    RestaurantWorkspace.beforeRoute();
     const r = ROUTES[key]; current = r.view();
     markNav(key);
     document.body.classList.remove('nav-open');
     document.body.dataset.route = key;
-    const v = $('#view'); v.innerHTML = ''; current.mount(v);
+    const v = $('#view'); v.innerHTML = '';
+    if (Cloud.sectionHidden?.(key)) { v.innerHTML = '<div class="page"><section class="card empty"><h2>This tab is hidden by the administrator</h2><p>Your administrator can restore access in Settings.</p></section></div>'; return; }
+    current.mount(v);
   }
 
   /* ---------- help & contact ---------- */
@@ -307,7 +323,7 @@ const App = (() => {
     // repaint the sign-in card with the shop name and support details, keeping anything already typed
     if (!Store.me && $('#loginForm')) { const f = $('#loginForm'), em = f.email.value, pw = f.password.value; loginView(); $('#loginForm').email.value = em; $('#loginForm').password.value = pw; }
   }
-  function rebuildNav() { if (!Store.me || Store.isMember) return; const n = $('#sideNav'); if (!n) { shell(); return route(); } n.innerHTML = navHTML(); const key = (location.hash.match(/^#\/(\w+)/) || [])[1]; if (!key || !Store.can(ROUTES[key]?.perm)) route(); else markNav(key); }
+  function rebuildNav() { if (!Store.me || Store.isMember) return; const n = $('#sideNav'); if (!n) { shell(); return route(); } n.innerHTML = navHTML(); RestaurantWorkspace.paintCounts(); const key = (location.hash.match(/^#\/(\w+)/) || [])[1]; if (!key || !Store.can(ROUTES[key]?.perm)) route(); else markNav(key); }
   return { boot, applyShop, applyBrand, applyTheme, help, refreshMe, start, paintLock, rebuildNav, signOut, sync, setIcon, syncIcon, loginView, publicInfo: null };
 })();
 App.boot();

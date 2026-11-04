@@ -194,7 +194,7 @@ const Items = (() => {
     root = view;
     view.innerHTML = `<div class="page">
       <header class="page-head"><div><h1>Items</h1><p class="sub" id="iCount"></p></div>
-        <div class="head-actions"><button type="button" class="btn" id="iCats">Categories</button><button type="button" class="btn" id="iImp">${Icon('upload')} Import</button><button type="button" class="btn" id="iExp">${Icon('download')} Export</button><button type="button" class="btn btn-primary" id="iNew">${Icon('plus')} Add item</button></div></header>
+        <div class="head-actions">${Store.can('item_details')?'<a class="btn" href="#/itemDetails">Photos &amp; portions</a>':''}<button type="button" class="btn" id="iCats">Categories</button><button type="button" class="btn" id="iImp">${Icon('upload')} Import</button><button type="button" class="btn" id="iExp">${Icon('download')} Export</button><button type="button" class="btn btn-primary" id="iNew">${Icon('plus')} Add item</button></div></header>
       <div class="filters">
         <label class="search sm">${Icon('search')}<input id="iQ" type="search" placeholder="Search name or code" value="${esc(q)}" aria-label="Search items"></label>
         <select id="iCat" aria-label="Category"></select>

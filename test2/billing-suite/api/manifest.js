@@ -2,7 +2,7 @@
    vercel.json sends /manifest.webmanifest here. On other hosts the static manifest file is used instead. */
 const { call } = require('./_shop');
 
-const FALLBACK = { name: 'Shop Billing', short: 'Billing', icon_v: '', bg: '#eef1f4', theme: '#1c2433' };
+const FALLBACK = { name: 'Restaurant', short: 'Restaurant', icon_v: '', bg: '#eef1f4', theme: '#1c2433' };
 
 module.exports = async (req, res) => {
   const info = (await call('shop_public_info')) || {};
@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
   // short cache: phones re-read it now and then and pick up a new name or icon by themselves
   res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
   res.status(200).send(JSON.stringify({
-    id: '/billing-suite/', name, short_name: short, description: 'Billing, members and records.',
+    id: '/billing-suite/', name, short_name: short, description: 'Kitchen orders, tables, billing and records.',
     start_url: '/billing-suite/index.html', scope: '/billing-suite/', display: 'standalone', orientation: 'any',
     background_color: FALLBACK.bg, theme_color: FALLBACK.theme, icons
   }));

@@ -79,7 +79,7 @@ const Stocks = (() => {
     root = view;
     view.innerHTML = `<div class="page">
       <header class="page-head"><div><h1>Stocks</h1><p class="sub">Sales take stock off automatically. Add new stock when it arrives.</p></div>
-        <div class="head-actions"><div class="seg" id="sTabs"><button type="button" data-t="levels">Stock levels</button><button type="button" data-t="history">History</button></div></div></header>
+        <div class="head-actions"><a class="btn" href="#/stockRules">${Icon('box')} Stock rules</a><div class="seg" id="sTabs"><button type="button" data-t="levels">Stock levels</button><button type="button" data-t="history">History</button></div></div></header>
       <div id="sLevels">
         <div class="summary" id="sSummary"></div>
         <div class="filters">

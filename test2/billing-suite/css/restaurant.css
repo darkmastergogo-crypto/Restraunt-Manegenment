@@ -1,0 +1,75 @@
+/* Restaurant screens: built only from the billing tokens and components. */
+.ogrid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ocard { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line-strong, var(--line)); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.ocard.st-pending { border-left-color: var(--amber); }
+.ocard.st-cooking, .ocard.st-accepted, .ocard.st-ready { border-left-color: var(--primary); }
+.ocard.st-served, .ocard.st-handled { border-left-color: var(--green); }
+.ocard.st-cancelled, .ocard.st-rejected { border-left-color: var(--red); }
+.ocard.st-expired { background: var(--surface-2); border-style: dashed; }
+.ocard.tcard { border-left-width: 1px; }
+.ocard-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 12px 14px 10px; border-bottom: 1px solid var(--line-2); }
+.ocard-head > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ocard-head b { font-size: 1rem; overflow-wrap: anywhere; }
+.ocard-head small { font-size: .8rem; }
+.ocard-body { padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; font-size: .9rem; }
+.ocard-guest { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: .86rem; font-weight: 600; }
+.ocard-guest .ico { width: 15px; height: 15px; color: var(--muted); }
+.ocard-items { list-style: none; margin: 0; padding: 0; }
+.ocard-items li { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line-2); }
+.ocard-items li:last-child { border-bottom: 0; }
+.ocard-items .num { white-space: nowrap; font-weight: 600; }
+.ocard-qty { display: inline-block; min-width: 30px; font-family: var(--mono); font-size: .86rem; color: var(--primary); }
+.ocard-note { display: flex; gap: 8px; align-items: flex-start; background: var(--amber-soft); color: var(--ink); border-radius: var(--radius-sm); padding: 8px 10px; font-size: .88rem; }
+.ocard-note .ico { width: 16px; height: 16px; color: var(--amber); margin-top: 1px; }
+.ocard-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px 12px; border-top: 1px solid var(--line-2); background: var(--surface-2); }
+.ocard-total { display: flex; flex-direction: column; }
+.ocard-total span { font-size: .74rem; color: var(--muted); font-weight: 600; }
+.ocard-total b { font-size: 1.15rem; }
+.ocard-foot .toolbar { margin-left: auto; justify-content: flex-end; }
+.inline-add.card { margin-bottom: 14px; align-items: flex-end; }
+.inline-form { align-items: flex-end; margin: 0; }
+.inline-form .field { min-width: 0; }
+.tqr { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; padding-top: 4px; }
+.tqr > svg { width: 150px; height: 150px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; padding: 6px; }
+.tqr .toolbar .btn { min-height: 34px; }
+.dish-cell { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.dish-cell > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.dish-thumb { width: 44px; height: 44px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; flex: none; color: var(--muted); }
+.dish-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.size-row { display: grid; grid-template-columns: minmax(0, 1fr) 140px auto; gap: 10px; align-items: end; }
+.photo-edit { display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; min-height: 160px; }
+.photo-edit img, .photo-edit canvas { width: min(320px, 100%); aspect-ratio: 1; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface); touch-action: none; }
+.photo-edit canvas { cursor: grab; }
+.side-nav a .nav-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 99px; background: var(--amber); color: #fff; font-size: .74rem; font-weight: 700; text-align: center; line-height: 1.5; }
+.side-nav a .nav-count:empty { display: none; }
+.side-nav a .nav-count + kbd { margin-left: 8px; }
+.workspace-designer { margin-top: 14px; }
+@media (max-width: 600px) {
+  .ogrid { grid-template-columns: 1fr; }
+  .tqr { grid-template-columns: 1fr; }
+  .tqr > svg { justify-self: center; }
+  .size-row { grid-template-columns: minmax(0, 1fr) 104px auto; }
+  .ocard-foot .toolbar { margin-left: 0; width: 100%; justify-content: flex-start; }
+  .ocard-foot .toolbar .btn { flex: 1 1 auto; }
+  .inline-add.card { flex-wrap: wrap; }
+  .inline-add.card .btn { width: 100%; }
+  .inline-form { flex-wrap: wrap; }
+  .inline-form .btn { width: 100%; }
+}
+
+.page.rx > .card, .page.rx > .stack, .page.rx > form.card { margin-bottom: 14px; }
+.page.rx .status-line:empty { display: none; }
+.ocard-dev { display: flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--muted); border-top: 1px dashed var(--line-2); padding-top: 8px; margin-top: 2px; }
+.ocard-dev .ico { width: 15px; height: 15px; }
+.ocard-dev > span { flex: 1; min-width: 0; }
+.ocard-dev .btn { min-height: 30px; }
+.rx-danger { margin-top: 14px; padding-top: 4px; padding-bottom: 4px; }
+.rx-danger .data-row { border-top: 0; }
+@media (max-width: 600px) {
+  .page.rx .filters input[type=date], .page.rx .filters input[type=month], .page.rx .filters input[type=number] { flex: 1 1 100%; width: 100% !important; }
+  .page.rx .filters > .hint { flex-basis: 100%; }
+}
+/* More screens than the shop app: keep the whole menu visible on laptop-height screens. */
+@media (min-width: 901px) and (max-height: 980px) { .side { gap: 12px; } .side-brand { padding-bottom: 10px; } .side-nav a, .side-btn { padding-top: 7px; padding-bottom: 7px; } .side-foot { padding-top: 8px; } }
+@media (min-width: 901px) and (max-height: 820px) { .side-nav a, .side-btn { padding-top: 5px; padding-bottom: 5px; font-size: .9rem; } .side-brand small { display: none; } }
+.page.rx .seg button { white-space: nowrap; flex: none; }

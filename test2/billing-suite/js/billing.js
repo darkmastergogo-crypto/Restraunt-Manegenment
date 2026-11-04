@@ -68,7 +68,7 @@ const Billing = (() => {
     const sig = JSON.stringify([category, query, highlight, cats, shown.map(i => [i.id, i.name, i.price, i.stock, i.track_stock, i.code]), warnMode(), Store.stockShown(), codes, list.length]);
     if (!force && sig === catalogSig) return paintBadges();
     catalogSig = sig;
-    $('#bCats', root).innerHTML = cats.map(c => `<button type="button" class="chip ${c === category ? 'on' : ''}" data-cat="${esc(c)}">${esc(c === 'All' ? 'All items' : c)}</button>`).join('');
+    $('#bCats', root).innerHTML = cats.map(c => `<button type="button" class="chip ${c === category ? 'on' : ''}" data-cat="${esc(c)}">${esc(c === 'All' ? 'All items' : c)} <span class="category-count">${Store.items.filter(i => i.active && (c === 'All' || i.category === c)).length}</span></button>`).join('');
     const grid = $('#bGrid', root);
     if (!Store.items.length) {
       grid.innerHTML = `<div class="empty"><h3>No items yet</h3><p>${Store.can('items') ? 'Add the things you sell in <a href="#/items">Items</a>.' : 'Ask the owner to add items.'}</p></div>`;
