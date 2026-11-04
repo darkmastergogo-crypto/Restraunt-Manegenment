@@ -1,0 +1,248 @@
+/* Billing-reference visual layer: matches the compact POS screenshots while
+   leaving existing actions, permissions, and data flows unchanged. */
+body.staff-site,body.waiter-site{--ref-blue:#2563eb;--ref-navy:#182235;--ref-bg:#eef3f7;--ref-line:#c7d0db;--ref-ink:#172033;background:var(--ref-bg)!important;color:var(--ref-ink)!important}
+body.staff-site>header,body.waiter-site>header{background:#fff!important;color:var(--ref-ink)!important;border-bottom:1px solid var(--ref-line)!important;box-shadow:0 1px 0 #0000000b!important}
+body.staff-site .header-left{background:#fff!important;color:var(--ref-ink)!important;padding:14px 18px!important;align-items:center}
+body.staff-site .staff-brand strong{color:var(--ref-ink)!important}
+body.staff-site .header-left h1{color:var(--ref-ink)!important;border-color:var(--ref-line)!important}
+body.staff-site .nav-tabs{background:#fff!important;border-bottom:1px solid var(--ref-line)!important;padding:10px 14px!important}
+body.staff-site .nav-tab-btn{background:#fff!important;color:var(--ref-ink)!important;border:1px solid var(--ref-line)!important;border-radius:8px!important;box-shadow:0 2px 0 #111!important;font-weight:700!important;min-height:44px!important}
+body.staff-site .nav-tab-btn.active{background:var(--ref-navy)!important;color:#fff!important;border-color:var(--ref-navy)!important;box-shadow:inset 3px 0 var(--ref-blue),0 2px 0 #111!important}
+body.staff-site .nav-tab-btn:hover:not(.active){background:#f5f8fb!important}
+body.staff-site main{padding:18px 14px 110px!important}
+body.staff-site main:has(#billingSection:not([hidden])){transform:none!important;animation:none!important}
+body.staff-site .page-tools{margin-bottom:16px!important}
+body.staff-site .page-tools h2{color:var(--ref-ink)!important;font-weight:800!important}
+body.staff-site .primary-btn,body.waiter-site .primary-btn{background:var(--ref-blue)!important;color:#fff!important;border:1px solid #1749b5!important;border-radius:6px!important;box-shadow:2px 2px 0 #111!important;font-weight:750!important;min-height:44px!important;padding:10px 16px!important}
+body.staff-site .secondary-btn,body.waiter-site .secondary-btn{background:#fff!important;color:var(--ref-ink)!important;border:1px solid #52606f!important;border-radius:6px!important;box-shadow:2px 2px 0 #111!important;font-weight:700!important;min-height:44px!important;padding:10px 16px!important}
+body.staff-site .danger-btn{border-radius:6px!important;box-shadow:2px 2px 0 #111!important}
+body.staff-site :is(.panel,.order-card,.stat-card,.analytics-metric,.stock-card,.device-card,.table-management-card,.menu-row),body.waiter-site :is(.panel,.order-card){background:#fff!important;color:var(--ref-ink)!important;border:1px solid var(--ref-line)!important;border-radius:10px!important;box-shadow:0 2px 8px #16263d12!important}
+body.staff-site input:not([type=checkbox]):not([type=radio]),body.staff-site select,body.staff-site textarea,body.waiter-site input:not([type=checkbox]):not([type=radio]),body.waiter-site select,body.waiter-site textarea{background:#fff!important;color:var(--ref-ink)!important;border:1px solid #7b8794!important;border-radius:6px!important;min-height:44px!important}
+/* Billing counter */
+#billingSection .manual-layout{display:block!important;max-width:860px;margin:0 auto;padding-bottom:95px!important}
+#billingSection .manual-layout>.panel{border-radius:10px!important;padding:16px!important}
+#billingSection .manual-filters{grid-template-columns:minmax(0,1fr) auto!important;align-items:end;gap:10px!important}
+#billingSection .manual-filters label:first-child{min-width:0}
+#billingSection .manual-filters{grid-template-columns:minmax(0,1fr) 52px!important}
+#billingSection .manual-filters label:nth-child(2){display:none!important}
+#billingSection .manual-filters input,#billingSection .manual-filters select{background:#fffbe9!important;border:1px solid #78828d!important}
+#billingSection .manual-filters label:first-child{position:relative!important}
+#billingSection .manual-filters label:first-child::before{content:"⌕";position:absolute;left:14px;bottom:12px;color:#657180;font-size:24px;line-height:1;z-index:1}
+#billingSection .manual-filters label:first-child input{padding-left:44px!important;font-size:17px!important}
+#billingSection .manual-filters .secondary-btn{position:absolute!important;left:calc(100% + 10px)!important;bottom:0!important;min-width:52px!important;width:52px!important;height:52px!important;padding:0!important;font-size:28px!important;line-height:1!important}
+#billingSection .manual-category-chips{display:flex!important;gap:10px!important;overflow-x:auto!important;overscroll-behavior-x:contain!important;margin:14px 0 12px!important;padding:0 0 4px!important;scrollbar-width:none!important}
+#billingSection .manual-category-chips button{flex:0 0 auto!important;min-height:46px!important;padding:0 18px!important;border:1px solid #d5dbe3!important;border-radius:25px!important;background:#fff!important;color:#334155!important;box-shadow:none!important;font-size:15px!important;font-weight:700!important}
+#billingSection .manual-category-chips button.active{background:#182235!important;color:#fff!important;border-color:#182235!important}
+#billingSection #manualMenuCount63{margin:8px 0 14px!important;color:#687585!important;font-size:14px!important}
+#billingSection #manualMenu{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#billingSection button.pos-card{min-height:152px!important;padding:16px 14px 13px!important;border:1px solid #d5dbe3!important;border-radius:11px!important;background:#fff!important;box-shadow:none!important;grid-template-rows:minmax(44px,1fr) auto!important;gap:10px!important}
+#billingSection button.pos-card:has(i){background:#e7f0fc!important;border:2px solid #3d78bd!important}
+#billingSection button.pos-card strong,#billingSection button.pos-card b{color:#172033!important;text-shadow:none!important}
+#billingSection .pos-card strong{font:800 16px/1.25 system-ui,sans-serif!important;text-transform:uppercase!important;letter-spacing:-.1px!important;padding-right:28px!important}
+#billingSection .pos-card-footer{display:flex!important;align-items:baseline!important;justify-content:space-between!important;gap:6px!important}
+#billingSection .pos-card b{font:800 18px/1.2 system-ui,sans-serif!important;color:#111827!important;white-space:nowrap!important}
+#billingSection .pos-card b em{font-size:12px!important;font-style:normal!important;font-weight:500!important;color:#687585!important;margin-left:3px!important}
+#billingSection .pos-card small{font-size:13px!important;color:#687585!important;white-space:nowrap!important}
+#billingSection .pos-card i{position:absolute!important;top:-11px!important;right:-10px!important;display:grid!important;place-items:center!important;min-width:42px!important;height:42px!important;margin:0!important;border-radius:50%!important;padding:0!important;background:#225faa!important;color:#fff!important;font:800 14px/1 system-ui,sans-serif!important;box-shadow:0 1px 3px #17203333!important}
+#billingSection #manualMobileCheckout{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:999!important;background:#fff!important;color:var(--ref-ink)!important;border-top:1px solid var(--ref-line)!important;box-shadow:0 -4px 14px #16263d18!important;transform:none!important}
+#billingSection #manualMobileDone{background:var(--ref-blue)!important;border-color:#1749b5!important;color:#fff!important}
+#billingSection:not(.pos-review) #manualMobileCheckout{min-height:84px!important;padding:11px 28px calc(11px + env(safe-area-inset-bottom))!important}
+#billingSection:not(.pos-review) #manualMobileCheckout small{font-size:14px!important;color:#687585!important}
+#billingSection:not(.pos-review) #manualMobileCheckout b{font:800 24px/1.2 system-ui,sans-serif!important;color:#172033!important}
+#billingSection:not(.pos-review) #manualMobileDone{min-width:160px!important;min-height:54px!important;font-size:18px!important}
+#billingSection #manualMobilePayment,#billingSection #manualMobileTotal{color:var(--ref-ink)!important}
+#billingSection.pos-review .manual-layout>.manual-summary{display:block!important}
+#billingSection .pos-line{padding:13px 0!important;border-bottom:1px solid var(--ref-line)!important}
+#billingSection .pos-line button{background:#fff!important;border:1px solid #7b8794!important;border-radius:5px!important;min-width:32px;min-height:32px;box-shadow:1px 1px 0 #111}
+#billingSection .manual-total{font-size:22px!important;border-top:2px solid var(--ref-ink)!important}
+#billingSection.pos-review .manual-layout{max-width:680px!important;padding:0 0 24px!important}
+#billingSection.pos-review .manual-layout>.manual-summary{
+  display:block!important;
+  padding:0 28px 28px!important;
+  background:#fff!important;
+  border:1px solid #d6dce4!important;
+  border-radius:4px!important;
+  box-shadow:0 2px 8px #16263d10!important;
+}
+#billingSection.pos-review .manual-layout>.manual-summary #posBack{
+  display:block!important;
+  width:calc(100% + 56px)!important;
+  margin:0 -28px 0!important;
+  padding:20px 28px 18px!important;
+  text-align:left!important;
+  color:#2563eb!important;
+  background:#fff!important;
+  border:0!important;
+  border-bottom:1px dashed #c7d0db!important;
+  box-shadow:none!important;
+  font-size:16px!important;
+  font-weight:700!important;
+}
+#billingSection.pos-review #manualCart h3{
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:18px 0 16px!important;
+  border-bottom:1px dashed #c7d0db!important;
+  font:700 18px/1.2 system-ui,sans-serif!important;
+  color:#172033!important;
+}
+#billingSection.pos-review #manualCart h3 small{font:600 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;color:#172033!important}
+#billingSection.pos-review #manualCart h3::after{content:""}
+#billingSection.pos-review .pos-line{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 198px 76px!important;
+  grid-template-areas:"name controls amount" "unit controls amount";
+  align-items:center!important;
+  column-gap:12px!important;
+  min-height:94px!important;
+  padding:14px 0!important;
+  border-bottom:1px solid #e0e4e9!important;
+}
+#billingSection.pos-review .pos-line strong{grid-area:name;align-self:end!important;font:700 16px/1.25 system-ui,sans-serif!important;color:#172033!important;overflow-wrap:anywhere}
+#billingSection.pos-review .pos-line small{grid-area:unit;align-self:start!important;color:#6b7280!important;font-size:14px!important}
+#billingSection.pos-review .pos-line>div{grid-area:controls;display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;width:198px!important;height:44px!important;border:1px solid #d3d8de!important;border-radius:8px!important;background:#fff!important;overflow:hidden!important}
+#billingSection.pos-review .pos-line>div button{min-width:42px!important;width:42px!important;height:42px!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;color:#172033!important;font-size:21px!important;font-weight:500!important}
+#billingSection.pos-review .pos-line>div button[data-delta="0"]{min-width:28px!important;width:28px!important;color:#9aa2ab!important;font-size:22px!important}
+#billingSection.pos-review .pos-line>b{grid-area:amount;justify-self:end!important;color:#172033!important;font:700 16px/1.2 system-ui,sans-serif!important;white-space:nowrap!important}
+#billingSection.pos-review #manualTotals{padding-top:18px!important;border-top:1px dashed #c7d0db!important}
+#billingSection.pos-review #manualTotals .receipt-row{margin:0!important;padding:8px 0!important;font-size:16px!important;color:#172033!important}
+#billingSection.pos-review #manualTotals .manual-total{margin-top:8px!important;padding:18px 0 4px!important;border-top:2px solid #8a929c!important;font-size:24px!important;color:#172033!important}
+#billingSection.pos-review .manual-payment{display:grid!important;grid-template-columns:auto 1fr 1fr!important;align-items:center!important;gap:12px!important;margin:24px 0 16px!important;padding:0!important;border:0!important;background:transparent!important;color:#172033!important}
+#billingSection.pos-review .manual-payment>span{font-size:17px!important;font-weight:700!important;white-space:nowrap!important}
+#billingSection.pos-review .manual-payment label{display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;min-height:48px!important;padding:0 10px!important;border:1px solid #cbd2da!important;border-radius:9px!important;background:#fff!important;color:#172033!important;font-size:16px!important;font-weight:700!important}
+#billingSection.pos-review .manual-payment label:has(input:checked){border-color:#2563eb!important;box-shadow:inset 0 0 0 1px #2563eb!important;background:#f4f8ff!important}
+#billingSection.pos-review .manual-payment input{width:22px!important;height:22px!important;margin:0!important;accent-color:#2563eb!important}
+#billingSection.pos-review .manual-layout>.manual-summary>.toolbar{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important;margin:18px 0 0!important}
+#billingSection.pos-review .manual-layout>.manual-summary>.toolbar button{width:100%!important;min-height:52px!important;margin:0!important;font-size:16px!important}
+#billingSection.pos-review #manualDone{background:#8b8b8b!important;border-color:#777!important;box-shadow:none!important;color:#fff!important}
+#billingSection.pos-review #manualClear{background:#fff!important;border:2px solid #111!important;color:#172033!important;box-shadow:2px 2px 0 #111!important}
+#billingSection.pos-review #manualMobileCheckout{display:none!important}
+#billingSection.pos-review #manualStatus,#billingSection.pos-review #manualPendingNotice{font-size:13px!important;color:#4d5968!important}
+#extraItemDialog{background:#fff!important;color:var(--ref-ink)!important;border:1px solid var(--ref-line)!important;border-radius:12px!important}
+#extraItemDialog .manual-custom57{background:#fffbe9!important;border:0!important;margin:0!important;border-radius:12px!important}
+#extraItemDialog.extra-item-dialog{width:min(100%,680px)!important;max-width:680px!important;margin:auto!important;padding:0!important;border:0!important;border-radius:18px 18px 0 0!important;overflow:hidden!important}
+#extraItemDialog.extra-item-dialog::backdrop{background:#17203388!important;backdrop-filter:blur(2px)}
+#extraItemDialog.extra-item-dialog .manual-custom57{padding:28px 28px 26px!important;background:#fff!important;border-radius:0!important}
+#extraItemDialog.extra-item-dialog #manualCustomHeading{font:700 24px/1.2 system-ui,sans-serif!important;text-transform:none!important;letter-spacing:0!important;margin:0 0 24px!important;color:#172033!important}
+#extraItemDialog.extra-item-dialog #closeExtraItem{position:absolute;top:20px;right:20px;float:none!important;width:38px;height:38px;min-height:38px;padding:0;border:0!important;background:transparent!important;color:#172033!important;font-size:32px!important;font-weight:300;box-shadow:none!important}
+#extraItemDialog.extra-item-dialog .manual-custom57>div:first-of-type{border-bottom:1px solid #d7dde5;margin:0 -28px 28px;padding:0 28px 22px}
+#extraItemDialog.extra-item-dialog .manual-custom-grid57{display:grid!important;grid-template-columns:1fr!important;gap:18px!important;align-items:stretch!important}
+#extraItemDialog.extra-item-dialog .manual-custom-grid57 label{display:grid!important;gap:8px!important;margin:0!important;font-size:16px!important;font-weight:600;color:#172033!important}
+#extraItemDialog.extra-item-dialog .manual-custom-grid57 label input{margin:0!important;width:100%!important;min-height:58px!important;padding:12px 16px!important;border:1px solid #aeb7c2!important;border-radius:9px!important;background:#fff!important;color:#172033!important;font-size:18px!important;box-sizing:border-box}
+#extraItemDialog.extra-item-dialog .manual-custom-grid57 label:first-child input{border:2px solid #6d9de0!important;box-shadow:0 0 0 3px #dceaff!important}
+#extraItemDialog.extra-item-dialog .manual-custom57>.hint{order:3;margin:24px 0 0!important;color:#4d5968!important;font-size:15px!important;line-height:1.55!important}
+#extraItemDialog.extra-item-dialog .manual-custom-grid57 button{min-height:52px!important;border-radius:6px!important;font-size:17px!important;margin-top:4px}
+#extraItemDialog.extra-item-dialog #cancelExtraItem{grid-row:5;background:#fff!important;border:0!important;box-shadow:none!important;color:#172033!important}
+#extraItemDialog.extra-item-dialog #manualCustomAdd{grid-row:5;background:#2563eb!important;border:1px solid #1749b5!important;color:#fff!important;box-shadow:2px 2px 0 #111!important}
+#extraItemDialog.extra-item-dialog .manual-custom-grid57{position:relative;padding-bottom:70px}
+#extraItemDialog.extra-item-dialog #cancelExtraItem{position:absolute;right:132px;bottom:0;width:110px}
+#extraItemDialog.extra-item-dialog #manualCustomAdd{position:absolute;right:0;bottom:0;width:132px}
+#staffCallModal{color:var(--ref-ink)!important;background:#fff!important}
+#staffCallModal #staffCallSend{background:#2f7d46!important;color:#fff!important;border-color:#215a32!important}
+@media(max-width:600px){body.staff-site .header-left{padding-right:64px!important}body.staff-site .nav-tabs{padding:10px!important}body.staff-site #managerNav{background:var(--ref-navy)!important}body.staff-site #managerNav .nav-tab-btn{background:transparent!important;color:#eef4fb!important;border-color:#ffffff20!important;box-shadow:none!important}body.staff-site #managerNav .nav-tab-btn.active{background:#354258!important;color:#fff!important}#billingSection #manualMenu{grid-template-columns:repeat(2,minmax(0,1fr))!important}#billingSection .manual-filters{grid-template-columns:minmax(0,1fr) 46px!important}#billingSection .manual-filters label:nth-child(2){display:none}}
+@media(max-width:600px){#extraItemDialog.extra-item-dialog{width:100%!important;max-width:none!important;margin:auto 0 0!important;border-radius:18px 18px 0 0!important}#extraItemDialog.extra-item-dialog .manual-custom57{padding:24px 28px 28px!important}#extraItemDialog.extra-item-dialog #manualCustomHeading{font-size:23px!important}}
+@media(max-width:600px){
+ #billingSection.pos-review .manual-layout>.manual-summary{padding-left:28px!important;padding-right:28px!important}
+ #billingSection.pos-review .pos-line{grid-template-columns:minmax(0,1fr) 148px 66px!important;column-gap:8px!important}
+ #billingSection.pos-review .pos-line>div{width:148px!important}
+ #billingSection.pos-review .pos-line>div button{min-width:32px!important;width:32px!important}
+ #billingSection.pos-review .manual-payment{grid-template-columns:1fr 1fr!important}
+ #billingSection.pos-review .manual-payment>span{grid-column:1/-1}
+}
+
+/* Reference billing-app dashboard and stock summaries. */
+body.staff-site #dashboardSection,body.staff-site #stocksSection{max-width:760px;margin:0 auto}
+body.staff-site #dashboardSection .page-tools,body.staff-site #stocksSection .page-tools{align-items:flex-start!important}
+body.staff-site #dashboardSection .analytics-controls{display:flex!important;gap:0!important;flex-wrap:wrap!important;margin:12px 0 18px!important;padding:4px!important;background:#fff!important;border:1px solid #d7dde5!important;border-radius:10px!important}
+body.staff-site #dashboardSection .analytics-controls button{min-height:44px!important;padding:0 15px!important;border:0!important;background:transparent!important;color:#334155!important;border-radius:7px!important;box-shadow:none!important;font-size:14px!important;font-weight:700!important}
+body.staff-site #dashboardSection .analytics-controls button.primary-btn{background:#182235!important;color:#fff!important}
+body.staff-site #dashboardSection .analytics-controls label{display:none!important}
+body.staff-site #dashboardSection #analyticsRefresh,body.staff-site #dashboardSection #analyticsExport{display:none!important}
+body.staff-site #dashboardSection .analytics-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin:14px 0!important}
+body.staff-site #dashboardSection .analytics-metric{min-height:168px!important;padding:20px!important;border:1px solid #d7dde5!important;border-radius:12px!important;background:#fff!important;box-shadow:none!important}
+body.staff-site #dashboardSection .analytics-metric h3{font-size:13px!important;font-weight:600!important;color:#52606f!important;margin-bottom:14px!important}
+body.staff-site #dashboardSection .analytics-metric strong{font-size:30px!important;color:#172033!important}
+body.staff-site #dashboardSection .analytics-metric p{font-size:13px!important;color:#687585!important}
+body.staff-site #dashboardSection .analytics-metric:first-child{grid-column:1/-1!important;min-height:180px!important;background:#182235!important;border-color:#182235!important}
+body.staff-site #dashboardSection .analytics-metric:first-child h3,body.staff-site #dashboardSection .analytics-metric:first-child strong{color:#fff!important}
+body.staff-site #dashboardSection .analytics-metric:first-child p{color:#e89a9a!important;font-size:15px!important}
+body.staff-site #dashboardSection .analytics-metric:first-child strong{font-size:42px!important}
+body.staff-site #stocksSection .stock-summary{display:grid!important;grid-template-columns:1fr 1fr!important;gap:0!important;margin:16px 0!important;background:#fff!important;border:1px solid #d7dde5!important;border-radius:12px!important;overflow:hidden!important}
+body.staff-site #stocksSection .stock-summary>div{min-height:122px!important;padding:18px!important;border:0!important;border-right:1px solid #e0e5eb!important;border-bottom:1px solid #e0e5eb!important;border-radius:0!important;background:#fff!important}
+body.staff-site #stocksSection .stock-summary>div:nth-child(2n){border-right:0!important}body.staff-site #stocksSection .stock-summary>div:nth-last-child(-n+2){border-bottom:0!important}
+body.staff-site #stocksSection .stock-summary span{font-size:14px!important;color:#667085!important}body.staff-site #stocksSection .stock-summary strong{font-size:28px!important;color:#172033!important;margin-top:8px!important}body.staff-site #stocksSection .stock-summary small{display:block!important;margin-top:8px!important;color:#687585!important;font-size:12px!important;line-height:1.4!important}body.staff-site #stocksSection .stock-summary>div:nth-child(1) strong{color:#087c61!important}body.staff-site #stocksSection .stock-summary>div:nth-child(4) strong{color:#b13830!important}
+body.staff-site #stocksSection .stock-overview{display:none!important}
+body.staff-site #stocksSection .stock-filters{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}body.staff-site #stocksSection .stock-filters label:nth-child(n+3){display:none!important}
+body.staff-site #stocksSection .stock-list{margin-top:16px!important}body.staff-site #stocksSection .stock-card{border-radius:12px!important;padding:18px!important}
+@media(max-width:860px){
+ body.staff-site>header{min-height:76px!important;background:#fff!important}body.staff-site .header-left{padding:14px 18px 14px 76px!important;min-height:76px!important}body.staff-site .staff-brand{display:none!important}body.staff-site .header-left h1{font-size:0!important;border:0!important;padding:0!important}body.staff-site .header-left h1::after{content:attr(data-ref-title);font-size:25px!important;color:#172033!important}
+ .kitchen-nav-toggle:not(.nav-toggle-hidden){left:22px!important;right:auto!important;top:18px!important;background:transparent!important;box-shadow:none!important;border:0!important}.kitchen-nav-toggle span{background:#172033!important;width:23px!important}
+ header .nav-tabs#managerNav{left:0!important;right:auto!important;width:min(440px,82vw)!important;background:#182235!important;padding:24px 20px 18px!important;transform:translateX(-100%)!important;box-shadow:18px 0 40px #0004!important}header .nav-tabs#managerNav.open{transform:translateX(0)!important}header .nav-tabs#managerNav::before{content:attr(data-brand48)!important;display:block!important;color:#fff!important;font:800 24px/1.2 system-ui,sans-serif!important;padding:18px 12px 10px!important;border-bottom:1px solid #ffffff16!important;margin-bottom:8px!important}header .nav-tabs#managerNav .nav-tab-btn{color:#d8e1ec!important;background:transparent!important;border:0!important;border-radius:8px!important;padding:15px 14px!important;min-height:54px!important;font-size:18px!important;box-shadow:none!important}header .nav-tabs#managerNav .nav-tab-btn.active{background:#354258!important;color:#fff!important;box-shadow:inset 4px 0 #2563eb!important}
+ .manager-drawer-footer{margin-top:auto!important;padding-top:16px!important;border-top:1px solid #ffffff16!important}.manager-drawer-footer button{display:grid!important;grid-template-columns:30px 1fr!important;align-items:center!important;width:100%!important;min-height:56px!important;border:0!important;background:transparent!important;color:#d8e1ec!important;text-align:left!important;font-size:17px!important;padding:10px 14px!important}.manager-drawer-footer button small{grid-column:2!important;color:#98a5b4!important;font-size:12px!important;margin-top:-10px!important}.manager-drawer-footer button span{font-weight:650!important}
+}
+@media(max-width:420px){body.staff-site #dashboardSection .analytics-metric:first-child strong{font-size:36px!important}body.staff-site #dashboardSection .analytics-metric{min-height:152px!important;padding:16px!important}body.staff-site #stocksSection .stock-summary>div{padding:15px!important;min-height:112px!important}body.staff-site #stocksSection .stock-summary strong{font-size:24px!important}}
+
+/* Reference billing-app Settings: compact horizontal sections and practical,
+   paper-white forms.  This intentionally keeps the existing management forms
+   and server permissions intact rather than replacing them with a mock. */
+body.staff-site #managementSection{max-width:760px;margin:0 auto!important;padding-bottom:36px!important}
+body.staff-site #managementSection>h2{font:800 34px/1.15 system-ui,sans-serif!important;margin:10px 0 4px!important;color:#172033!important}
+body.staff-site #managementSection>h2::after{content:"Your shop, bills, billing screen and staff.";display:block;margin-top:8px;color:#687585;font:400 16px/1.5 system-ui,sans-serif!important}
+body.staff-site #managementSection .custom48{padding:0!important;margin:20px 0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+body.staff-site #managementSection .custom48-heading{display:none!important}
+body.staff-site #managementSection .custom49-shortcuts{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;gap:0!important;margin:0 -14px 16px!important;padding:0 14px!important;border-bottom:1px solid #d7dde5!important;scrollbar-width:none!important}
+body.staff-site #managementSection .custom49-shortcuts button{flex:0 0 auto!important;margin:0!important;padding:14px 16px!important;border:0!important;border-bottom:4px solid transparent!important;border-radius:0!important;background:transparent!important;color:#4b5563!important;box-shadow:none!important;font-size:16px!important;font-weight:700!important}
+body.staff-site #managementSection .custom49-shortcuts button.active{color:#2563eb!important;border-bottom-color:#2563eb!important;background:#f7faff!important}
+body.staff-site #managementSection .custom48 details{margin:0 0 14px!important;padding:0!important;border:1px solid #d7dde5!important;border-radius:12px!important;background:#fff!important;overflow:hidden!important}
+body.staff-site #managementSection .custom48 details>summary{padding:19px 20px!important;margin:0!important;background:#fff!important;color:#172033!important;font-size:19px!important;font-weight:800!important;list-style:none!important}
+body.staff-site #managementSection .custom48 details>summary::after{content:"⌄";float:right;color:#667085!important;font-size:20px!important}
+body.staff-site #managementSection .custom48 details[open]>summary{border-bottom:1px solid #e1e6ec!important}
+body.staff-site #managementSection .custom48 details[open]>summary::after{content:"⌃"}
+body.staff-site #managementSection .custom48 details>*:not(summary){margin-left:20px!important;margin-right:20px!important}
+body.staff-site #managementSection .custom48 .bill49-controls{margin-top:16px!important;padding:0!important;border:0!important;background:transparent!important}
+body.staff-site #managementSection .bill49-template-title{margin:18px 20px 12px!important;color:#172033!important;font-size:23px!important}
+body.staff-site #managementSection .bill49-templates{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important;margin:0 20px 20px!important}
+body.staff-site #managementSection .bill49-templates label{position:relative!important;display:grid!important;grid-template-rows:78px auto auto!important;gap:5px!important;min-height:155px!important;margin:0!important;padding:12px!important;border:1px solid #cbd4de!important;border-radius:10px!important;background:#fff!important;color:#172033!important;cursor:pointer!important}
+body.staff-site #managementSection .bill49-templates input{position:absolute!important;opacity:0!important;pointer-events:none!important}
+body.staff-site #managementSection .bill49-templates label:has(input:checked){border:3px solid #2563eb!important;padding:10px!important;background:#f7faff!important}
+body.staff-site #managementSection .bill49-templates b{font-size:18px!important;line-height:1.1!important}.bill49-templates small{color:#687585!important;font-size:13px!important;line-height:1.3!important}
+body.staff-site #managementSection .receipt-thumb{display:block!important;border:1px solid #dde3ea!important;border-radius:5px!important;background:repeating-linear-gradient(#aab3be 0 6px,transparent 6px 14px)!important;background-size:75% 58%!important;background-position:center!important;background-repeat:no-repeat!important}
+body.staff-site #managementSection .receipt-thumb.classic{border-bottom:2px dashed #7a8491!important}.receipt-thumb.modern{background:linear-gradient(#2563eb 0 24px,transparent 24px),repeating-linear-gradient(#aab3be 0 6px,transparent 6px 14px)!important;background-size:100% 100%,75% 50%!important;background-position:center!important;background-repeat:no-repeat!important}.receipt-thumb.minimal{background-size:62% 44%!important}.receipt-thumb.grid{background:repeating-linear-gradient(0deg,#aab3be 0 1px,transparent 1px 18px),repeating-linear-gradient(90deg,#aab3be 0 1px,transparent 1px 42px)!important}.receipt-thumb.executive{border-top:5px double #172033!important;border-bottom:5px double #172033!important}
+body.staff-site #managementSection .bill49-upi{margin:16px 20px!important;padding:18px!important;border:1px solid #2563eb!important;border-radius:10px!important;background:#f7faff!important}body.staff-site #managementSection .bill49-upi h3{margin:0 0 4px!important;color:#1749b5!important;font-size:20px!important}body.staff-site #managementSection .bill49-upi p{margin:0 0 14px!important;color:#52606f!important}.bill49-upi-only{display:flex!important;align-items:center!important;gap:10px!important;margin:16px 0 0!important;font-size:15px!important;font-weight:700!important}.bill49-upi-only input{width:28px!important;height:28px!important;margin:0!important;accent-color:#2563eb!important}
+body.staff-site #managementSection .bill49-extras{margin:16px 20px!important;padding:0!important;border:1px solid #d7dde5!important;border-radius:10px!important;background:#fff!important;overflow:hidden!important}body.staff-site #managementSection .bill49-extras>h3{margin:0!important;padding:18px 18px 4px!important;font-size:22px!important}body.staff-site #managementSection .bill49-extras>p{margin:0!important;padding:0 18px 14px!important;color:#687585!important}.bill49-extra-toggle{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;margin:0!important;padding:18px!important;border-top:1px solid #e1e6ec!important}.bill49-extra-toggle span{display:grid!important;gap:4px!important}.bill49-extra-toggle b{font-size:17px!important}.bill49-extra-toggle small{color:#687585!important;font-size:13px!important;line-height:1.35!important}.bill49-extra-toggle input{flex:0 0 auto!important;width:52px!important;height:30px!important;accent-color:#2563eb!important}.bill49-extra-field{display:grid!important;gap:8px!important;margin:0!important;padding:0 18px 18px!important}.bill49-extra-field textarea,.bill49-extra-field input{width:100%!important;margin:0!important}.bill49-signature-preview{min-height:62px!important;margin:0 18px 12px!important;padding:10px!important;border:1px dashed #b7c0cb!important;border-radius:8px!important;background:#f8fafc!important;color:#687585!important}.bill49-signature-preview img{display:block!important;max-width:180px!important;max-height:64px!important;object-fit:contain!important}.bill49-extras #bill49SignatureRemove{margin:0 18px 18px!important}
+body .receipt.yummy-receipt.receipt-template-modern .receipt-brand49{padding:12px!important;background:#2563eb!important;color:#fff!important}body .receipt.yummy-receipt.receipt-template-modern .receipt-brand49 *{color:#fff!important}body .receipt.yummy-receipt.receipt-template-grid table,body .receipt.yummy-receipt.receipt-template-grid th,body .receipt.yummy-receipt.receipt-template-grid td{border:1px solid #555!important}body .receipt.yummy-receipt.receipt-template-minimal table{margin:20px 0!important}body .receipt.yummy-receipt.receipt-template-executive{border-top:4px double #111!important;border-bottom:4px double #111!important}
+body .receipt-upi-qr{display:grid!important;place-items:center!important;gap:5px!important;margin:12px auto!important;text-align:center!important}body .receipt-upi-qr svg{display:block!important;width:88px!important;height:88px!important;background:#fff!important}body .receipt-upi-qr b,body .receipt-upi-qr small{display:block!important;text-align:center!important}body .receipt-upi-qr small{font-size:10px!important;overflow-wrap:anywhere!important}.receipt-upi-medium svg{width:116px!important;height:116px!important}.receipt-upi-large svg{width:148px!important;height:148px!important}
+body .receipt-bank-details{margin-top:14px!important;padding-top:10px!important;border-top:1px dashed #555!important;text-align:left!important}body .receipt-bank-details p{margin:5px 0 0!important;white-space:pre-line!important;overflow-wrap:anywhere!important}body .receipt-signature{display:grid!important;justify-items:end!important;gap:3px!important;margin-top:14px!important;text-align:right!important}body .receipt-signature img{display:block!important;max-width:120px!important;max-height:58px!important;object-fit:contain!important}body .receipt-signature b{font-size:10px!important}
+body.staff-site #managementSection .custom48 .custom48-grid{grid-template-columns:1fr!important;gap:15px!important}
+body.staff-site #managementSection .custom48 .custom48-grid label,body.staff-site #managementSection .custom48 .custom48-checks label{margin:0!important;color:#172033!important;font-size:16px!important;font-weight:650!important}
+body.staff-site #managementSection .custom48 .custom48-checks{grid-template-columns:1fr!important;gap:0!important;border:1px solid #d7dde5!important;border-radius:10px!important;overflow:hidden!important}
+body.staff-site #managementSection .custom48 .custom48-checks label{display:flex!important;align-items:center!important;gap:13px!important;padding:15px!important;border:0!important;border-bottom:1px solid #e1e6ec!important;border-radius:0!important;background:#fff!important}
+body.staff-site #managementSection .custom48 .custom48-checks label:last-child{border-bottom:0!important}
+body.staff-site #managementSection .custom48 input[type=checkbox],body.staff-site #managementSection .custom48 input[type=radio]{width:28px!important;height:28px!important;min-height:28px!important;margin:0!important;accent-color:#2563eb!important}
+body.staff-site #managementSection .custom48 .bill49-buttons{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important;margin:22px 0 18px!important}
+body.staff-site #managementSection .custom48 .bill49-buttons button{margin:0!important;min-height:54px!important}
+body.staff-site #managementSection .management48-group{margin:14px 0!important;border:1px solid #d7dde5!important;border-radius:12px!important;background:#fff!important;box-shadow:none!important}
+body.staff-site #managementSection .management48-group>summary{padding:19px 20px!important;color:#172033!important;font-size:18px!important;font-weight:800!important}
+body.staff-site #managementSection .management48-group>.panel{padding:0 20px 20px!important;background:#fff!important}
+body.staff-site #managementSection :is(#yummyContactSettings,#alertPreferencesForm,#waiterAccessPanel,#waiterAccounts66,#managerPerms66,#themeStudio,#stockVisibilitySettings,#orderDevicePermissionPanel,#resetControls,form.panel){padding:22px!important;margin:14px 0!important;border:1px solid #d7dde5!important;border-radius:12px!important;background:#fff!important;box-shadow:none!important}
+body.staff-site #managementSection #waiterAccounts66 h3{font-size:26px!important;margin:0 0 8px!important}body.staff-site #managementSection #waiterAccounts66 .wa-form{display:grid!important;grid-template-columns:1fr!important;gap:15px!important;margin-top:20px!important}body.staff-site #managementSection #waiterAccounts66 .wa-form label{font-size:16px!important;font-weight:650!important}body.staff-site #managementSection #waiterAccounts66 .wa-form input{margin-top:8px!important;min-height:54px!important;border:1px solid #7b8794!important;border-radius:8px!important;background:#fff!important;font-size:17px!important}body.staff-site #managementSection #waiterAccounts66 .wa-form .primary-btn{width:100%!important;min-height:54px!important;margin:0!important}body.staff-site #managementSection #waiterAccounts66 .wa-chip{background:#f8fafc!important;border-color:#d7dde5!important;color:#172033!important}body.staff-site #managementSection #waiterAccounts66 .wa-row{border-radius:10px!important;background:#fff!important;border-color:#d7dde5!important;padding:16px!important}
+body.staff-site #managementSection #yummyContactSettings h3{font-size:26px!important;margin:0 0 8px!important}body.staff-site #managementSection #yummyContactSettings h3::after{content:"Staff see this in Help & contact.";display:block;margin-top:7px;color:#687585;font:400 15px/1.5 system-ui,sans-serif!important}
+body.staff-site #managementSection #yummyContactSettings label:not(.waiter-permission){display:grid!important;gap:8px!important;margin:18px 0!important;color:#172033!important;font-size:16px!important;font-weight:650!important}
+body.staff-site #managementSection #yummyContactSettings :is(input:not([type=checkbox]),textarea){width:100%!important;margin:0!important;min-height:54px!important;padding:12px 14px!important;background:#fff!important;border:1px solid #7b8794!important;border-radius:8px!important;font-size:17px!important}
+body.staff-site #managementSection #yummyContactSettings textarea{min-height:120px!important;resize:vertical!important}
+body.staff-site #managementSection #yummyContactSettings .waiter-permission{display:flex!important;align-items:center!important;gap:10px!important;margin:16px 0!important;padding:14px!important;border:1px solid #d7dde5!important;border-radius:9px!important}
+body.staff-site #managementSection #yummyContactSettings .primary-btn{display:block!important;margin:22px 0 0 auto!important;min-height:54px!important}
+body.staff-site #managementSection .bill49-logo-preview{min-height:72px!important;margin:0!important;padding:12px!important;border:1px dashed #b7c0cb!important;border-radius:8px!important;background:#f8fafc!important}
+body.staff-site #managementSection .record-payment-option59{padding:18px!important;border:1px solid #d7dde5!important;border-radius:10px!important;background:#f8fafc!important}
+body.staff-site #managementSection .custom49-section-save{display:block!important;width:100%!important;margin:18px 0 0!important;min-height:54px!important}
+@media(max-width:520px){body.staff-site #managementSection>h2{font-size:31px!important}body.staff-site #managementSection .custom48 .bill49-buttons{grid-template-columns:1fr!important}body.staff-site #managementSection #yummyContactSettings .primary-btn{width:100%!important;margin-left:0!important}}
+
+/* Interaction parity: visible keyboard focus, comfortable touch targets and no
+   motion surprises. These rules do not change restaurant data or permissions. */
+body.staff-site :is(button,input,select,textarea,summary):focus-visible{outline:3px solid #8ab4f8!important;outline-offset:2px!important}
+body.staff-site button:disabled{cursor:not-allowed!important;opacity:.58!important;box-shadow:none!important}
+body.staff-site .nav-tab-btn,body.staff-site #managementSection .custom49-shortcuts button{touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important}
+@media(prefers-reduced-motion:reduce){body.staff-site *,body.staff-site *::before,body.staff-site *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media(max-width:390px){#billingSection button.pos-card{min-height:146px!important;padding:14px 12px 12px!important}#billingSection .pos-card strong{font-size:15px!important}#billingSection .pos-card b{font-size:17px!important}#billingSection:not(.pos-review) #manualMobileCheckout{padding-left:18px!important;padding-right:18px!important}#billingSection:not(.pos-review) #manualMobileDone{min-width:132px!important}#billingSection.pos-review .manual-layout>.manual-summary{padding-left:18px!important;padding-right:18px!important}#billingSection.pos-review .manual-layout>.manual-summary #posBack{width:calc(100% + 36px)!important;margin-left:-18px!important;margin-right:-18px!important;padding-left:18px!important;padding-right:18px!important}#billingSection.pos-review .pos-line{grid-template-columns:minmax(0,1fr) 116px 58px!important;column-gap:6px!important}#billingSection.pos-review .pos-line>div{width:116px!important}#billingSection.pos-review .pos-line>div button{min-width:28px!important;width:28px!important}.bill49-extra-toggle{align-items:flex-start!important}}
