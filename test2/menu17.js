@@ -92,7 +92,8 @@ function conf() {
   const show = { ...D.SHOW_DEFAULTS };
   if (m.show && typeof m.show === 'object') for (const [k, v] of Object.entries(m.show)) if (k in show && typeof v === 'boolean') show[k] = v;
   const slides = (Array.isArray(m.hero && m.hero.slides) ? m.hero.slides : []).map(s => ({ src: safeImg(s && s.src), caption: String((s && s.caption) || '').slice(0, 120) })).filter(s => s.src).slice(0, 8);
-  return { enabled: m.enabled !== false, L, theme, texts, show, slides, offers: D.offers(m.offers), density: m.density === 'compact' ? 'compact' : 'cozy' };
+  const catBanner = ['banner', 'thumb', 'none'].includes(m.catBanner) ? m.catBanner : 'banner';
+  return { enabled: m.enabled !== false, L, theme, texts, show, slides, offers: D.offers(m.offers), density: m.density === 'compact' ? 'compact' : 'cozy', catBanner };
 }
 let C = conf();
 const t = (key, vars = {}) => String(C.texts[key] ?? D.TEXT_DEFAULTS[key] ?? '').replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
@@ -284,7 +285,13 @@ function patch(parent, parts) {
 /* ---------- sections ---------- */
 function headHtml(g, fold, open) {
   const count = C.show.counts ? `<span class="m-count">${esc(g.items.length === 1 ? t('oneDish') : t('dishes', { n: g.items.length }))}</span>` : '';
-  const ph = C.show.catPhotos && g.photo && ['accordion'].includes(C.L.group) ? `<span class="m-cat-ph"><img src="${esc(g.photo)}" alt="" loading="lazy"></span>` : '';
+  // v19: each category can have its own banner photo (Menu design → Categories).
+  const own = C.show.catPhotos && C.catBanner === 'banner' ? catPhoto(g.cat) : '';
+  if (own) {
+    const inner = `<img class="m-cb-img" src="${esc(own)}" alt="" loading="lazy" decoding="async"><span class="m-cb-shade"></span><span class="m-cat-t"><h2>${esc(g.label)}</h2>${count}</span>${fold ? `<span class="m-cat-chev${open ? ' open' : ''}">${ic('chev')}</span>` : ''}`;
+    return fold ? `<button type="button" class="m-cat-head m-cat-banner" data-a="fold" data-cat="${esc(g.cat)}" aria-expanded="${open}">${inner}</button>` : `<div class="m-cat-head m-cat-banner">${inner}</div>`;
+  }
+  const ph = C.show.catPhotos && C.catBanner !== 'none' && g.photo && (C.L.group === 'accordion' || C.catBanner === 'thumb') ? `<span class="m-cat-ph"><img src="${esc(g.photo)}" alt="" loading="lazy" decoding="async"></span>` : '';
   const inner = `${ph}<span class="m-cat-t"><h2>${esc(g.label)}</h2>${count}</span>${fold ? `<span class="m-cat-chev${open ? ' open' : ''}">${ic('chev')}</span>` : ''}`;
   return fold ? `<button type="button" class="m-cat-head" data-a="fold" data-cat="${esc(g.cat)}" aria-expanded="${open}">${inner}</button>` : `<div class="m-cat-head">${inner}</div>`;
 }
@@ -469,17 +476,19 @@ function legacy() {
 
 /* ---------- sticky offset + scroll spy ---------- */
 function measure() {
-  const st = byId('m17Sticky'); const h = st ? st.offsetHeight : 0;
+  const st = byId('m17Sticky'), mini = byId('m17Mini'); const h = (st ? st.offsetHeight : 0) + (mini && root && !root.classList.contains('m-search-on') ? mini.offsetHeight : 0);
   if (h !== sticky) { sticky = h; document.documentElement.style.setProperty('--m-sticky-h', h + 'px'); }
 }
 let spyObs = null;
+// Measure against this page's own viewport, even inside the Menu design preview frame (the default root would be the outer page).
+const ioRoot = (() => { try { new IntersectionObserver(() => {}, { root: document }); return document; } catch { return null; } })();
 function spy() {
   if (spyObs) spyObs.disconnect();
   if (!('IntersectionObserver' in window) || C.L.group === 'tabs' || S.q) return;
   spyObs = new IntersectionObserver(entries => {
     const vis = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
     if (!vis) return; const cat = vis.target.dataset.cat; if (!cat || cat === S.active) return; S.active = cat; highlight();
-  }, { rootMargin: `-${sticky + 8}px 0px -65% 0px`, threshold: 0 });
+  }, { root: ioRoot, rootMargin: `-${sticky + 8}px 0px -65% 0px`, threshold: 0 });
   for (const s of byId('m17List').querySelectorAll('.m-cat[data-cat]')) spyObs.observe(s);
 }
 function highlight() {
@@ -491,7 +500,7 @@ function highlight() {
 }
 function watchScroll() {
   const head = byId('m17Head'); if (!('IntersectionObserver' in window)) return;
-  new IntersectionObserver(([e]) => { root.classList.toggle('m-scrolled', !e.isIntersecting); requestAnimationFrame(measure); }, { threshold: 0, rootMargin: '-56px 0px 0px 0px' }).observe(head);
+  new IntersectionObserver(([e]) => { root.classList.toggle('m-scrolled', !e.isIntersecting); requestAnimationFrame(measure); }, { root: ioRoot, threshold: 0, rootMargin: '-56px 0px 0px 0px' }).observe(head);
 }
 function jump(cat) {
   if (C.L.group === 'tabs') { S.tab = cat; schedule(); requestAnimationFrame(() => byId('m17List').scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })); return; }

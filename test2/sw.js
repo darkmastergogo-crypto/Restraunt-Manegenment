@@ -43,10 +43,13 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{
 })()));
 self.addEventListener('fetch',event=>{
  const u=new URL(event.request.url);
- if(event.request.method!=='GET'||event.request.destination!=='image'||u.protocol!=='https:'||!/[.]supabase[.]co$/.test(u.hostname)||!/^\/storage\/v1\/object\/public\/menu-images\/thumbs\/[a-f0-9]{64}\.(webp|png|jpeg)$/.test(u.pathname)||u.search)return;
+ const supa=/[.]supabase[.]co$/.test(u.hostname)&&/^\/storage\/v1\/object\/public\/menu-images\/thumbs\/[a-f0-9]{64}\.(webp|png|jpeg)$/.test(u.pathname);
+ const r2=/\/restaurants\/[a-z0-9-]{1,80}\/thumbs\/[a-f0-9]{64}\.(webp|png|jpeg)$/.test(u.pathname); // v19: content-addressed R2 photos never change either
+ if(event.request.method!=='GET'||event.request.destination!=='image'||u.protocol!=='https:'||!(supa||r2)||u.search)return;
  event.respondWith((async()=>{
   const cache=await caches.open(PHOTO_CACHE),hit=await cache.match(u.href);if(hit)return hit;
-  const response=await fetch(u.href,{mode:'cors',credentials:'omit',cache:'default'});
+  const response=await fetch(u.href,{mode:'cors',credentials:'omit',cache:'default'}).catch(()=>null);
+  if(!response||!response.ok)return fetch(event.request); // e.g. a bucket without CORS: load normally, just don't keep a copy
   if(response.ok&&/^image\//.test(response.headers.get('Content-Type')||'')){
    try{await cache.put(u.href,response.clone());const keys=await cache.keys();for(const old of keys.slice(0,Math.max(0,keys.length-MAX_PUBLIC_MENU_PHOTOS)))await cache.delete(old);}catch{} // Quota failure does not block an image.
   }

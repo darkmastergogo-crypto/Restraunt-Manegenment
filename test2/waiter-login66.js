@@ -1,4 +1,4 @@
-/* Release 66 — waiter email/password sign-in + online presence.
+/* Release 66 / v19 — waiter sign-in with email or mobile number + password + online presence.
    The waiter signs in with the account the manager created; the server swaps that
    login for the normal waiter session token, so every waiter feature works as before.
    The waiter QR still works as a second option. */
@@ -44,7 +44,16 @@ el('waiterLoginForm66')?.addEventListener('submit',async e=>{
  const status=el('waiterLoginStatus66'),button=el('waiterLoginButton66'),email=el('waiterEmail66').value.trim(),password=el('waiterPassword66').value;
  button.disabled=true;status.textContent='Signing in…';
  try{
-  await Cloud.login(email,password);
+  let login=email;
+  if(!login.includes('@')){
+   const digits=login.replace(/\D/g,'');
+   if(digits.length<10)throw Error('Enter your 10-digit mobile number or your email.');
+   status.textContent='Finding your account…';
+   login=await Cloud.rpc('restaurant_login_email19',{p_phone:digits}).catch(e=>{throw /login_email19|schema cache|PGRST202|Could not find/i.test(e.message)?Error('Mobile number sign-in is not set up yet. Use your email, or ask the owner to run UPDATE-v19 in Supabase.'):e;});
+   if(!login)throw Error('No waiter login uses this mobile number. Check the number or use your email.');
+   status.textContent='Signing in…';
+  }
+  await Cloud.login(login,password,{keep:false});
   const result=await Cloud.rpc('restaurant_waiter_account_session66',{p_device:typeof waiterDeviceId==='function'?waiterDeviceId():null},true);
   if(!/^[a-f0-9]{64}$/.test(result?.token||'')||!result.expires_at)throw Error('Invalid session response.');
   storeWaiterSession(result.token,result.expires_at);
@@ -55,7 +64,7 @@ el('waiterLoginForm66')?.addEventListener('submit',async e=>{
   showWaiterDashboard();paintName();startBeat();await loadWaiterOrders();
  }catch(err){
   await Cloud.logout().catch(()=>{});
-  status.textContent=missingSql(err)?'Waiter accounts are not set up yet. Ask the owner to run UPDATE-66 in Supabase.':/invalid login|invalid_grant|credentials/i.test(err.message)?'Wrong email or password.':err.message;
+  status.textContent=missingSql(err)?'Waiter accounts are not set up yet. Ask the owner to run UPDATE-66 in Supabase.':/invalid login|invalid_grant|credentials/i.test(err.message)?'Wrong mobile number, email or password.':err.message;
  }finally{button.disabled=false;}
 });
 
