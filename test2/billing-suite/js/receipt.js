@@ -99,6 +99,7 @@ const Receipt = (() => {
       ${cancelled ? '<div class="r-void">CANCELLED</div>' : ''}
       <div class="r-meta">
         <div><span>${esc(L.bill_no)}: <b>${esc(b.bill_no || '—')}</b></span><span>${esc(date)}</span></div>
+        ${b.order_no && b.invoice_no ? `<div><span>Order no: <b>#${esc(b.order_no)}</b></span><span>${b.table_number && b.table_number !== 'Counter' ? esc(RestaurantCloud.tableName(b.table_number)) : ''}</span></div>` : ''}
         <div><span>${d.showCashier && b.cashier_name ? esc(L.by) + ': ' + esc(b.cashier_name) : ''}</span><span>${esc(time)}</span></div>
         ${d.showCustomer && (b.customer_name || b.customer_phone) ? `<div><span>To: ${esc([b.customer_name, b.customer_phone].filter(Boolean).join(' · '))}</span></div>` : ''}
         ${d.showCustomer && b.customer_address ? `<div><span class="r-pre">${esc(b.customer_address)}</span></div>` : ''}

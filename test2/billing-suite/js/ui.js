@@ -34,7 +34,7 @@ const Store = {
   feature(name) { const f = this.sys.features || {}; return name in f ? f[name] !== false : !['customer_details', 'customer_address'].includes(name); },
   can(perm) {
     const p = this.me?.perms || [];
-    if (perm === 'settings') return ['settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'reset', 'roles_manager', 'roles_cashier', 'restaurant_settings'].some(x => p.includes(x));
+    if (perm === 'settings') return ['settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'reset', 'roles_manager', 'roles_cashier', 'restaurant_settings', 'limits'].some(x => p.includes(x));
     if (perm === 'stocks') return p.includes('stocks') && this.stockShown();
     return p.includes(perm);
   },
@@ -178,6 +178,8 @@ function parseCSV(text) {
 
 /* Inline SVG icon set (stroke icons, 24px grid). */
 const ICONS = {
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  hash: '<path d="M5 9h14M4 15h14M10 3 8 21M16 3l-2 18"/>',
   bill: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
   chart: '<path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M12 16V8M16 16v-3"/>',
   list: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',

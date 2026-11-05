@@ -6,14 +6,23 @@ const Records = (() => {
 
   function range() { return periodRange(f.period, f.from, f.to); }
 
+  const cache = new Map();
   async function load() {
-    const id = ++req, [from, to] = range();
-    $('#rStatus', root).textContent = 'Loading bills…';
+    const id = ++req, [from, to] = range(), args = { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_offset: offset, p_limit: PAGE }, k = JSON.stringify(args), hit = cache.get(k);
+    if (hit) { data = hit; render(); }
+    $('#rStatus', root).innerHTML = `<span class="spin-dot" aria-hidden="true"></span>${hit ? 'Updating…' : 'Loading bills…'}`;
     try {
-      const d = await Cloud.rpc('shop_bills_list', { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_offset: offset, p_limit: PAGE });
+      const d = await Cloud.rpc('shop_bills_list', args);
+      if (cache.size > 20) cache.delete(cache.keys().next().value);
+      cache.set(k, d);
       if (id !== req || !root?.isConnected) return;
       data = d; render();
-    } catch (e) { if (id === req && root?.isConnected) $('#rStatus', root).textContent = e.message; }
+      if (d.rows.some(b => b.table_number && b.table_number !== 'Counter')) RestaurantCloud.refreshTableNames({ staff: true }).then(() => { if (id === req && root?.isConnected) render(); }).catch(() => {});
+    } catch (e) {
+      if (id !== req || !root?.isConnected) return;
+      $('#rStatus', root).innerHTML = `<span class="neg">${esc(e.message)}</span> <button type="button" class="linkish" data-retry>Try again</button>`;
+      $('[data-retry]', root).onclick = load;
+    }
   }
 
   function render() {
@@ -25,7 +34,7 @@ const Records = (() => {
     $('#rStatus', root).textContent = data.total ? `${data.total} bill${data.total === 1 ? '' : 's'} · ${label}` : '';
     const body = $('#rBody', root);
     body.innerHTML = data.rows.length ? data.rows.map(b => `<tr data-id="${esc(b.id)}" tabindex="0" class="${b.status === 'Cancelled' ? 'is-void' : ''}">
-        <td data-label="Bill no"><b class="mono">${esc(b.bill_no)}</b>${b.kind === 'membership' ? ` <span class="badge badge-soft" title="Membership">${Icon('idcard')} ${esc(Store.label1('members'))}ship</span>` : ''}</td>
+        <td data-label="Bill no"><b class="mono">${esc(b.bill_no)}</b>${b.invoice_no && b.order_no ? `<small class="order-no">Order #${esc(b.order_no)}${b.table_number && b.table_number !== 'Counter' ? ' · ' + esc(RestaurantCloud.tableName(b.table_number)) : ''}</small>` : ''}${b.kind === 'membership' ? ` <span class="badge badge-soft" title="Membership">${Icon('idcard')} ${esc(Store.label1('members'))}ship</span>` : ''}</td>
         <td data-label="Time">${esc(data.from === data.to ? Fmt.time(b.created_at) : Fmt.dateTime(b.created_at))}</td>
         <td data-label="Customer" class="${b.customer_name || b.customer_phone ? '' : 'm-hide'}">${esc(b.customer_name || b.customer_phone || '—')}</td>
         <td class="num" data-label="Lines">${(b.items || []).length}</td>
@@ -33,7 +42,7 @@ const Records = (() => {
         <td class="num" data-label="Total"><b>${Fmt.money(b.total)}</b></td>
         <td data-label="Status">${b.status === 'Cancelled' ? '<span class="badge badge-red">Cancelled</span>' : '<span class="badge badge-green">Paid</span>'}</td>
         <td class="row-act"><button type="button" class="btn btn-sm btn-ghost" data-open>View</button></td></tr>`).join('')
-      : `<tr><td colspan="8"><div class="empty"><h3>No bills here</h3><p>${f.q ? 'Nothing matches that search. Try a bill number, name or phone.' : all ? 'No bills in this period. Pick another date range.' : 'No bills yet today.'}</p></div></td></tr>`;
+      : `<tr><td colspan="8"><div class="empty"><h3>No bills here</h3><p>${f.q ? 'Nothing matches that search. Try an invoice number (INV012), an order number (#12), a name or a table.' : all ? 'No bills in this period. Pick another date range.' : 'No bills yet today.'}</p></div></td></tr>`;
     $('#rPrev', root).disabled = offset === 0;
     $('#rNext', root).disabled = offset + PAGE >= data.total;
     $('#rPage', root).textContent = data.total > PAGE ? `${offset + 1}–${Math.min(offset + PAGE, data.total)} of ${data.total}` : '';
@@ -49,6 +58,7 @@ const Records = (() => {
           <dl class="facts">
             <dt>Status</dt><dd>${state}</dd>
             <dt>Payment</dt><dd><b>${esc(b.payment_method)}</b>${b.cash_received != null ? `<small>Cash received ${Fmt.money(b.cash_received)}${Number(b.change_amount) > 0 ? ` · returned ${Fmt.money(b.change_amount)}` : ''}${Number(b.less_amount) > 0 ? ` · short ${Fmt.money(b.less_amount)}` : ''}</small>` : ''}</dd>
+            ${b.order_no ? `<dt>Order no.</dt><dd><b>#${esc(b.order_no)}</b><small>Order numbers start again from 1 every day.</small></dd>` : ''}
             <dt>Billed by</dt><dd>${esc(b.cashier_name || '—')}</dd>
             <dt>Time</dt><dd>${esc(Fmt.dateTime(b.created_at))}</dd>
           </dl>
@@ -108,7 +118,7 @@ const Records = (() => {
       <div class="filters">
         ${all ? `<div class="seg" id="rPeriods">${PERIODS.map(([k, l]) => `<button type="button" data-p="${k}" class="${f.period === k ? 'on' : ''}">${l}</button>`).join('')}</div>
         <div class="range" id="rRange" ${f.period === 'custom' ? '' : 'hidden'}><input type="date" id="rFrom" aria-label="From date"><span>to</span><input type="date" id="rTo" aria-label="To date"></div>` : ''}
-        <label class="search sm">${Icon('search')}<input id="rQ" type="search" placeholder="Bill no, customer or phone" value="${esc(f.q)}" aria-label="Search bills"></label>
+        <label class="search sm">${Icon('search')}<input id="rQ" type="search" placeholder="Invoice, order #, customer or table" value="${esc(f.q)}" aria-label="Search bills"></label>
         <select id="rPay" aria-label="Payment filter"><option value="all">All payments</option>${Store.payments().map(m => `<option ${f.payment === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
         <select id="rStat" aria-label="Status filter"><option value="all">Paid & cancelled</option><option value="Paid" ${f.status === 'Paid' ? 'selected' : ''}>Paid only</option><option value="Cancelled" ${f.status === 'Cancelled' ? 'selected' : ''}>Cancelled only</option></select>
       </div>

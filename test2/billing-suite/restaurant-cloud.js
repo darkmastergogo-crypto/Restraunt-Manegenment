@@ -47,7 +47,17 @@ const RestaurantCloud = (() => {
  const write=(k,v)=>{try{const text=JSON.stringify(v);localStorage.setItem(localKey(k),text);if(legacyProject===url)localStorage.setItem(k,text);}catch{throw Error('Browser storage is unavailable. Enable storage before ordering.');}};
  const remove=k=>{localStorage.removeItem(localKey(k));if(legacyProject===url)localStorage.removeItem(k);};
  let session=null,legacyStaffOwner='';
- try{session=JSON.parse(sessionStorage.getItem(privateKey('RESTAURANT_STAFF_SESSION_v3'))||(legacyProject===url?sessionStorage.getItem('RESTAURANT_STAFF_SESSION_v3'):null)||'null');legacyStaffOwner=localStorage.getItem('YUMMY46_LEGACY_STAFF:'+url)||session?.user?.id||'';if(legacyStaffOwner)localStorage.setItem('YUMMY46_LEGACY_STAFF:'+url,legacyStaffOwner);}catch{}
+ // v19: one staff sign-in shared by every staff screen in this browser — tabs, the hidden alert engine and
+ // reopening the app. Refreshes are serialised across all of them (Web Locks + shared storage), so a refresh
+ // token is never spent twice. Spending one twice makes Supabase revoke the whole sign-in ("Refresh Token Not Found").
+ const PERSIST=typeof window!=='undefined'&&window.RESTAURANT_STAFF_PERSIST===true;
+ const SESSION_KEY='YUMMY46:'+url+':staff-session-v19';
+ const stored=()=>{if(!PERSIST)return null;try{const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');return s?.access_token&&s?.refresh_token&&s?.user?.id?s:null;}catch{return null;}};
+ const store=s=>{if(!PERSIST)return;try{s?localStorage.setItem(SESSION_KEY,JSON.stringify(s)):localStorage.removeItem(SESSION_KEY);}catch{}};
+ const ended=reason=>{try{dispatchEvent(new CustomEvent('restaurant:session-ended',{detail:reason||''}));}catch{}};
+ const authError=()=>Object.assign(Error('Your sign-in ended. Sign in again.'),{code:'AUTH',httpStatus:401});
+ try{session=stored()||JSON.parse(sessionStorage.getItem(privateKey('RESTAURANT_STAFF_SESSION_v3'))||(legacyProject===url?sessionStorage.getItem('RESTAURANT_STAFF_SESSION_v3'):null)||'null');legacyStaffOwner=localStorage.getItem('YUMMY46_LEGACY_STAFF:'+url)||session?.user?.id||'';if(legacyStaffOwner)localStorage.setItem('YUMMY46_LEGACY_STAFF:'+url,legacyStaffOwner);}catch{}
+ if(PERSIST&&session&&!stored())store(session);
  const canAdoptSession=staff=>legacyProject===url&&(!staff||session?.user?.id===legacyStaffOwner);
  function sessionRead(k,f=null,staff=false){try{return JSON.parse(sessionStorage.getItem(privateKey(k,staff))||(canAdoptSession(staff)?sessionStorage.getItem(k):null)||'null')??f;}catch{return f;}}
  function sessionWrite(k,v,staff=false){const text=JSON.stringify(v);sessionStorage.setItem(privateKey(k,staff),text);if(canAdoptSession(staff))sessionStorage.setItem(k,text);}
@@ -55,21 +65,59 @@ const RestaurantCloud = (() => {
  try{localStorage.removeItem('RESTAURANT_STAFF_SESSION_v2');}catch{}
  let refreshPromise=null;
  function requireConfig(){if(!configured)throw Error('Cloud not configured. The owner must upload config.js with the Supabase Project URL and PUBLIC key.');}
- async function transport(path,{method='GET',body,staff=false,headers={},raw=false}={}) {
+ async function transport(path,{method='GET',body,staff=false,headers={},raw=false,retried=false}={}) {
   requireConfig();
-  if(staff){if(!session)throw Error('Please sign in as staff.');if(session.expires_at*1000<Date.now()+60000)await refresh();}
+  if(staff){if(!session){ended('missing');throw authError();}if(session.expires_at*1000<Date.now()+60000)await refresh();}
   const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),15000);
+  let res;
   try {
-   const res=await fetch(url+path,{method,headers:{apikey:key,...(staff?{Authorization:'Bearer '+session.access_token}:key.startsWith('eyJ')?{Authorization:'Bearer '+key}:{}),'Content-Type':'application/json',...headers},body:body===undefined?undefined:(raw?body:JSON.stringify(body)),signal:controller.signal,cache:'no-store'});
+   res=await fetch(url+path,{method,headers:{apikey:key,...(staff?{Authorization:'Bearer '+session.access_token}:key.startsWith('eyJ')?{Authorization:'Bearer '+key}:{}),'Content-Type':'application/json',...headers},body:body===undefined?undefined:(raw?body:JSON.stringify(body)),signal:controller.signal,cache:'no-store'});
    const text=await res.text();let data;try{data=JSON.parse(text);}catch{data=text;}
    if(!res.ok){const error=Error(data?.message||data?.msg||data?.error_description||data?.error||('Cloud request failed (HTTP '+res.status+').'));error.httpStatus=res.status;const retry=res.headers.get('Retry-After');error.retryAt=retry?(isNaN(Number(retry))?Date.parse(retry):Date.now()+Number(retry)*1000):0;throw error;}
    return data;
-  }catch(e){if(e.name==='AbortError'){const timeout=Error('Cloud request timed out. Check your connection and retry.');timeout.code='ETIMEDOUT';throw timeout;}throw e;}finally{clearTimeout(timer);}
+  }catch(e){
+   if(e.name==='AbortError'){const timeout=Error('The connection is slow and the request timed out. Try again.');timeout.code='ETIMEDOUT';throw timeout;}
+   if(e instanceof TypeError&&!res){const offline=Error(navigator.onLine===false?'You are offline. Check the internet and try again.':'Could not reach the server. Check the internet and try again.');offline.code='NETWORK';throw offline;}
+   // An expired access token (phone asleep, clock drift): renew once and repeat the same call.
+   if(staff&&e.httpStatus===401&&!retried&&!path.startsWith('/auth/')&&session){clearTimeout(timer);await refresh(true);return transport(path,{method,body,staff,headers,raw,retried:true});}
+   if(staff&&e.httpStatus===401&&retried&&!path.startsWith('/auth/')){session=null;store(null);clearPrivate();ended('rejected');throw authError();}
+   throw e;
+  }finally{clearTimeout(timer);}
  }
- function saveSession(s){if(session?.user?.id!==s.user?.id)clearPrivate();session={...s,expires_at:s.expires_at||Math.floor(Date.now()/1000)+(s.expires_in||3600)};sessionWrite('RESTAURANT_STAFF_SESSION_v3',session);return session;}
- async function refresh(){if(!refreshPromise)refreshPromise=request('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:session.refresh_token}}).then(saveSession).catch(e=>{clearPrivate();session=null;try{sessionRemove('RESTAURANT_STAFF_SESSION_v3');}catch{}throw e;}).finally(()=>refreshPromise=null);return refreshPromise;}
- async function login(email,password){return saveSession(await request('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}}));}
- async function logout(){try{if(session)await request('/auth/v1/logout',{method:'POST',staff:true});}finally{session=null;sessionRemove('RESTAURANT_STAFF_SESSION_v3');clearPrivate();}}
+ function saveSession(s,ephemeral=!!(session?.ephemeral&&session?.user?.id===s?.user?.id)){
+  if(session?.user?.id!==s.user?.id)clearPrivate();
+  session={...s,expires_at:s.expires_at||Math.floor(Date.now()/1000)+(s.expires_in||3600)};
+  if(ephemeral)session.ephemeral=true;else{delete session.ephemeral;if(PERSIST)store(session);else sessionWrite('RESTAURANT_STAFF_SESSION_v3',session);}
+  return session;
+ }
+ function refresh(force=false){
+  if(refreshPromise)return refreshPromise;
+  const run=async()=>{
+   if(!session)throw authError();
+   const fresh=s=>s.expires_at*1000>Date.now()+60000;
+   const latest=session.ephemeral?null:stored();
+   if(latest&&latest.user.id===session.user.id&&latest.refresh_token!==session.refresh_token){session=latest;if(fresh(latest))return session;}
+   else if(!force&&fresh(session))return session;
+   try{return saveSession(await transport('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:session.refresh_token}}));}
+   catch(e){
+    if(!(e.httpStatus>=400&&e.httpStatus<500))throw e; // offline or server busy: keep the sign-in and try again later
+    const again=session?.ephemeral?null:stored();
+    if(session&&again&&again.user.id===session.user.id&&again.refresh_token!==session.refresh_token){session=again;return session;}
+    session=null;store(null);try{sessionRemove('RESTAURANT_STAFF_SESSION_v3');}catch{}clearPrivate();ended('expired');throw authError();
+   }
+  };
+  refreshPromise=(PERSIST&&navigator.locks?.request?navigator.locks.request(SESSION_KEY,run):run()).finally(()=>{refreshPromise=null;});
+  return refreshPromise;
+ }
+ if(PERSIST){
+  addEventListener('storage',e=>{if(e.key!==SESSION_KEY||session?.ephemeral)return;const next=stored();
+   if(!next){if(session){session=null;clearPrivate();ended('signed-out');}return;}
+   if(session?.user?.id!==next.user.id)clearPrivate();session=next;});
+  const keepFresh=()=>{if(!document.hidden&&navigator.onLine!==false&&session&&!session.ephemeral&&session.expires_at*1000<Date.now()+300000)refresh().catch(()=>{});};
+  setInterval(keepFresh,60000);document.addEventListener('visibilitychange',keepFresh);addEventListener('online',keepFresh);
+ }
+ async function login(email,password,{keep=true}={}){return saveSession(await transport('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}}),!keep);}
+ async function logout(){const s=session;try{if(s)await transport('/auth/v1/logout?scope=local',{method:'POST',staff:true});}catch{}finally{session=null;if(!s?.ephemeral){store(null);try{sessionRemove('RESTAURANT_STAFF_SESSION_v3');}catch{}}clearPrivate();}}
  // Caches are memory-only and partitioned by project, account and capability scope.
  // No receipt tokens or staff responses enter public HTTP/Service Worker caches.
  const menuCache=new Map();let orderCache=null;let cacheEpoch=0;
@@ -92,7 +140,7 @@ const RestaurantCloud = (() => {
    failures.delete(id);return data;
   }).catch(error=>{
    const tries=(failure?.tries||0)+1;
-   const retryable=error.code==='ETIMEDOUT'||error.name==='TypeError'||[408,425,429].includes(error.httpStatus)||error.httpStatus>=500;
+   const retryable=error.code==='ETIMEDOUT'||error.code==='NETWORK'||error.name==='TypeError'||[408,425,429].includes(error.httpStatus)||error.httpStatus>=500;
    const delay=retryable?Math.min(60000,1000*2**Math.min(tries,6))*(.75+Math.random()*.5):30000;
    if(epoch===cacheEpoch){if(failures.size>200)failures.clear();failures.set(id,{tries,error,until:Math.max(Date.now()+delay,error.retryAt||0)});}
    throw error;
@@ -182,7 +230,7 @@ const RestaurantCloud = (() => {
   const epoch=cacheEpoch;const job=rpc('restaurant_table_names',{p_table:table,p_waiter_key:key},staff).then(rows=>{if(epoch===cacheEpoch){setTableNames(rows);tableNamesAt.set(id,Date.now());}return rows;}).finally(()=>tableNamesBusy.delete(id));tableNamesBusy.set(id,job);return job;
  }
  const orderLabel=o=>Number.isSafeInteger(Number(o?.daily_number))&&Number(o.daily_number)>0?'Order no. '+Number(o.daily_number):'Order number pending sync';
- return {cfg,configured,tableName,setTableNames,refreshTableNames,orderLabel,esc,safeImage,deferImages,read,write,remove,privateKey,sessionRead,sessionWrite,sessionRemove,categories,setCategories,normalizeCategory,menuRow,rpc,request,login,logout,hasSession:()=>!!session,
+ return {cfg,configured,tableName,setTableNames,refreshTableNames,orderLabel,esc,safeImage,deferImages,read,write,remove,privateKey,sessionRead,sessionWrite,sessionRemove,categories,setCategories,normalizeCategory,menuRow,rpc,request,login,logout,hasSession:()=>!!session,user:()=>session?.user||null,ensureFresh:()=>session?refresh():Promise.reject(authError()),
   mfaFactors:async()=>{const user=await request('/auth/v1/user',{staff:true});return (user.factors||[]).filter(f=>f.factor_type==='totp');},
   mfaEnroll:()=>request('/auth/v1/factors',{method:'POST',body:{factor_type:'totp',friendly_name:'Yummy Momo admin '+new Date().toISOString(),issuer:'Yummy Momo'},staff:true}),
   mfaUnenrollPending:id=>request('/auth/v1/factors/'+encodeURIComponent(id),{method:'DELETE',staff:true}),
@@ -204,4 +252,3 @@ const RestaurantCloud = (() => {
   playedSongs:()=>request('/rest/v1/song_requests?select=id,queue_no,created_at,finished_at,table_number,title,artist,status&status=eq.Played&order=finished_at.desc&limit=20',{staff:true})
  };
 })();
-

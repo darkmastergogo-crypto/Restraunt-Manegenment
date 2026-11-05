@@ -1,12 +1,24 @@
-/* Caches the app files so it opens fast. Bills always go to the server. */
-const CACHE = 'shopbill-suite-v18';
-const FILES = ['./', 'index.html', 'css/app.css?v=4', 'css/restaurant.css?v=18', 'workspace.css?v=17', 'config.js?v=5', 'js/themes.js?v=4', 'js/ui.js?v=18', 'js/calc.js?v=4', 'js/qr.js?v=4', 'js/receipt.js?v=4', 'js/billing.js?v=17', 'js/records.js?v=17', 'js/dashboard.js?v=17', 'js/items.js?v=18', 'js/stocks.js?v=17', 'js/expenses.js?v=4', 'js/members.js?v=4', 'js/portal.js?v=4', 'workspace.js?v=17', 'js/restaurant.js?v=18', 'js/menu-design.js?v=18', '../menu17-data.js?v=18', 'js/settings.js?v=17', 'js/admin.js?v=17', 'js/app.js?v=18', 'icons/icon.svg', 'icons/icon-192.png'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll([...FILES,'../config.js','compat.js','restaurant-cloud.js?v=17','restaurant-adapter.js?v=18','../restaurant-engine.html','../workspace-engine.css?v=17','../workspace-engine.js?v=17'])).then(() => self.skipWaiting())); });
+/* v19: opens fast. Versioned files (…?v=19) come straight from this phone's cache; the page itself is
+   fetched fresh when the internet is quick and falls back to the cached copy after 2.5 seconds or offline.
+   Bills, orders and every API call always go to the server — they are never cached. */
+const CACHE = 'shopbill-suite-v19';
+const CORE = ['./', 'index.html', 'app.v19.css?v=19', 'app.v19.js?v=19', '../config.js', 'icons/icon.svg', 'icons/icon-192.png'];
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE).catch(() => {})).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('shopbill-suite-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+const put = (req, res) => { if (res && res.ok && res.type === 'basic') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {}); } return res; };
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  const req = e.request, url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.endsWith('.webmanifest')) return;   // app name & logo always come fresh
-  // Network first so updates show up straight away; cache only when offline.
-  e.respondWith(fetch(e.request).then(res => { const copy = res.clone(); if (res.ok) caches.open(CACHE).then(c => c.put(e.request, copy)); return res; }).catch(() => caches.match(e.request).then(r => r || caches.match('index.html'))));
+  if (url.searchParams.has('v')) {   // versioned: never changes, so the cache is always right
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => put(req, res))));
+    return;
+  }
+  e.respondWith(new Promise(resolve => {
+    let done = false; const finish = r => { if (!done && r) { done = true; resolve(r); } };
+    const net = fetch(req).then(res => put(req, res));
+    const fallback = () => caches.match(req).then(hit => hit || (req.mode === 'navigate' ? caches.match('index.html') : null));
+    const timer = setTimeout(() => fallback().then(finish), 2500);
+    net.then(r => { clearTimeout(timer); finish(r); }, () => { clearTimeout(timer); fallback().then(r => finish(r || Response.error())); });
+  }));
 });

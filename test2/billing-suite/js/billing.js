@@ -122,11 +122,12 @@ const Billing = (() => {
   }
 
   async function addExtra() {
-    if (locked() || !Store.feature('extra_items')) return;
+    if (!Store.feature('extra_items')) return;
+    if (locked()) return toast('This bill is waiting to be saved. Press Retry save, or Discard it, before adding items.', 'warn', 6000);
     const d = modal('Add extra item', `<form id="xForm" class="form-grid">
       <label class="field span-2"><span>Item name</span><input name="name" required maxlength="120" placeholder="e.g. Carry bag" autocomplete="off"></label>
       <label class="field"><span>Price (${esc(Fmt.cur())})</span><input name="price" required type="number" min="0.01" max="9999999" step="0.01" inputmode="decimal"></label>
-      <label class="field"><span>Quantity</span><input name="qty" required type="number" min="0.001" max="999999" step="any" value="1" inputmode="decimal"></label>
+      <label class="field"><span>Quantity</span><input name="qty" required type="number" min="1" max="50" step="1" value="1" inputmode="numeric"></label>
       <p class="hint span-2">Only added to this bill. It is not saved in Items and does not change stock.</p>
       <div class="modal-actions span-2"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Add to bill</button></div></form>`, { size: 'modal-sm' });
     $('[name=name]', d).focus();
@@ -180,7 +181,7 @@ const Billing = (() => {
       ? (t.shortBlocked ? `<span class="neg">Short by ${Fmt.money(t.short)}. ${t.shortBlocked === 'max' ? `You can accept at most ${Fmt.money(Store.sys.limits?.max_short_amount ?? 0)} less.` : esc(t.shortBlocked)}</span>` : `<span class="short-ok">Short by ${Fmt.money(t.short)} — bill will be <b>${Fmt.money(t.final)}</b></span>`)
       : `Return <b>${Fmt.money(t.change)}</b>`;
     $('#tDiscRow', root).hidden = !Store.can('discount');
-    for (const el of $$('#tDiscMode, #tDiscVal, #tCust input, #tReceived, #tExtra', root)) el.disabled = lock;
+    for (const el of $$('#tDiscMode, #tDiscVal, #tCust input, #tReceived', root)) el.disabled = lock;
     const custOn = Store.feature('customer_details'), addrOn = Store.feature('customer_address'), notesOn = Store.feature('notes'), cf = customFields();
     $('#tCustName', root).hidden = $('#tCustPhone', root).hidden = !custOn;
     $('#tCustAddr', root).hidden = !addrOn;
@@ -198,7 +199,9 @@ const Billing = (() => {
     $('#tSave', root).disabled = !canSave; $('#tPrint', root).disabled = !canSave;
     $('#tSave', root).innerHTML = saving ? 'Saving…' : pending ? 'Retry save' : 'Save' + k;
     $('#tPrint', root).innerHTML = saving ? 'Saving…' : pending ? `${Icon('printer')} Retry & print` : `${Icon('printer')} Save & print${k9}`;
-    $('#tClear', root).disabled = lock || !cart.length;
+    $('#tClear', root).disabled = saving || (!pending && !cart.length);
+    $('#tClear', root).textContent = pending ? 'Discard' : 'Clear';
+    $('#tExtra', root).classList.toggle('is-locked', lock);
     $('#tPending', root).hidden = !pending;
 
     const done = $('#tDone', root);
@@ -224,6 +227,10 @@ const Billing = (() => {
 
   function resetBill() { cart = []; discount = { mode: discount.mode, value: '' }; customer = { name: '', phone: '', address: '' }; notes = ''; received = ''; fields = {}; showExtras = false; }
   async function clearBill() {
+    if (pending && !saving) {
+      if (!(await ask({ title: 'Discard this unsaved bill?', body: 'Use this only if the bill is wrong. If you saw an internet error, check Records first — the bill may have been saved already. Retry save never makes a double bill.', confirm: 'Discard bill', danger: true }))) return;
+      pending = null; persistPending(); resetBill(); syncInputs(); renderTicket(); focusSearch(); return;
+    }
     if (locked() || !cart.length) return;
     if (cart.length > 1 && !(await ask({ title: 'Clear this bill?', body: 'All lines on the current bill will be removed.', confirm: 'Clear bill', danger: true }))) return;
     resetBill(); syncInputs(); renderTicket(); focusSearch();
@@ -246,6 +253,9 @@ const Billing = (() => {
       if (!cart.length) return;
       const t = totals();
       if (t.shortBlocked) { $('#tReceived', root)?.focus(); return toast(`Cash is short by ${Fmt.money(t.short)}. ${t.shortBlocked === 'max' ? `You can accept at most ${Fmt.money(Store.sys.limits?.max_short_amount ?? 0)} less.` : t.shortBlocked}`, 'warn', 5000); }
+      const lim = Store.sys.limits || {}, dPct = discount.mode === 'percent' ? Number(discount.value) || 0 : (t.sub > 0 ? (Number(discount.value) || 0) / t.sub * 100 : 0);
+      if (!Store.isAdmin && Store.can('discount') && dPct > Number(lim.max_discount_percent ?? 100) + 1e-9) { $('#tDiscVal', root)?.focus(); return toast(`The biggest discount you can give is ${Fmt.qty(lim.max_discount_percent)}%.`, 'warn', 5000); }
+      const gross = Calc.bill(calcLines(), Store.settings, {}).total;
       const items = [...cart].reverse().map(l => l.custom ? { custom: true, name: l.name, price: l.price.toFixed(2), qty: String(l.qty), unit: l.unit } : { id: l.id, name: l.name, qty: String(l.qty) });
       const dv = Store.can('discount') ? Number(discount.value) || 0 : 0, custOn = Store.feature('customer_details');
       const extra = {};
@@ -255,7 +265,7 @@ const Billing = (() => {
       pending = {
         args: { p_request_id: crypto.randomUUID(), p_items: items, p_payment_method: payment, p_discount_mode: dv > 0 ? discount.mode : null, p_discount_value: dv > 0 ? dv : 0,
           p_customer_name: custOn ? customer.name.trim() : '', p_customer_phone: custOn ? customer.phone.trim() : '', p_notes: Store.feature('notes') ? notes.trim() : '',
-          p_expected_total: t.final, p_cash_received: t.rec > 0 ? t.rec : null, p_extra: Object.keys(extra).length ? extra : null },
+          p_expected_total: t.final, p_gross_total: gross, p_cash_received: t.rec > 0 ? t.rec : null, p_extra: Object.keys(extra).length ? extra : null },
         state: { cart, payment, discount, customer, notes, received, fields }
       };
       persistPending();
@@ -271,7 +281,8 @@ const Billing = (() => {
       Store.applyStockUpdates(bill.stock_updates);
     } catch (e) {
       if (e.code === 'LOCKED') return;
-      if (e.code === 'NETWORK' || !e.status || e.status >= 500) {
+      if (e.code === 'AUTH') toast('Sign in again to save this bill. It stays on this screen — then press Retry save.', 'warn', 7000);
+      else if (e.code === 'NETWORK' || e.code === 'ETIMEDOUT' || !(e.status || e.httpStatus) || (e.status || e.httpStatus) >= 500) {
         toast('Not saved yet: ' + e.message + ' Press Retry save — it will not create a double bill.', 'error', 7000);
       } else {
         pending = null; persistPending();

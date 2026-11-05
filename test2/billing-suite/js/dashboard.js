@@ -38,14 +38,25 @@ const Dashboard = (() => {
     return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(p).toFixed(p > -10 && p < 10 ? 1 : 0)}% vs previous period</span>`;
   }
 
+  /* The last result for each period shows at once; the fresh numbers replace it when they arrive. */
+  const cache = new Map();
   async function load() {
-    const id = ++req, [f, t] = periodRange(period, from, to);
-    $('#dStatus', root).textContent = 'Loading…';
+    const id = ++req, [f, t] = periodRange(period, from, to), k = f + '|' + t, hit = cache.get(k);
+    if (hit) render(hit);
+    root.classList.toggle('is-loading', !hit);
+    $('#dStatus', root).innerHTML = `<span class="spin-dot" aria-hidden="true"></span>${hit ? 'Updating…' : 'Loading…'}`;
     try {
       const d = await Cloud.rpc('shop_dashboard', { p_from: f, p_to: t });
+      if (cache.size > 12) cache.delete(cache.keys().next().value);
+      cache.set(k, d);
       if (id !== req || !root?.isConnected) return;
-      render(d);
-    } catch (e) { if (id === req && root?.isConnected) $('#dStatus', root).textContent = e.message; }
+      root.classList.remove('is-loading'); render(d);
+    } catch (e) {
+      if (id !== req || !root?.isConnected) return;
+      root.classList.remove('is-loading');
+      $('#dStatus', root).innerHTML = `<span class="neg">${esc(e.message)}</span> <button type="button" class="linkish" data-retry>Try again</button>`;
+      $('[data-retry]', root).onclick = load;
+    }
   }
 
   function render(d) {
@@ -57,8 +68,8 @@ const Dashboard = (() => {
       <div class="kpi kpi-hero"><span>Sales</span><b>${Fmt.money(m.sales)}</b>${m.prev_available===false?'<small>Completed restaurant orders</small>':delta(Number(m.sales), Number(m.prev_sales))}</div>
       <div class="kpi"><span>Bills</span><b>${Fmt.nf0.format(m.bills)}</b><small>${m.cancelled ? `${m.cancelled} cancelled (${Fmt.money(m.cancelled_value)})` : 'No cancelled bills'}</small></div>
       ${ex ? `<div class="kpi"><span>Expenses</span><b>${Fmt.money(exp)}</b><small><a class="linkish" href="#/expenses">${(d.expense_heads || []).length ? esc(d.expense_heads.slice(0, 2).map(h => h.head).join(', ')) + (d.expense_heads.length > 2 ? '…' : '') : 'Add expenses'}</a></small></div>` : ''}
-      <div class="kpi ${net < 0 ? 'kpi-bad' : 'kpi-good'}"><span>Net profit</span><b>${m.profit_available===false?'—':Fmt.money(net)}</b><small>${m.profit_available===false?'Buying costs are not available from the restaurant API':ex && inP ? 'Sales − expenses' : 'Selling price − buying price'}${!ex || inP ? '' : ' · expenses not deducted'}</small></div>
-      ${ex && inP ? `<div class="kpi"><span>Gross profit</span><b>${Fmt.money(gross)}</b><small>${Number(m.profit_cover) >= 99.5 ? 'Selling − buying price' : `Covers ${Number(m.profit_cover)}% of sales — add buying prices in Items`}</small></div>` : ''}
+      <div class="kpi ${net < 0 ? 'kpi-bad' : 'kpi-good'}"><span>Net profit</span><b>${m.profit_available===false&&!(ex&&inP)?'—':Fmt.money(net)}</b><small>${m.profit_available===false&&!(ex&&inP)?'Add expenses to see sales − expenses':ex && inP ? 'Sales − expenses' : 'Selling price − buying price'}${!ex || inP ? '' : ' · expenses not deducted'}</small></div>
+      ${ex && inP && m.profit_available !== false ? `<div class="kpi"><span>Gross profit</span><b>${Fmt.money(gross)}</b><small>${Number(m.profit_cover) >= 99.5 ? 'Selling − buying price' : `Covers ${Number(m.profit_cover)}% of sales — add buying prices in Items`}</small></div>` : ''}
       ${m.members_on && Number(m.membership_sales) ? `<div class="kpi"><span>Memberships</span><b>${Fmt.money(m.membership_sales)}</b><small>Plans sold and renewed</small></div>` : ''}
       <div class="kpi"><span>Average bill</span><b>${Fmt.money(m.avg_bill)}</b><small>${Fmt.qty(m.qty)} units sold</small></div>
       <div class="kpi"><span>Discount given</span><b>${Fmt.money(m.discount)}</b><small>Tax collected ${Fmt.money(m.tax)}</small></div>`;

@@ -1035,25 +1035,47 @@ const RestaurantSettings = (() => {
   /* Staff & logins: the restaurant's waiter accounts, drawn like the billing staff list. */
   async function waiters(body) {
     root = body;
-    body.innerHTML = `<div class="card"><header class="card-head"><h2>Staff & logins</h2><p class="hint">Waiters sign in on the waiter app with their own email and password. Admin and manager logins are managed by support.</p></header>
-      <form id="waForm" class="staff-form"><label class="field"><span>Name</span><input name="name" maxlength="60" required placeholder="e.g. Ravi" autocomplete="off"></label><label class="field"><span>Email</span><input name="email" type="email" required placeholder="ravi@example.com" autocomplete="off"></label><label class="field"><span>Password <em>8+ characters</em></span><input name="password" type="text" minlength="8" required autocomplete="new-password"></label><button class="btn btn-primary">${Icon('plus')} Add waiter</button></form>
+    body.innerHTML = `<div class="card"><header class="card-head"><h2>Staff & logins</h2><p class="hint">Waiters sign in on the waiter app with their mobile number or email, and their password. Admin and manager logins are managed by support.</p></header>
+      <form id="waForm" class="staff-form"><label class="field"><span>Name</span><input name="name" maxlength="60" required placeholder="e.g. Ravi" autocomplete="off"></label><label class="field"><span>Mobile number <em>to sign in with</em></span><input name="phone" type="tel" inputmode="numeric" maxlength="16" placeholder="98765 43210" autocomplete="off"></label><label class="field"><span>Email <em>optional with a mobile number</em></span><input name="email" type="email" placeholder="ravi@example.com" autocomplete="off"></label><label class="field"><span>Password <em>8+ characters</em></span><input name="password" type="text" minlength="8" required autocomplete="new-password"></label><button class="btn btn-primary">${Icon('plus')} Add waiter</button></form>
       <div class="summary" id="waSum"></div><p class="status-line" id="waStatus" role="status">Loading…</p>
       <div class="table-wrap"><table class="table cards-on-mobile"><thead><tr><th>Name</th><th>Status</th><th>Last seen</th><th></th></tr></thead><tbody id="waBody"></tbody></table></div></div>`;
+    let phones = {};
     const paint = d => {
       const list = d.accounts || d.waiters || [], online = list.filter(a => a.online).length, active = list.filter(a => a.active !== false).length;
       $('#waSum', body).innerHTML = RX.sum('Waiters', list.length) + RX.sum('Online now', online, online ? 'big' : '') + RX.sum('With access', active) + (d.qr_devices ? RX.sum('Phones via QR', d.qr_devices) : '');
       $('#waStatus', body).textContent = '';
-      $('#waBody', body).innerHTML = list.length ? list.map(a => `<tr data-u="${esc(a.user_id)}" data-n="${esc(a.name)}" class="${a.active === false ? 'is-muted' : ''}"><td data-label="Name"><b>${esc(a.name)}</b><small>${esc(a.email)}</small></td>
+      $('#waBody', body).innerHTML = list.length ? list.map(a => `<tr data-u="${esc(a.user_id)}" data-n="${esc(a.name)}" class="${a.active === false ? 'is-muted' : ''}"><td data-label="Name"><b>${esc(a.name)}</b>${phones[a.user_id] ? `<small class="mono">${esc(phones[a.user_id].replace(/(\d{5})(\d{5})/, '$1 $2'))}</small>` : ''}${/@waiter\.login$/i.test(a.email) ? '' : `<small>${esc(a.email)}</small>`}</td>
         <td data-label="Status">${a.active === false ? '<span class="badge">Access off</span>' : a.online ? '<span class="badge badge-green">Online</span>' : a.signed_in ? '<span class="badge badge-soft">Signed in</span>' : '<span class="badge">Signed out</span>'}</td>
         <td data-label="Last seen">${esc(RX.when(a.last_seen))}</td>
-        <td class="row-act">${a.active === false ? '<button type="button" class="btn btn-sm" data-a="restore">Give access</button>' : '<button type="button" class="btn btn-sm btn-ghost" data-a="revoke">Turn off</button>'}<button type="button" class="btn btn-sm btn-ghost" data-a="password">Password</button><button type="button" class="btn btn-sm btn-ghost" data-a="rename">Rename</button><button type="button" class="icon-btn" data-a="remove" aria-label="Delete ${esc(a.name)}">${Icon('trash')}</button></td></tr>`).join('')
+        <td class="row-act">${a.active === false ? '<button type="button" class="btn btn-sm" data-a="restore">Give access</button>' : '<button type="button" class="btn btn-sm btn-ghost" data-a="revoke">Turn off</button>'}<button type="button" class="btn btn-sm btn-ghost" data-a="phone">${phones[a.user_id] ? 'Number' : 'Add number'}</button><button type="button" class="btn btn-sm btn-ghost" data-a="password">Password</button><button type="button" class="btn btn-sm btn-ghost" data-a="rename">Rename</button><button type="button" class="icon-btn" data-a="remove" aria-label="Delete ${esc(a.name)}">${Icon('trash')}</button></td></tr>`).join('')
         : '<tr><td colspan="4"><div class="empty slim"><p>No waiter logins yet. Add one above.</p></div></td></tr>';
     };
     const call = async (action, a = {}) => { const d = await RX.rpc('restaurant_waiter_accounts66', { p_action: action, p_email: a.email ?? null, p_password: a.password ?? null, p_name: a.name ?? null, p_user: a.user ?? null }); if (root === body) paint(d); return d; };
-    try { await call('list'); } catch (e) { $('#waStatus', body).textContent = /waiter_accounts66|schema cache|PGRST202/i.test(e.message) ? 'Waiter logins need a database update. Ask support to install it.' : e.message; }
-    $('#waForm', body).onsubmit = async e => { e.preventDefault(); const f = e.target; busy(e.submitter, true, 'Adding…'); try { await call('add', { name: f.name.value.trim(), email: f.email.value.trim(), password: f.password.value }); toast(`${f.name.value.trim()} can now sign in on the waiter app.`, 'ok'); f.reset(); } catch (ex) { toast(ex.message, 'error', 8000); } finally { busy(e.submitter, false); } };
+    const loadPhones = async () => { try { phones = (await Cloud.rpc('shop_staff_phones', {})) || {}; } catch { phones = {}; } };
+    try { await loadPhones(); await call('list'); } catch (e) { $('#waStatus', body).textContent = /waiter_accounts66|schema cache|PGRST202/i.test(e.message) ? 'Waiter logins need a database update. Ask support to install it.' : e.message; }
+    $('#waForm', body).onsubmit = async e => {
+      e.preventDefault(); const f = e.target, digits = f.phone.value.replace(/\D/g, '').slice(-10), email = f.email.value.trim().toLowerCase();
+      if (f.phone.value.trim() && digits.length !== 10) return toast('Enter a 10-digit mobile number.', 'warn');
+      if (!digits && !email) return toast('Enter a mobile number or an email for this waiter.', 'warn');
+      if (digits && !Cloud.hasV19?.()) return toast('Mobile number sign-in needs the database update UPDATE-v19.sql. Add an email for now.', 'warn', 7000);
+      const login = email || digits + '@waiter.login';
+      busy(e.submitter, true, 'Adding…');
+      try {
+        const d = await call('add', { name: f.name.value.trim(), email: login, password: f.password.value });
+        if (digits) { const who = (d.accounts || d.waiters || []).find(a => String(a.email).toLowerCase() === login); if (who) { phones = await Cloud.rpc('shop_staff_phones', { p_user: who.user_id, p_phone: digits }) || phones; paint(d); } }
+        toast(`${f.name.value.trim()} can now sign in on the waiter app${digits ? ' with ' + digits : ''}.`, 'ok', 6000); f.reset();
+      } catch (ex) { toast(ex.message, 'error', 8000); } finally { busy(e.submitter, false); }
+    };
     $('#waBody', body).addEventListener('click', async e => {
       const b = e.target.closest('[data-a]'), tr = b?.closest('tr'); if (!tr) return; const act = b.dataset.a, a = { user: tr.dataset.u }, name = tr.dataset.n;
+      if (act === 'phone') {
+        if (!Cloud.hasV19?.()) return toast('Mobile number sign-in needs the database update UPDATE-v19.sql.', 'warn', 7000);
+        const v = await ask({ title: `Mobile number for ${name}`, body: 'They can sign in on the waiter app with this number and their password. Leave empty to remove it.', confirm: 'Save number', input: { label: 'Mobile number', value: phones[a.user] || '', maxlength: 16 } });
+        if (v === null) return; const digits = v.replace(/\D/g, '').slice(-10);
+        if (v.trim() && digits.length !== 10) return toast('Enter a 10-digit mobile number.', 'warn');
+        try { phones = await Cloud.rpc('shop_staff_phones', { p_user: a.user, p_phone: digits || null, p_clear: !digits }) || {}; await call('list'); toast(digits ? 'Number saved.' : 'Number removed.', 'ok'); } catch (ex) { toast(ex.message, 'error', 6000); }
+        return;
+      }
       if (act === 'password') { const pw = await ask({ title: `New password for ${name}`, confirm: 'Set password', input: { label: 'New password (8+ characters)', required: true, maxlength: 72 } }); if (pw === null) return; if (pw.length < 8) return toast('Use at least 8 characters.', 'warn'); a.password = pw; }
       if (act === 'rename') { const n = await ask({ title: 'Rename waiter', confirm: 'Rename', input: { label: 'Name', value: name, required: true, maxlength: 60 } }); if (!n?.trim()) return; a.name = n.trim(); }
       if (act === 'revoke' && !(await ask({ title: `Turn off ${name}?`, body: 'They are signed out straight away.', confirm: 'Turn off', danger: true }))) return;

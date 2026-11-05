@@ -146,3 +146,68 @@
   .md-slide .toolbar { grid-column: 1 / -1; justify-content: flex-end; }
 }
 .md-main .field > .seg, .modal .field > .seg { align-self: flex-start; }
+
+/* ---------- v19 ---------- */
+/* An app, not a web page: long-press on a tab, button or picture never opens “Copy link / Download”. */
+.shell a, .shell button, .shell img, .side-nav, .chips, .grid .tile, .auth-card .brand-mark { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+.shell { -webkit-tap-highlight-color: transparent; }
+.side-btn.side-restore { color: var(--side-hi, var(--primary)); background: color-mix(in srgb, var(--primary) 18%, transparent); border-radius: var(--radius-sm); }
+.side-btn.side-restore .ico { color: var(--primary); }
+small.order-no { display: block; color: var(--muted); font-size: .78rem; font-weight: 600; margin-top: 2px; }
+.spin-dot { display: inline-block; width: 10px; height: 10px; margin-right: 7px; vertical-align: -1px; border-radius: 50%; border: 2px solid var(--primary); border-right-color: transparent; animation: rx19spin .7s linear infinite; }
+@keyframes rx19spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin-dot { animation-duration: 2s; } }
+.is-loading .kpi b, .is-loading .card .hbars, .is-loading .chart { opacity: .45; transition: opacity .2s; }
+.view-card .view-row { display: flex; gap: 16px; align-items: center; justify-content: space-between; }
+.view-card .view-row h2 { margin-bottom: 4px; }
+@media (max-width: 640px) { .view-card .view-row { flex-direction: column; align-items: stretch; } }
+.inv-now { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.inv-now > div { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.inv-now span { color: var(--muted); font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.inv-now b { font-size: 1.35rem; overflow-wrap: anywhere; }
+.inv-now small { color: var(--muted); }
+.inv-form .field select { min-width: 0; }
+#tExtra.is-locked { opacity: .55; }
+.staff-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.staff-form .btn { min-height: 44px; }
+/* Menu design → Categories */
+.md-cb-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.md-cb-opt { display: flex; gap: 12px; align-items: center; padding: 12px; border: 1.5px solid var(--line); border-radius: var(--radius); cursor: pointer; background: var(--surface); }
+.md-cb-opt.on { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.md-cb-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.md-cb-opt > span:last-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.md-cb-opt small { color: var(--muted); line-height: 1.35; }
+.md-cb-pic { flex: none; width: 64px; height: 48px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.md-cb-pic i { display: block; height: 16px; border-radius: 4px; background: var(--primary); opacity: .55; }
+.md-cb-pic b { display: block; height: 5px; border-radius: 3px; background: var(--line-2, var(--line)); }
+.md-cb-thumb i { width: 16px; } .md-cb-none i { height: 6px; width: 60%; background: var(--ink-2, var(--ink)); opacity: .6; }
+.md-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.md-cat { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); display: flex; flex-direction: column; }
+.md-cat.is-busy { opacity: .55; pointer-events: none; }
+.md-cat-pic { position: relative; aspect-ratio: 2 / 1; background: var(--surface-2); display: grid; place-items: center; overflow: hidden; }
+.md-cat-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.md-cat-pic > span { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); }
+.md-cat-pic > span .ico { width: 26px; height: 26px; }
+.md-cat-pic b { position: absolute; left: 10px; right: 10px; bottom: 8px; color: #fff; font-size: 1.02rem; text-shadow: 0 1px 6px rgba(0,0,0,.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md-cat-pic:has(img)::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,.6)); }
+.md-cat-pic b { z-index: 1; }
+.md-cat-pic:not(:has(img)) b { color: var(--ink); text-shadow: none; }
+.md-cat .toolbar { padding: 10px; gap: 6px; flex-wrap: wrap; }
+/* Phones: the whole side menu scrolls, so the last tabs (Admin) are never hidden behind the footer. */
+@media (max-width: 900px) {
+  .side { overflow-y: auto; overscroll-behavior: contain; gap: 12px; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .side-nav { flex: none; overflow: visible; min-height: auto; }
+  .side-foot { margin-top: auto; }
+  .side-nav a, .side-btn { padding-top: 9px; padding-bottom: 9px; }
+}
+@media (max-width: 700px) {
+  /* A long right-hand value (e.g. “Full ₹120 · Half ₹80”) wraps instead of squeezing the name into one word per line. */
+  .table.cards-on-mobile tr { grid-template-columns: minmax(0, 1fr) fit-content(48%); }
+  .table.cards-on-mobile td { min-width: 0; overflow-wrap: anywhere; }
+  .table.cards-on-mobile td.num small { white-space: normal; }
+}
+/* Colour pickers: a clear swatch instead of an empty box. */
+input[type=color] { width: 64px; min-width: 64px; height: 44px; padding: 4px; border-radius: var(--radius-sm); cursor: pointer; background: var(--surface); }
+input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type=color]::-webkit-color-swatch { border: 1px solid var(--line); border-radius: 6px; }
+input[type=color]::-moz-color-swatch { border: 1px solid var(--line); border-radius: 6px; }

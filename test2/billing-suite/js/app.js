@@ -87,7 +87,7 @@ const App = (() => {
   }
   const membersLogin = () => !!App.publicInfo?.members_login;
   /* Members sign in with a mobile number; it maps to the login the shop created for them. */
-  const loginEmail = id => id.includes('@') ? id : (id.replace(/\D/g, '').slice(-10) + '@member.shop');
+  const loginEmail = id => id;   // a mobile number is turned into the login email by the server (Cloud.login)
   function loginView(message = '') {
     app().className = 'auth';
     const shop = Store.me?.settings?.shop_name || App.publicInfo?.shop_name || Cloud.cfg.shopName || 'Shop Billing';
@@ -101,7 +101,7 @@ const App = (() => {
         ${!Cloud.configured ? `<div class="notice notice-bad"><b>Not connected yet.</b> Open <span class="mono">config.js</span> and paste this shop’s Supabase Project URL and public key. See START-HERE.txt.</div>` : ''}
         ${sessionStorage.getItem('SHOPBILL_CHECKIN') ? `<div class="notice">${Icon('scan')} Sign in to finish checking in.</div>` : ''}
         <form id="loginForm" class="stack">
-          <label class="field"><span>${ml ? 'Email or mobile number' : 'Email'}</span><input name="email" type="${ml ? 'text' : 'email'}" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="254"></label>
+          <label class="field"><span>Email or mobile number</span><input name="email" type="text" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="254"></label>
           <label class="field"><span>Password</span><input name="password" type="password" autocomplete="current-password" required></label>
           <p class="form-error" role="alert" ${message ? '' : 'hidden'}>${esc(message)}</p>
           <button class="btn btn-primary btn-lg" ${Cloud.configured ? '' : 'disabled'}>Sign in</button>
@@ -114,7 +114,7 @@ const App = (() => {
     f.onsubmit = async e => {
       e.preventDefault(); err.hidden = true; busy(e.submitter, true, 'Signing in…');
       const id = f.email.value.trim();
-      if (!id.includes('@') && id.replace(/\D/g, '').length < 10) { err.textContent = ml ? 'Enter your email, or your 10-digit mobile number.' : 'Enter your email.'; err.hidden = false; busy(e.submitter, false); return; }
+      if (!id.includes('@') && id.replace(/\D/g, '').length < 10) { err.textContent = 'Enter your email, or your 10-digit mobile number.'; err.hidden = false; busy(e.submitter, false); return; }
       try { await Cloud.login(loginEmail(id), f.password.value); await start(); }
       catch (ex) { err.textContent = /Wrong email/.test(ex.message) && !id.includes('@') ? 'Wrong mobile number or password.' : ex.message; err.hidden = false; busy(e.submitter, false); }
     };
@@ -138,7 +138,8 @@ const App = (() => {
         <nav class="side-nav" id="sideNav" aria-label="Main">${navHTML()}</nav>
         <div class="side-foot">
           <button type="button" class="side-btn" data-help>${Icon('help')}<span>Help & contact</span></button>
-          <div class="who">${Icon(Store.isAdmin ? 'shield' : 'user')}<span><b>${esc(me.name)}</b><small>${ROLE_LABEL[me.role] || ''} · ${esc(me.email)}</small></span></div>
+          ${me.manager_view ? `<button type="button" class="side-btn side-restore" id="showAdminTabs">${Icon('shield')}<span>Show admin tabs</span></button>` : ''}
+          <div class="who">${Icon(me.native_role === 'admin' ? 'shield' : 'user')}<span><b>${esc(me.name)}</b><small>${me.manager_view ? 'Admin · manager view' : ROLE_LABEL[me.role] || ''} · ${esc(me.email)}</small></span></div>
           <button type="button" class="side-btn" id="logoutBtn">${Icon('logout')}<span>Sign out</span></button>
         </div>
       </aside>
@@ -156,11 +157,14 @@ const App = (() => {
       <div class="scrim" id="scrim"></div>`;
     applyShop();
     $('#logoutBtn').onclick = signOut;
+    $('#showAdminTabs')?.addEventListener('click', e => setManagerView(false, e.currentTarget));
     $('#menuBtn').onclick = () => document.body.classList.add('nav-open');
     $('#scrim').onclick = () => document.body.classList.remove('nav-open');
     const tick = () => { const c = $('#clock'); if (c) c.textContent = new Date().toLocaleString('en-IN', { timeZone: Fmt.tz(), weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
     tick(); clearInterval(App._clock); App._clock = setInterval(tick, 20000);
-    net(); paintLock(); RestaurantWorkspace.start(); RestaurantWorkspace.syncTheme();
+    net(); paintLock();
+    // The hidden alert engine is heavy; start it once the first screen has had a moment to load.
+    clearTimeout(App._engine); App._engine = setTimeout(() => { if (Store.me && !Store.isMember && Cloud.signedIn) { RestaurantWorkspace.start(); RestaurantWorkspace.syncTheme(); } }, 1800);
   }
   async function signOut() {
     if (!(await ask({ title: 'Sign out?', body: 'You will need your password to sign in again on this device.', confirm: 'Sign out' }))) return;
@@ -174,7 +178,7 @@ const App = (() => {
   /* ---------- system shut down by Admin ---------- */
   let kicking = false;
   async function kickOut(message) {
-    if (kicking || !Store.me || Store.isAdmin) return;
+    if (kicking || !Store.me || Store.isAdmin || Store.me.native_role === 'admin') return;
     kicking = true;
     App.publicInfo = { ...(App.publicInfo || {}), support: Store.sys.support, brand: Store.sys.brand, shop_name: Store.settings.shop_name, access: { locked: true, message } };
     $$('dialog[open]').forEach(d => d.close());
@@ -212,7 +216,7 @@ const App = (() => {
       if (e.status === 403 && Store.isMember) { Portal.unmount(); $$('dialog[open]').forEach(d => d.close()); await Cloud.logout(); Store.me = null; return loginView(e.message); }
       throw e;
     }
-    Store.me = me;
+    Store.me = me; LS.set(ME_KEY(), me);
     try { const pi = await Cloud.publicRpc('shop_public_info'); App.publicInfo = pi; } catch { /* icon check can wait */ }
     if (me.role === 'member') { applyBrand(); Portal.refresh?.(); return me; }
     applyShop(); paintLock();
@@ -287,18 +291,66 @@ const App = (() => {
   }
   document.addEventListener('click', e => { if (e.target.closest('[data-help]')) help(); });
 
+  /* ---------- sign-in ended (expired on the server, or signed out in another tab) ----------
+     The open screen and any unsaved bill stay put; a small sign-in box appears on top. */
+  let reauth = null;
+  addEventListener('restaurant:session-ended', () => {
+    if (!Store.me || reauth || Store.isMember) return;
+    const email = Store.me.email || '';
+    reauth = modal('Sign in again', `<form id="reForm" class="stack"><p class="hint">Your sign-in on this device ended. Sign in to carry on — this screen and any unsaved bill stay as they are.</p>
+      <label class="field"><span>Email or mobile number</span><input name="email" type="text" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="254" value="${esc(email)}"></label>
+      <label class="field"><span>Password</span><input name="password" type="password" autocomplete="current-password" required></label>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="modal-actions"><button type="button" class="btn btn-ghost" data-full>Go to sign-in screen</button><button class="btn btn-primary">Sign in</button></div></form>`, { size: 'modal-sm' });
+    const f = $('#reForm', reauth), err = $('.form-error', f);
+    (email ? f.password : f.email).focus();
+    reauth.addEventListener('close', () => { const wasOpen = reauth; reauth = null; if (wasOpen && !Cloud.signedIn && Store.me) { current?.unmount?.(); current = null; RestaurantWorkspace.stop(); Store.me = null; loginView('Your sign-in ended. Please sign in again.'); } });
+    $('[data-full]', f).onclick = () => reauth?.close();
+    f.onsubmit = async e => {
+      e.preventDefault(); err.hidden = true; busy(e.submitter, true, 'Signing in…');
+      try { await Cloud.login(f.email.value.trim(), f.password.value); const d = reauth; reauth = null; d.close(); await refreshMe(true); RestaurantWorkspace.start(); toast('Signed in again.', 'ok'); }
+      catch (ex) { err.textContent = ex.message; err.hidden = false; } finally { busy(e.submitter, false); }
+    };
+  });
+
+  /* ---------- the app is an app: no “copy link / download link” menu on long press ---------- */
+  document.addEventListener('contextmenu', e => { if (!e.target.closest('input, textarea, select, [contenteditable="true"], .allow-menu')) e.preventDefault(); });
+  document.addEventListener('dragstart', e => { if (e.target.closest?.('a, img')) e.preventDefault(); });
+
+  /* ---------- admin: hide the admin-only tabs (see the app as a manager does) ---------- */
+  async function setManagerView(on, btn) {
+    busy(btn, true, on ? 'Hiding…' : 'Showing…');
+    try { Store.me.system = await Cloud.rpc('shop_system_save', { p: { admin_manager_view: !!on } }); await refreshMe(true); shell(); route(); toast(on ? 'Admin-only tabs are hidden. Use “Show admin tabs” in the menu to bring them back.' : 'Admin tabs are back.', 'ok', 6000); }
+    catch (e) { toast(e.message, 'error', 6000); } finally { busy(btn, false); }
+  }
+
   /* ---------- boot ---------- */
+  /* The last setup this login saw opens the app at once; the fresh copy replaces it a moment later. */
+  const ME_KEY = () => 'RX19_ME:' + (Cloud.cfg.supabaseUrl || '') + ':' + (Cloud.userId || '');
   async function start() {
-    app().className = 'loading'; app().innerHTML = '<div class="boot"><div class="brand-mark">' + Icon('bill') + '</div><p>Opening…</p></div>';
+    const cached = Cloud.userId ? LS.get(ME_KEY()) : null, early = !!(cached?.perms?.length && cached.role !== 'member');
+    if (early) { Store.me = cached; shell(); route(); }
+    else { app().className = 'loading'; app().innerHTML = '<div class="boot"><div class="brand-mark">' + Icon('bill') + '</div><p>Opening…</p></div>'; }
     setIcon(LS.get('SHOPBILL_ICON')?.icon || '');
     try {
-      Store.me = await Cloud.rpc('shop_me');
+      const prevNav = early ? navKeys().join() + '|' + navKeys().map(k => routeLabel(ROUTES[k])).join() : '';
+      const me = await Cloud.rpc('shop_me');
+      LS.set(ME_KEY(), me);
       if (!App.publicInfo) loadPublic();
-      if (Store.isMember) { applyBrand(); current = null; return Portal.mount(app()); }
-      shell(); route(); // the landing screen loads the item list itself; no need to fetch it twice
+      if (me.role === 'member') { Store.me = me; applyBrand(); current = null; return Portal.mount(app()); }
+      if (early && Store.me === cached && $('#sideNav')) {
+        const changed = JSON.stringify([cached.settings, cached.system, cached.role]) !== JSON.stringify([me.settings, me.system, me.role]);
+        Store.me = me; applyShop(); paintLock();
+        const nav = navKeys().join() + '|' + navKeys().map(k => routeLabel(ROUTES[k])).join();
+        if (nav !== prevNav || changed) { const foot = $('.side-foot'); if (nav !== prevNav || me.manager_view !== cached.manager_view) { shell(); route(); } else { current?.refresh?.(); document.dispatchEvent(new CustomEvent('setup:changed')); } void foot; }
+        return;
+      }
+      Store.me = me; shell(); route(); // the landing screen loads the item list itself; no need to fetch it twice
     } catch (e) {
+      if (early && (e.code === 'NETWORK' || e.code === 'ETIMEDOUT' || e.name === 'TypeError' || !e.httpStatus && !e.status && !e.code)) { toast('Working with the last saved setup — ' + e.message, 'warn', 6000); return; }
+      if (early) { current?.unmount?.(); current = null; RestaurantWorkspace.stop(); Store.me = null; try { localStorage.removeItem(ME_KEY()); } catch { /* ignore */ } }
       if (e.code === 'LOCKED') { await Cloud.logout(); Store.me = null; App.publicInfo = { ...(App.publicInfo || {}), access: { locked: true, message: e.message } }; return loginView(); }
-      if (e.code === 'AUTH' || e.status === 401) { await Cloud.logout(); return loginView('Please sign in again.'); }
+      if (e.code === 'AUTH' || e.status === 401 || e.httpStatus === 401) { await Cloud.logout(); return loginView('Your sign-in ended. Please sign in again.'); }
       if (e.status === 403) { await Cloud.logout(); return loginView(e.message); }
       app().className = 'auth';
       app().innerHTML = `<main class="auth-wrap"><section class="auth-card"><div class="brand-mark">${Icon('alert')}</div><h1>Can’t open the app</h1><p class="sub">${esc(e.message)}</p>
@@ -325,6 +377,6 @@ const App = (() => {
     if (!Store.me && $('#loginForm')) { const f = $('#loginForm'), em = f.email.value, pw = f.password.value; loginView(); $('#loginForm').email.value = em; $('#loginForm').password.value = pw; }
   }
   function rebuildNav() { if (!Store.me || Store.isMember) return; const n = $('#sideNav'); if (!n) { shell(); return route(); } n.innerHTML = navHTML(); RestaurantWorkspace.paintCounts(); const key = (location.hash.match(/^#\/(\w+)/) || [])[1]; if (!key || !Store.can(ROUTES[key]?.perm)) route(); else markNav(key); }
-  return { boot, applyShop, applyBrand, applyTheme, help, refreshMe, start, paintLock, rebuildNav, signOut, sync, setIcon, syncIcon, loginView, publicInfo: null };
+  return { boot, applyShop, applyBrand, applyTheme, help, refreshMe, start, paintLock, rebuildNav, signOut, sync, setIcon, syncIcon, loginView, setManagerView, publicInfo: null };
 })();
 App.boot();

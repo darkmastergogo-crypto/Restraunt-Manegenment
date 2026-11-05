@@ -2,16 +2,16 @@
    app name & logo, themes, support details, limits, permissions and admin logins. */
 'use strict';
 const Admin = (() => {
-  let root = null, section = 'access', presets = null, editing = null, themeFilter = 'all';
+  let root = null, section = 'brand', presets = null, editing = null, themeFilter = 'all';
   const SECTIONS = [
-    ['access', 'System on / off', 'power', 'Shut down for everyone except admin'],
     ['presets', 'Presets', 'grid', 'Gym, library, shop… what each business gets'],
     ['brand', 'App name & logo', 'image', 'Name and icon on phones and computers'],
     ['appearance', 'Themes', 'palette', '40 themes for everyone or each role'],
     ['support', 'Support contact', 'phone', 'Who shops call for help'],
     ['billing', 'Limits', 'sliders', 'Biggest discount and short cash'],
     ['roles', 'Roles & permissions', 'users', 'What owner, manager and cashier can do'],
-    ['admins', 'Admin logins', 'shield', 'Who can open this page']
+    ['admins', 'Admin logins', 'shield', 'Who can open this page'],
+    ['access', 'System on / off', 'power', 'Shut down, or hide the admin-only tabs']
   ].filter(([k]) => !(Cloud.hiddenAdmin || []).includes(k));
   const FEATURES = [
     ['extra_items', 'Extra items', 'Bill something that is not in the item list.'],
@@ -68,7 +68,10 @@ const Admin = (() => {
         <header class="span-2 card-head"><h2>Message shown while shut down</h2><p class="hint">Shown on the sign-in screen with your support contact, and to anyone who is signed out by the shutdown.</p></header>
         <label class="field span-2"><span>Message</span><textarea name="message" rows="3" maxlength="300">${esc(a.message || '')}</textarea></label>
         <div class="form-actions span-2"><button class="btn">Save message</button></div></form>
-      <section class="card"><header class="card-head"><h2>What happens</h2></header>
+      <section class="card view-card"><div class="view-row"><div><h2>Hide admin-only tabs</h2>
+          <p class="hint">Your admin logins then see exactly what a manager sees — the same side menu, the same Settings tabs, no Admin page. Use it when you hand this phone or counter to the restaurant. A <b>Show admin tabs</b> button stays at the bottom of the side menu to bring everything back.</p></div>
+          <button type="button" class="btn" id="managerViewBtn">${Icon('eye')} Hide admin-only tabs</button></div></section>
+      <section class="card"><header class="card-head"><h2>What happens when the system is shut down</h2></header>
         <ul class="hint-list"><li>Every action by owner, manager, cashier or member is refused by the server straight away.</li>
         <li>Open screens sign themselves out within a minute.</li>
         <li>Nothing is deleted. Bills, items, members and logins stay exactly as they are.</li>
@@ -339,6 +342,7 @@ const Admin = (() => {
     }
     if (sec === 'access') {
       const f = $('#aAccess', root);
+      $('#managerViewBtn', root).onclick = async e => { if (await ask({ title: 'Hide admin-only tabs?', body: 'Every admin login will see the app the way a manager does. Bring the tabs back any time with “Show admin tabs” at the bottom of the side menu.', confirm: 'Hide admin-only tabs' })) App.setManagerView(true, e.currentTarget); };
       f.onsubmit = e => { e.preventDefault(); save({ access: { message: f.message.value.trim() } }, e.submitter, 'Message saved.'); };
       $('#powerBtn', root).onclick = async e => {
         const on = !sys().access?.locked;

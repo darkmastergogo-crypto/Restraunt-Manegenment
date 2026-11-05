@@ -5,21 +5,20 @@ const Settings = (() => {
   const SECTIONS = [
     ['shop', 'Shop details', 'settings_shop', 'store'], ['billing', 'Billing', 'settings_tax', 'bill'], ['design', 'Bill design', 'settings_design', 'printer'],
     ['extras', 'Bill extras', 'settings_design', 'qr'], ['staff', 'Staff & logins', 'staff', 'users'], ['perms', 'Permissions', ['roles_manager', 'roles_cashier'], 'lock'],
-    ['contact', 'Contact info', 'settings_contact', 'phone'], ['restaurant', 'Restaurant', 'restaurant_settings', 'store'], ['data', 'Data', 'reset', 'download']];
+    ['contact', 'Contact info', 'settings_contact', 'phone'], ['restaurant', 'Restaurant', 'restaurant_settings', 'store'], ['limits', 'Limits', 'limits', 'sliders'], ['data', 'Data', 'reset', 'download']];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const TIMEZONES = ['Asia/Kolkata', 'Asia/Kathmandu', 'Asia/Dhaka', 'Asia/Karachi', 'Asia/Colombo', 'Asia/Dubai', 'Asia/Singapore', 'Europe/London', 'America/New_York'];
   const FEATURES = [
     ['extra_items', 'Extra items', 'Bill something that is not in the item list.'],
     ['cash_received', 'Cash received box', 'Type the cash given to see the change. Needed for short-cash bills.'],
     ['customer_details', 'Customer name & phone', 'Ask for the customer’s name and phone.'],
-    ['customer_address', 'Customer address', 'Add the customer’s address to the bill.'],
     ['notes', 'Note on bill', 'A short note that prints on the bill.'],
     ['whatsapp', 'Send bill on WhatsApp', 'WhatsApp button after saving a bill.'],
     ['qty_badges', 'Quantity on item tiles', 'Show ×2, ×3… on an item already on the bill.'],
     ['stock_badges', 'Stock on item tiles', 'Show “12 left” and “Out of stock” while billing.'],
     ['item_codes_on_tiles', 'Item codes on tiles', 'Show the barcode / code under each item name.']];
   const ITEM_FIELDS = [['hsn', 'HSN / SAC code', 'Tax classification code, printed in its own column.'], ['alias', 'Name on bill', 'A different name to print on the bill (e.g. Hindi name).'],
-    ['description', 'Description', 'A longer note about the item.'], ['default_discount', 'Default discount', 'A discount % applied automatically when the item is billed.'],
-    ['item_type', 'Product or service', 'Services never track stock.'], ['advanced', 'Storage, batch & expiry', 'Storage location, container, batch number, MFG and expiry dates.']];
+    ['description', 'Description', 'A longer note about the item, also shown on the menu.']];
   const sw = (name, on, title, desc = '', extra = '') => `<label class="switch"><input type="checkbox" name="${name}" ${on ? 'checked' : ''} ${extra}><span class="sw" aria-hidden="true"></span><span class="sw-text"><b>${title}</b>${desc ? `<small>${desc}</small>` : ''}</span></label>`;
   const swMini = (name, on, label) => `<label class="switch mini" title="${esc(label)}"><input type="checkbox" name="${name}" ${on ? 'checked' : ''} aria-label="${esc(label)}"><span class="sw" aria-hidden="true"></span><span class="sw-cap">On bill</span></label>`;
 
@@ -60,24 +59,18 @@ const Settings = (() => {
       <section class="card form-grid"><header class="span-2 card-head"><h2>Tax</h2></header>
         <div class="span-2">${sw('tax_enabled', s.tax_enabled, 'Add tax to bills')}</div>
         <div class="span-2 form-grid sub-box" data-tax ${s.tax_enabled ? '' : 'hidden'}>
-          <div class="field span-2"><span>How tax works</span><div class="seg seg-wide" role="radiogroup">
-            <label><input type="radio" name="tax_scope" value="bill" ${s.tax_scope !== 'item' ? 'checked' : ''}><span>One rate for the whole bill</span></label>
-            <label><input type="radio" name="tax_scope" value="item" ${s.tax_scope === 'item' ? 'checked' : ''}><span>Each item has its own rate (GST)</span></label></div></div>
+          <input type="hidden" name="tax_scope" value="bill">
           <label class="field"><span>Tax name on bill</span><input name="tax_label" maxlength="30" value="${esc(s.tax_label)}" placeholder="GST"></label>
           <label class="field" data-billtax><span>Tax type</span><select name="tax_mode"><option value="percent" ${s.tax_mode === 'percent' ? 'selected' : ''}>Percent of bill</option><option value="fixed" ${s.tax_mode === 'fixed' ? 'selected' : ''}>Fixed amount per bill</option></select></label>
           <label class="field"><span data-ratelabel>${s.tax_scope === 'item' ? 'Default tax % (items without their own rate)' : 'Tax value'}</span><input name="tax_value" type="number" min="0" step="0.01" value="${Number(s.tax_value)}"></label>
           <div class="span-2 switches">${sw('tax_split', s.tax_split, 'Show as CGST + SGST', 'Splits the tax into two equal halves on the bill, e.g. GST 5% → CGST 2.5% + SGST 2.5%.')}
           <div data-itemtax>${sw('tax_inclusive_default', s.tax_inclusive_default, 'Extra items already include tax', 'For items typed in at the counter.')}</div></div>
-          <p class="hint span-2">Tax is worked out after discounts. With per-item tax, set each item’s rate in Items, and whether its price already includes tax.</p>
+          <p class="hint span-2">One rate for the whole bill, worked out after discounts. Customers’ QR orders use the same rate.</p>
         </div></section>
-      <section class="card form-grid"><header class="span-2 card-head"><h2>Totals & bill numbers</h2></header>
-        <div class="span-2">${sw('round_off', s.round_off, `Round the total to the nearest ${esc(s.currency || '₹')}1`)}</div>
-        <label class="field"><span>Bill number starts with</span><input name="bill_prefix" maxlength="12" value="${esc(s.bill_prefix)}" placeholder="INV-"></label>
-        <div class="field"><span>Example</span><p class="static mono" id="prefixEx">${esc(s.bill_prefix)}00001</p></div></section>
+      <section class="card" id="invCard"><header class="card-head"><h2>Invoice & order numbers</h2><p class="hint">Every paid bill gets the next invoice number of the year — INV001, INV002 … INV365 … — counter bills and QR orders alike. Order numbers (#1, #2 …) start again from 1 every day.</p></header>
+        <div id="invBody"><p class="hint">Loading…</p></div></section>
       <section class="card"><header class="card-head"><h2>Stock</h2></header>
-        <div class="field"><span>When an item’s stock runs out on a bill</span><div class="seg seg-wide" role="radiogroup">
-          <label><input type="radio" name="stock_mode" value="stop" ${!s.allow_negative_stock ? 'checked' : ''}><span><b>Stop adding it</b><small>Can’t sell more than you have.</small></span></label>
-          <label><input type="radio" name="stock_mode" value="warn" ${s.allow_negative_stock ? 'checked' : ''}><span><b>Only warn me</b><small>Shows a message, lets you sell anyway.</small></span></label></div></div>
+        <p class="hint">Dishes with tracked stock stop selling when they run out — on the counter and on the QR menu.</p><input type="hidden" name="stock_mode" value="stop">
         ${sw('stock_shown', !s.stock_hidden, 'Show stock', 'Turn off to hide the Stocks screen and stock numbers for everyone except Admin. Sales still count stock in the background.')}</section>
       ${Store.moduleOn('expenses') ? `<section class="card"><header class="card-head"><h2>Profit on the dashboard</h2></header>
         <div class="field"><span>Take expenses off the profit?</span><div class="seg seg-wide" role="radiogroup">
@@ -119,11 +112,11 @@ const Settings = (() => {
   }
   function sampleBill() {
     const s = Store.settings, item = s.tax_enabled && s.tax_scope === 'item';
-    const lines = [{ name: 'Tata Salt 1 kg', hsn: '2501', code: '8904043901015', qty: 2, unit: 'pcs', price: 28, discount_pct: 0, tax_rate: 5, incl: false },
-                   { name: 'Sugar (loose)', alias: 'चीनी', hsn: '1701', code: 'SG01', qty: 1.5, unit: 'kg', price: 44, discount_pct: 0, tax_rate: 5, incl: false },
-                   { name: 'Classmate Notebook', hsn: '4820', code: '8902519000127', qty: 3, unit: 'pcs', price: 60, discount_pct: 10, tax_rate: 12, incl: true }];
+    const lines = [{ name: 'Veg Steamed Momos — Full', hsn: '996331', code: 'M01', qty: 2, unit: 'pcs', price: 120, discount_pct: 0, tax_rate: 5, incl: false },
+                   { name: 'Paneer Tikka', alias: 'पनीर टिक्का', hsn: '996331', code: 'P02', qty: 1, unit: 'plate', price: 220, discount_pct: 0, tax_rate: 5, incl: false },
+                   { name: 'Cold Coffee', hsn: '996331', code: 'D05', qty: 3, unit: 'glass', price: 95, discount_pct: 0, tax_rate: 5, incl: false }];
     const t = Calc.bill(lines, s, { discount: { mode: 'percent', value: 5 }, canDiscount: true });
-    return { bill_no: (s.bill_prefix || 'INV-') + '00042', created_at: new Date().toISOString(), cashier_name: Store.me.name, customer_name: 'Amit Kumar', customer_phone: '98765 43210', customer_address: Store.feature('customer_address') ? '12, MG Road, Patna' : '',
+    return { bill_no: (s.invoice_numbers?.prefix ?? s.bill_prefix ?? 'INV') + '042', invoice_no: 'sample', order_no: 12, table_number: 'Counter', created_at: new Date().toISOString(), cashier_name: Store.me.name, customer_name: 'Amit Kumar', customer_phone: '98765 43210', customer_address: Store.feature('customer_address') ? '12, MG Road, Patna' : '',
       items: lines.map((l, i) => ({ ...l, line_total: t.lines[i].total, discount: t.lines[i].disc })), items_subtotal: t.sub, discount_mode: 'percent', discount_value: 5, discount_amount: t.disc,
       tax_enabled: s.tax_enabled, tax_mode: s.tax_mode, tax_value: s.tax_value, tax_label: s.tax_label, tax_amount: t.tax, tax_scope: item ? 'item' : 'bill', tax_split: s.tax_split, tax_breakdown: t.breakdown,
       round_off: t.round, less_amount: 0, total: t.total, cash_received: Math.ceil(t.total / 100) * 100, change_amount: Math.ceil(t.total / 100) * 100 - t.total, payment_method: 'Cash', status: 'Paid', notes: '',
@@ -256,6 +249,44 @@ const Settings = (() => {
       <div class="data-row danger-zone"><div><h3>Delete all bills</h3><p class="hint">Removes every bill and its sales history for good. Items and stock stay. Use only to clear test bills.</p></div><button type="button" class="btn btn-danger" id="resetBills">Delete all bills…</button></div></div>`;
   }
 
+  /* ---------- invoice numbers (admin changes them; managers see them) ---------- */
+  async function invoiceBox() {
+    const box = $('#invBody', root); if (!box) return;
+    let c;
+    try { c = await Cloud.rpc('shop_invoice_get'); } catch (e) { box.innerHTML = `<p class="neg">${esc(e.message)}</p>`; return; }
+    if (!$('#invBody', root)) return;
+    if (!c) { box.innerHTML = `<div class="notice">${Icon('alert')} <div><b>Run the database update UPDATE-v19.sql once</b><p class="hint">Supabase → SQL Editor → paste the file → Run. Then refresh this page to switch on INV001-style invoice numbers.</p></div></div>`; return; }
+    const ed = !!c.can_edit, dis = ed ? '' : 'disabled';
+    const ex = (pre, dig, n) => pre + (String(n).length >= dig ? String(n) : String(n).padStart(dig, '0'));
+    box.innerHTML = `<div class="inv-now"><div><span>Next invoice</span><b class="mono" id="invNext">${esc(c.next_text)}</b><small>Year ${esc(c.year)}</small></div><div><span>Order numbers</span><b class="mono">#1, #2…</b><small>Start from 1 every day</small></div></div>
+      <div class="form-grid inv-form">
+        <label class="field"><span>Starts with</span><input name="inv_prefix" maxlength="12" value="${esc(c.prefix)}" ${dis} pattern="[A-Za-z0-9/_-]{0,12}" placeholder="INV"></label>
+        <label class="field"><span>Digits</span><select name="inv_digits" ${dis}>${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${Number(c.digits) === n ? 'selected' : ''}>${n} — ${esc(ex('', n, 1))}</option>`).join('')}</select></label>
+        <label class="field"><span>Numbers restart every year in</span><select name="inv_month" ${dis}>${MONTHS.map((m, i) => `<option value="${i + 1}" ${Number(c.start_month) === i + 1 ? 'selected' : ''}>${m}${i === 3 ? ' (financial year)' : i === 0 ? ' (calendar year)' : ''}</option>`).join('')}</select></label>
+        <label class="field"><span>Next number <em>only to continue from an old book</em></span><input name="inv_next" type="number" min="1" step="1" inputmode="numeric" placeholder="${Number(c.next)}" ${dis}></label>
+        ${ed ? `<div class="form-actions span-2"><button type="button" class="btn btn-primary" id="invSave">Save invoice numbers</button></div>` : `<p class="hint span-2">Only the admin login can change invoice numbers.</p>`}</div>`;
+    if (!ed) return;
+    const paint = () => { const f = $('#fBill', root); if (!f) return; $('#invNext', root).textContent = ex(f.inv_prefix.value.trim(), Number(f.inv_digits.value), Number(f.inv_next.value) || Number(c.next)); };
+    $('#fBill', root).addEventListener('input', e => { if (/^inv_/.test(e.target.name || '')) paint(); });
+    $('#invSave', root).onclick = async e => {
+      const f = $('#fBill', root), next = f.inv_next.value ? Number(f.inv_next.value) : null;
+      if (!/^[A-Za-z0-9/_-]{0,12}$/.test(f.inv_prefix.value.trim())) return toast('Use up to 12 letters, numbers, / - or _.', 'warn');
+      busy(e.currentTarget, true, 'Saving…');
+      try { await Cloud.rpc('shop_invoice_save', { p_prefix: f.inv_prefix.value.trim(), p_digits: Number(f.inv_digits.value), p_start_month: Number(f.inv_month.value), p_next: next }); toast('Invoice numbers saved.', 'ok'); invoiceBox(); }
+      catch (ex2) { toast(ex2.message, 'error', 7000); } finally { busy(e.currentTarget, false); }
+    };
+  }
+  /* ---------- limits (admin and manager) ---------- */
+  function limitsSection() {
+    const l = Store.sys.limits || {}, v19 = Cloud.hasV19?.();
+    return `<form id="fLimits" class="card form-grid"><header class="span-2 card-head"><h2>Limits</h2><p class="hint">How much discount and short cash a manager may give on the billing counter. The admin login is never limited. The server checks every bill.</p></header>
+      ${v19 ? '' : `<div class="notice span-2">${Icon('alert')} <div><b>Run the database update UPDATE-v19.sql once</b><p class="hint">Discounts and short cash on counter bills switch on after it.</p></div></div>`}
+      <label class="field"><span>Biggest discount allowed (%)</span><input name="max_discount_percent" type="number" min="0" max="100" step="0.5" inputmode="decimal" value="${Number(l.max_discount_percent ?? 100)}" ${v19 ? '' : 'disabled'}></label>
+      <label class="field"><span>Most cash a customer can pay short (${esc(Fmt.cur())})</span><input name="max_short_amount" type="number" min="0" max="100000" step="1" inputmode="numeric" value="${Number(l.max_short_amount ?? 0)}" ${v19 ? '' : 'disabled'}></label>
+      <p class="hint span-2">Short cash: when the cash received is less than the total, the bill is reduced to what was paid — up to this amount.</p>
+      <div class="form-actions span-2"><button class="btn btn-primary" ${v19 ? '' : 'disabled'}>Save limits</button></div></form>`;
+  }
+
   const allowed = () => SECTIONS.filter(([k, , p]) => k !== 'perms' && (Array.isArray(p) ? p.some(x => Store.can(x)) : Store.can(p)));
 
   function show(sec, scroll = false) {
@@ -264,7 +295,12 @@ const Settings = (() => {
     const s = Store.settings, body = $('#setBody', root);
     if (sec === 'restaurant') { RestaurantSettings.mount(body); return; }
     if (sec === 'staff') { RestaurantSettings.waiters(body); return; }
-    body.innerHTML = { shop: shopSection, billing: billingSection, design: designSection, extras: extrasSection, staff: staffSection, perms: permsSection, contact: contactSection, data: dataSection }[sec](s);
+    body.innerHTML = { shop: shopSection, billing: billingSection, design: designSection, extras: extrasSection, staff: staffSection, perms: permsSection, contact: contactSection, data: dataSection, limits: limitsSection }[sec](s);
+    if (sec === 'limits') $('#fLimits', root).onsubmit = async e => {
+      e.preventDefault(); const f = e.target, btn = e.submitter; busy(btn, true, 'Saving…');
+      try { const l = await Cloud.rpc('shop_limits_save', { p_max_discount_percent: Number(f.max_discount_percent.value), p_max_short_amount: Number(f.max_short_amount.value) }); Store.me.system = { ...Store.me.system, limits: l }; toast('Limits saved.', 'ok'); }
+      catch (ex) { toast(ex.message, 'error', 6000); } finally { busy(btn, false); }
+    };
     if (scroll) body.scrollIntoView?.({ block: 'nearest' });
     if (sec === 'shop') {
       paintLogo();
@@ -281,13 +317,13 @@ const Settings = (() => {
       const f = $('#fBill', root);
       const paint = () => { $('[data-tax]', f).hidden = !f.tax_enabled.checked; const item = f.tax_scope.value === 'item'; $('[data-billtax]', f).hidden = item; $('[data-itemtax]', f).hidden = !item; $('[data-ratelabel]', f).textContent = item ? 'Default tax % (items without their own rate)' : 'Tax value'; };
       f.addEventListener('change', paint); paint();
-      f.bill_prefix.oninput = () => { $('#prefixEx', f).textContent = f.bill_prefix.value + '00001'; };
+      invoiceBox();
       f.onsubmit = async e => {
         e.preventDefault(); const btn = e.submitter;
         const payments = Object.fromEntries(['Cash', 'UPI', 'Card'].map(m => [m, f['pay_' + m].checked]));
         if (!Object.values(payments).some(Boolean)) return toast('Keep at least one payment method turned on.', 'warn');
-        const ok = await saveSettings({ tax_enabled: f.tax_enabled.checked, tax_label: f.tax_label.value, tax_mode: f.tax_mode.value, tax_value: f.tax_value.value || '0', tax_scope: f.tax_scope.value,
-          tax_split: f.tax_split.checked, tax_inclusive_default: f.tax_inclusive_default.checked, round_off: f.round_off.checked, bill_prefix: f.bill_prefix.value,
+        const ok = await saveSettings({ tax_enabled: f.tax_enabled.checked, tax_label: f.tax_label.value, tax_mode: f.tax_mode.value, tax_value: f.tax_value.value || '0', tax_scope: 'bill',
+          tax_split: f.tax_split.checked, tax_inclusive_default: f.tax_inclusive_default.checked,
           allow_negative_stock: f.stock_mode.value === 'warn', stock_hidden: !f.stock_shown.checked, ...(f.exp_profit ? { expenses_in_profit: f.exp_profit.value === 'yes' } : {}),
           item_fields: Object.fromEntries(ITEM_FIELDS.map(([k]) => [k, f['if_' + k].checked])) }, btn, 'Billing settings saved.');
         if (!ok) return;
@@ -361,8 +397,7 @@ const Settings = (() => {
     if (sec === 'data') $('#resetBills', root).onclick = async () => {
       const v = await ask({ title: 'Delete all bills?', body: 'This cannot be undone. Export your records first if you might need them.', confirm: 'Delete all bills', danger: true, input: { label: 'Type DELETE ALL BILLS to confirm', required: true } });
       if (v === null) return;
-      const restart = await ask({ title: 'Restart bill numbers?', body: `Start again from ${esc(Store.settings.bill_prefix)}00001?`, confirm: 'Yes, restart', cancel: 'No, keep counting' });
-      try { const r = await Cloud.rpc('shop_reset_bills', { p_confirm: v.trim(), p_restart_numbers: !!restart }); toast(`${r.deleted} bills deleted.`, 'ok'); } catch (e) { toast(e.message, 'error'); }
+      try { const r = await Cloud.rpc('shop_reset_bills', { p_confirm: v.trim(), p_restart_numbers: false }); toast(`${r.deleted} bills deleted.`, 'ok'); } catch (e) { toast(e.message, 'error'); }
     };
   }
 

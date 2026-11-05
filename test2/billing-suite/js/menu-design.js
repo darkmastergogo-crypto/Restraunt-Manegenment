@@ -4,8 +4,9 @@
 'use strict';
 const MenuDesign = (() => {
   const D = window.M17Data;
-  const TABS = [['layout', 'Layout', 'grid'], ['theme', 'Theme', 'palette'], ['top', 'Top of menu', 'image'], ['parts', 'Show / hide', 'sliders'], ['words', 'Words', 'edit'], ['offers', 'Offers', 'tag'], ['more', 'More', 'gear']];
+  const TABS = [['layout', 'Layout', 'grid'], ['theme', 'Theme', 'palette'], ['top', 'Top of menu', 'image'], ['cats', 'Categories', 'layers'], ['parts', 'Show / hide', 'sliders'], ['words', 'Words', 'edit'], ['offers', 'Offers', 'tag'], ['more', 'More', 'gear']];
   const clone = v => JSON.parse(JSON.stringify(v ?? {}));
+  let catPhotos = {}, catBase = {};
   let root = null, draft = {}, base = {}, items = [], cats = [], tab = 'layout', song = null, songBase = null, themeFilter = 'all', pushTimer = 0, offersDb = null, review = '', loading = 0;
 
   /* ---------- small builders ---------- */
@@ -58,7 +59,7 @@ const MenuDesign = (() => {
   /* ---------- preview ---------- */
   function payload() {
     const custom = Cloud.custom() || {};
-    return { custom: { ...custom, m17: draft }, items, categories: cats, table: 'Table 1' };
+    return { custom: { ...custom, m17: draft, categoryPhotos: catPhotos }, items, categories: cats, table: 'Table 1' };
   }
   function push(now = false) {
     clearTimeout(pushTimer);
@@ -66,7 +67,7 @@ const MenuDesign = (() => {
     if (now) go(); else pushTimer = setTimeout(go, 120);
   }
   function changed() {
-    const dirty = JSON.stringify(draft) !== JSON.stringify(base) || song !== songBase;
+    const dirty = JSON.stringify(draft) !== JSON.stringify(base) || song !== songBase || JSON.stringify(catPhotos) !== JSON.stringify(catBase);
     const b = root && $('#mdDirty', root); if (b) b.hidden = !dirty;
     for (const id of ['#mdSave', '#mdUndo']) { const x = root && $(id, root); if (x) x.disabled = !dirty; }
     push();
@@ -116,6 +117,31 @@ const MenuDesign = (() => {
           <div class="toolbar"><button type="button" class="icon-btn" data-slide="up" aria-label="Move up" ${n ? '' : 'disabled'}>${Icon('up')}</button><button type="button" class="icon-btn" data-slide="down" aria-label="Move down" ${n < slides.length - 1 ? '' : 'disabled'}>${Icon('down')}</button><button type="button" class="btn btn-sm btn-danger-ghost" data-slide="del">Remove</button></div></div>`).join('') : '<p class="hint md-empty">No banner photos yet.</p>'}</div></section>
       <section class="card form-grid"><header class="span-2 card-head"><h2>Restaurant info</h2><p class="hint">Shown under the banner. Leave a line empty to hide it.</p></header>
         ${group.map(([k, def]) => textField(k, def, k === 'location' || k === 'time')).join('')}</section>`;
+  }
+  /* ---------- category banners ---------- */
+  function catsTab() {
+    const style = draft.catBanner || 'banner', list = cats.length ? cats : [...new Set(items.map(i => i.category).filter(Boolean))];
+    const opt = (v, t, d) => `<label class="md-cb-opt ${style === v ? 'on' : ''}"><input type="radio" name="mdCatStyle" value="${v}" ${style === v ? 'checked' : ''}><span class="md-cb-pic md-cb-${v}" aria-hidden="true"><i></i><b></b><b></b></span><span><b>${t}</b><small>${d}</small></span></label>`;
+    return `<section class="card"><header class="card-head"><h2>How categories start</h2><p class="hint">Applies to every layout. Categories without a photo show just their name.</p></header>
+        <div class="md-cb-opts">${opt('banner', 'Big banner photo', 'A wide picture with the category name on it.')}${opt('thumb', 'Small photo', 'A small square picture beside the name.')}${opt('none', 'Name only', 'No pictures — just the category name.')}</div></section>
+      <section class="card"><div class="card-title-row"><div><h2>Category photos</h2><p class="hint">Each category has its own photo. Photos are cropped to a wide banner (about 2 : 1) and shrunk to load fast. They are also used for category tiles, the side rail and — when you have no banner photos — the photo slider.</p></div></div>
+        ${list.length ? `<div class="md-cats">${list.map((c, n) => { const src = RestaurantCloud.safeImage(catPhotos[c] || ''); return `<div class="md-cat" data-cat="${esc(c)}" data-n="${n}">
+            <div class="md-cat-pic">${src ? `<img src="${esc(src)}" alt="">` : `<span>${Icon('image')}<small>No photo</small></span>`}<b>${esc(c)}</b></div>
+            <div class="toolbar"><label class="btn btn-sm file-btn">${Icon('upload')} ${src ? 'Change' : 'Add photo'}<input type="file" data-catfile="${n}" accept="image/png,image/jpeg,image/webp" hidden></label><button type="button" class="btn btn-sm btn-ghost" data-catlink="${n}">Link</button>${src ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-catdel="${n}">Remove</button>` : ''}</div></div>`; }).join('')}</div>`
+        : `<div class="md-empty"><p>No categories yet. Add dishes and categories in Items first.</p></div>`}</section>`;
+  }
+  /* Crops to a 2:1 banner, at most 1400 px wide, WebP — small and quick for customers. */
+  async function bannerData(file) {
+    if (!file || !/^image\/(png|jpe?g|webp)$/.test(file.type)) throw Error('Choose a PNG, JPEG or WebP photo.');
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(Error('This photo could not be opened.')); i.src = url; });
+      const W = Math.min(1400, Math.max(600, img.naturalWidth)), H = Math.round(W / 2), c = document.createElement('canvas'); c.width = W; c.height = H;
+      const r = Math.max(W / img.naturalWidth, H / img.naturalHeight), w = img.naturalWidth * r, h = img.naturalHeight * r;
+      c.getContext('2d').drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      for (const q of [0.82, 0.72, 0.6, 0.5]) { const d = c.toDataURL('image/webp', q); if (d.startsWith('data:image/webp') && d.length * 0.75 < 900000) return d; }
+      return c.toDataURL('image/jpeg', 0.7);
+    } finally { URL.revokeObjectURL(url); }
   }
   function partsTab() {
     const s = { ...D.SHOW_DEFAULTS, ...(draft.show || {}) };
@@ -167,14 +193,14 @@ const MenuDesign = (() => {
   function moreTab() {
     return `<section class="card"><div class="md-switches">${sw('enabled', draft.enabled !== false, 'Use this menu design', 'Switch off to go back to the old menu page.')}</div></section>
       <section class="card"><div class="data-row"><div><h3>Back up this design</h3><p class="hint">Download the layout, theme, words and offers as a file, or load a file you saved.</p></div><div class="toolbar"><button type="button" class="btn" id="mdExport">${Icon('download')} Download</button><label class="btn file-btn">${Icon('up')} Load file<input type="file" id="mdImport" accept="application/json,.json" hidden></label></div></div>
-        <div class="data-row"><div><h3>Category photos and names</h3><p class="hint">Category banners, category order and dish photos are set in Items → Photos & portions and Settings → Restaurant.</p></div><a class="btn" href="#/itemDetails">${Icon('image')} Photos & portions</a></div>
+        <div class="data-row"><div><h3>Dish photos and portions</h3><p class="hint">Category photos are in the Categories tab. Dish photos, portions and category order are in Items → Photos & portions.</p></div><a class="btn" href="#/itemDetails">${Icon('image')} Photos & portions</a></div>
         <div class="data-row danger-zone"><div><h3>Start over</h3><p class="hint">Puts the whole menu design back to the first layout and theme. Nothing is published until you press Save.</p></div><button type="button" class="btn btn-danger-ghost" id="mdResetAll">Reset design…</button></div></section>`;
   }
   function paint() {
     if (!root) return;
     $$('#mdTabs button', root).forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     const body = $('#mdBody', root);
-    body.innerHTML = { layout: layoutTab, theme: themeTab, top: topTab, parts: partsTab, words: wordsTab, offers: offersTab, more: moreTab }[tab]();
+    body.innerHTML = { layout: layoutTab, theme: themeTab, top: topTab, cats: catsTab, parts: partsTab, words: wordsTab, offers: offersTab, more: moreTab }[tab]();
     changed();
   }
 
@@ -196,6 +222,13 @@ const MenuDesign = (() => {
       const dn = t.closest('[data-dn]'); if (dn) { if (dn.dataset.dn === 'cozy') delete draft.density; else draft.density = dn.dataset.dn; paint(); return; }
       const md = t.closest('[data-mode]'); if (md) { $$('[data-mode]', md.parentElement).forEach(x => x.classList.toggle('on', x === md)); syncOffers(); changed(); return; }
       const sl = t.closest('[data-slide]'); if (sl) { const n = Number(sl.closest('[data-n]').dataset.n), list = draft.hero.slides; if (sl.dataset.slide === 'del') list.splice(n, 1); else { const m = sl.dataset.slide === 'up' ? n - 1 : n + 1; [list[n], list[m]] = [list[m], list[n]]; } paint(); return; }
+      const cl = t.closest('[data-catlink]'); if (cl) {
+        const c = cl.closest('[data-cat]').dataset.cat;
+        const url = await ask({ title: `Photo for ${c}`, body: 'Paste an image address that starts with https://', confirm: 'Use photo', input: { label: 'Image link', type: 'url', placeholder: 'https://…', required: true, value: catPhotos[c] || '' } });
+        if (!url) return; if (!RestaurantCloud.safeImage(url.trim())) { toast('Use an image link that starts with https://', 'error'); return; }
+        catPhotos = { ...catPhotos, [c]: url.trim() }; paint(); return;
+      }
+      const cd = t.closest('[data-catdel]'); if (cd) { const c = cd.closest('[data-cat]').dataset.cat; catPhotos = { ...catPhotos }; delete catPhotos[c]; paint(); return; }
       if (t.closest('#mdLayoutReset')) { delete draft.layout; paint(); return; }
       if (t.closest('#mdTuneReset')) { for (const k of ['accent', 'font', 'bodyFont', 'radius', 'density']) delete draft[k]; paint(); return; }
       if (t.closest('#mdAllOn')) { draft.show = {}; song = songBase === null ? null : true; paint(); return; }
@@ -226,11 +259,19 @@ const MenuDesign = (() => {
       if (k?.startsWith('of-')) { syncOffers(); changed(); return; }
       if (t.id === 'mdFont') { if (t.value) draft.font = t.value; else delete draft.font; changed(); return; }
       if (t.id === 'mdBodyFont') { if (t.value) draft.bodyFont = t.value; else delete draft.bodyFont; changed(); return; }
+      if (t.name === 'mdCatStyle') { if (t.value === 'banner') delete draft.catBanner; else draft.catBanner = t.value; paint(); return; }
+      if (t.dataset.catfile !== undefined) {
+        const f = t.files[0], c = t.closest('[data-cat]').dataset.cat, box = t.closest('.md-cat'); t.value = ''; if (!f) return;
+        box.classList.add('is-busy');
+        try { toast('Uploading photo…'); const url = await RestaurantCloud.uploadMenuImage(await bannerData(f)); catPhotos = { ...catPhotos, [c]: url }; paint(); toast(`Photo ready for ${c}. Press Save to publish.`, 'ok'); }
+        catch (ex) { box.classList.remove('is-busy'); toast('Photo not added: ' + ex.message, 'error', 6000); }
+        return;
+      }
       if (t.id === 'mdSlideFile') { const f = t.files[0]; t.value = ''; if (!f) return; try { toast('Uploading photo…'); const data = await imageToDataURL(f, 1600, 900000); const url = await RestaurantCloud.uploadMenuImage(data); addSlide(url); } catch (ex) { toast('Photo not added: ' + ex.message, 'error', 6000); } return; }
       if (t.id === 'mdImport') { const f = t.files[0]; t.value = ''; if (!f) return; try { const j = JSON.parse(await f.text()); if (j?.kind !== 'menu-design' || typeof j.m17 !== 'object') throw Error('This is not a menu design file.'); draft = clone(j.m17); paint(); toast('Design loaded. Press Save to publish.', 'ok'); } catch (ex) { toast(ex.message, 'error'); } }
     });
     $('#mdSave', root).onclick = save;
-    $('#mdUndo', root).onclick = () => { draft = clone(base); song = songBase; paint(); toast('Changes undone.'); };
+    $('#mdUndo', root).onclick = () => { draft = clone(base); song = songBase; catPhotos = clone(catBase); paint(); toast('Changes undone.'); };
     $('#mdDevice', root).onclick = e => { const b = e.target.closest('[data-dev]'); if (!b) return; $$('#mdDevice button', root).forEach(x => x.classList.toggle('on', x === b)); $('.md-phone', root).classList.toggle('wide', b.dataset.dev === 'wide'); };
     $('#mdReload', root).onclick = async e => { busy(e.currentTarget, true, 'Loading…'); try { await loadMenu(); push(true); toast('Dishes refreshed.', 'ok'); } catch (ex) { toast(ex.message, 'error'); } finally { busy(e.currentTarget, false); } };
     $('#mdFrame', root).addEventListener('load', () => push(true));
@@ -243,7 +284,9 @@ const MenuDesign = (() => {
     busy(btn, true, 'Saving…');
     try {
       const next = clone(draft); if (next.texts && !Object.keys(next.texts).length) delete next.texts; if (next.show && !Object.keys(next.show).length) delete next.show;
-      await Cloud.patchCustom({ m17: next });
+      const photosChanged = JSON.stringify(catPhotos) !== JSON.stringify(catBase);
+      await Cloud.patchCustom(photosChanged ? { m17: next, categoryPhotos: clone(catPhotos) } : { m17: next });
+      catBase = clone(catPhotos);
       if (song !== null && song !== songBase) { const r = await RX.rpc('restaurant_waiter_config56', { p_app_name: null, p_song_requests: song }); if (r?.error) throw Error(r.error); songBase = song; }
       base = clone(next); draft = clone(next); changed(); toast('Menu design saved. Customers see it the next time the menu loads.', 'ok');
     } catch (e) { toast(e.message, 'error', 7000); } finally { busy(btn, false); changed(); }
@@ -258,7 +301,7 @@ const MenuDesign = (() => {
     view.innerHTML = `<div class="page md-page"><header class="page-head"><div><h1>Menu design</h1><p class="sub">How the QR menu looks on customers’ phones. Try anything — the preview changes at once. Press Save to publish.</p></div>
       <div class="head-actions"><span class="badge badge-amber" id="mdDirty" hidden>Not saved</span><button type="button" class="btn" id="mdUndo" disabled>Undo changes</button><button type="button" class="btn btn-primary" id="mdSave" disabled>${Icon('check')} Save</button></div></header>
       <div class="md-split"><div class="md-main"><div class="seg seg-scroll md-tabs" id="mdTabs" role="tablist">${TABS.map(([k, l, ic]) => `<button type="button" role="tab" data-tab="${k}">${Icon(ic)}<span>${l}</span></button>`).join('')}</div><div id="mdBody" class="stack"><div class="card"><p class="status-line">Loading menu design…</p></div></div></div>
-      <aside class="md-side" aria-label="Live preview"><div class="md-phone"><iframe id="mdFrame" title="Customer menu preview" src="../menu-preview.html?v=18"></iframe></div>
+      <aside class="md-side" aria-label="Live preview"><div class="md-phone"><iframe id="mdFrame" title="Customer menu preview" src="../menu-preview.html?v=19"></iframe></div>
         <div class="md-side-foot"><div class="seg" id="mdDevice"><button type="button" data-dev="phone" class="on">Phone</button><button type="button" data-dev="wide">Wide</button></div><button type="button" class="btn btn-sm" id="mdReload">${Icon('refresh')} Refresh dishes</button></div>
         <p class="hint md-side-note">Preview only — tapping ADD here does not order.</p></aside></div></div>`;
     addEventListener('message', onMsg); addEventListener('beforeunload', onLeave);
@@ -269,6 +312,7 @@ const MenuDesign = (() => {
         RX.rpc('restaurant_waiter_config56', { p_app_name: null, p_song_requests: null }).catch(() => null), RX.rpc('restaurant_review_settings', { p_url: null }).catch(() => null)]);
       if (id !== loading || root !== view) return;
       base = clone(custom.m17 || {}); draft = clone(base);
+      catBase = Object.fromEntries(Object.entries(custom.categoryPhotos || {}).filter(([, v]) => RestaurantCloud.safeImage(v))); catPhotos = clone(catBase);
       songBase = cfg && typeof cfg.song_requests_enabled === 'boolean' ? cfg.song_requests_enabled : null; song = songBase;
       if (songBase === false && draft.show?.song !== false) { draft.show ||= {}; draft.show.song = false; base = clone(draft); }
       review = rv?.url || '';
