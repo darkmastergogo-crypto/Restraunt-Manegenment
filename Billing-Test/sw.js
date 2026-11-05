@@ -1,7 +1,7 @@
 /* Caches the app files so it opens fast. Bills always go to the server. */
-const CACHE = 'shopbill-v5';
-const FILES = ['./', 'index.html', 'config.js?v=5', 'css/app.css?v=5', 'js/cloud.js?v=5', 'js/themes.js?v=5', 'js/ui.js?v=5', 'js/calc.js?v=5', 'js/qr.js?v=5', 'js/receipt.js?v=5', 'js/billing.js?v=5',
-  'js/records.js?v=5', 'js/dashboard.js?v=5', 'js/items.js?v=5', 'js/stocks.js?v=5', 'js/expenses.js?v=5', 'js/members.js?v=5', 'js/portal.js?v=5', 'js/settings.js?v=5', 'js/admin.js?v=5', 'js/app.js?v=5',
+const CACHE = 'shopbill-v4';
+const FILES = ['./', 'index.html', 'config.js?v=4', 'css/app.css?v=4', 'js/cloud.js?v=4', 'js/themes.js?v=4', 'js/ui.js?v=4', 'js/calc.js?v=4', 'js/qr.js?v=4', 'js/receipt.js?v=4', 'js/billing.js?v=4',
+  'js/records.js?v=4', 'js/dashboard.js?v=4', 'js/items.js?v=4', 'js/stocks.js?v=4', 'js/expenses.js?v=4', 'js/members.js?v=4', 'js/portal.js?v=4', 'js/settings.js?v=4', 'js/admin.js?v=4', 'js/app.js?v=4',
   'icons/icon.svg', 'icons/icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
