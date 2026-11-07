@@ -34,8 +34,10 @@ const Dashboard = (() => {
 
   function delta(now, prev) {
     if (!prev) return now ? '<span class="delta">New this period</span>' : '';
-    const p = (now - prev) / prev * 100, up = p >= 0;
-    return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(p).toFixed(p > -10 && p < 10 ? 1 : 0)}% vs previous period</span>`;
+    const p = (Number(now) - Number(prev)) / Number(prev) * 100;
+    if (!Number.isFinite(p)) return '';
+    const up = p >= 0;
+    return `<span class="delta ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Fmt.fixed(Math.abs(p), p > -10 && p < 10 ? 1 : 0)}% vs previous period</span>`;
   }
 
   async function load() {

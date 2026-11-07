@@ -76,6 +76,9 @@ const Fmt = {
   nf0: new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }),
   nfq: new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 }),
   cur() { return Store.settings.currency || '₹'; },
+  /* Safe number formatting: null, undefined, '' or non-numeric input gives `fallback`, never an exception. */
+  num(v) { if (v === null || v === undefined || v === '' || typeof v === 'boolean') return null; const n = Number(v); return Number.isFinite(n) ? n : null; },
+  fixed(v, digits = 0, fallback = '') { const n = this.num(v); return n === null ? fallback : n.toFixed(digits); },
   money(v) { return this.cur() + this.nf2.format(Number(v) || 0); },
   money0(v) { return this.cur() + this.nf0.format(Math.round(Number(v) || 0)); },
   compact(v) { const n = Number(v) || 0; if (Math.abs(n) >= 1e7) return this.cur() + (n / 1e7).toFixed(1).replace(/\.0$/, '') + 'Cr'; if (Math.abs(n) >= 1e5) return this.cur() + (n / 1e5).toFixed(1).replace(/\.0$/, '') + 'L'; if (Math.abs(n) >= 1e3) return this.cur() + (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'; return this.cur() + Math.round(n); },
@@ -120,7 +123,7 @@ function toast(message, kind = 'info', ms = 3600) {
 const isTouch = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 /* Promise-based dialog. Returns the input value (or true) on confirm, null on cancel. */
-function ask({ title, body = '', confirm = 'OK', cancel = 'Cancel', danger = false, input = null }) {
+function ask({ title, body = '', confirm = 'OK', cancel = 'Cancel', danger = false, input = null, focusCancel = false }) {
   return new Promise(resolve => {
     const d = document.createElement('dialog'); d.className = 'modal modal-sm';
     d.innerHTML = `<form method="dialog"><header class="modal-head"><h2>${esc(title)}</h2></header>
@@ -131,7 +134,7 @@ function ask({ title, body = '', confirm = 'OK', cancel = 'Cancel', danger = fal
     $('[value=cancel]', d).onclick = () => d.close('cancel');
     f.onsubmit = e => { e.preventDefault(); if (!f.reportValidity()) return; d.close('ok'); };
     d.addEventListener('close', () => { const ok = d.returnValue === 'ok'; resolve(ok ? (input ? $('[name=v]', d).value : true) : null); d.remove(); });
-    d.showModal(); (input ? $('[name=v]', d) : $('[value=ok]', d)).focus();
+    d.showModal(); (input ? $('[name=v]', d) : $(focusCancel ? '[value=cancel]' : '[value=ok]', d)).focus();
   });
 }
 

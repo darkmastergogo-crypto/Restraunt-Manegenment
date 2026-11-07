@@ -67,7 +67,7 @@ const Cloud = (() => {
     async recover(email) { return request('/auth/v1/recover', { method: 'POST', body: { email, redirect_to: location.origin + location.pathname } }); },
     useRecoveryToken(hash) { const p = new URLSearchParams(hash.replace(/^#/, '')); if (p.get('type') !== 'recovery' || !p.get('access_token')) return false; save({ access_token: p.get('access_token'), refresh_token: p.get('refresh_token'), expires_in: Number(p.get('expires_in')) || 3600, user: {} }); return true; },
     async setPassword(password) { return request('/auth/v1/user', { method: 'PUT', auth: true, body: { password } }); },
-    rpc(name, args = {}) { return request('/rest/v1/rpc/' + name, { method: 'POST', auth: true, body: args }); },
+    rpc(name, args = {}, opts = {}) { return request('/rest/v1/rpc/' + name, { method: 'POST', auth: true, body: args, ...opts }); },
     publicRpc(name, args = {}) { return request('/rest/v1/rpc/' + name, { method: 'POST', body: args, timeout: 8000 }); }
   };
 })();

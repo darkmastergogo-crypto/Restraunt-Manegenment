@@ -1,9 +1,10 @@
 /* Billing counter: search/scan items, build the bill, take payment, print. */
 'use strict';
 const Billing = (() => {
+  const PAGE = 120;   // tiles drawn at a time; more are added as you scroll, so every item stays reachable
   const PENDING_KEY = () => 'SHOPBILL_PENDING:' + Cloud.cfg.supabaseUrl + ':' + Cloud.userEmail;
   let cart = [], payment = 'Cash', discount = { mode: 'percent', value: '' }, customer = { name: '', phone: '', address: '' }, notes = '', received = '', fields = {};
-  let category = 'All', query = '', highlight = 0, saving = false, pending = null, lastBill = null, showExtras = false, root = null, catalogSig = '';
+  let category = 'All', query = '', highlight = 0, saving = false, pending = null, lastBill = null, showExtras = false, root = null, catalogSig = '', limit = PAGE, lastKey = '', moreObs = null;
 
   try { pending = JSON.parse(localStorage.getItem(PENDING_KEY()) || 'null'); } catch { pending = null; }
   if (pending) ({ cart, payment, discount, customer, notes, received = '', fields = {} } = pending.state);
@@ -59,29 +60,58 @@ const Billing = (() => {
   }
   function inCart(id) { return cart.filter(l => l.id === id && !l.custom).reduce((a, l) => a + Number(l.qty), 0); }
 
+  const tile = (i, n) => `<button type="button" class="tile ${n === highlight && query ? 'hl' : ''} ${blocked(i) ? 'off' : ''}" data-add="${esc(i.id)}" ${blocked(i) ? 'aria-disabled="true"' : ''}>
+        <span class="tile-name">${esc(i.name)}</span>
+        ${Store.feature('item_codes_on_tiles') && i.code ? `<span class="tile-code">${esc(i.code)}</span>` : ''}
+        <span class="tile-foot"><b>${Fmt.money(i.price)}</b><small>/${esc(i.unit)}</small>${stockBadge(i)}</span></button>`;
+  const moreHtml = (shown, total) => shown < total
+    ? `<div class="grid-more" id="bMore"><span>Showing ${shown.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} items</span> <button type="button" class="btn btn-sm" data-more>Show more</button></div>` : '';
+  const sigOf = (list, shown, cats) => JSON.stringify([category, query, highlight, cats, shown.map(i => [i.id, i.name, i.price, i.stock, i.track_stock, i.code]), warnMode(), Store.stockShown(), Store.feature('item_codes_on_tiles'), list.length]);
+  /* Category chips: every category that has a sellable item (with its count), even if the category list is out of date. */
+  function catChips() {
+    const n = new Map(); for (const i of Store.items) if (i.active) n.set(i.category, (n.get(i.category) || 0) + 1);
+    const names = [...new Set([...Store.categories, ...n.keys()])].filter(c => n.has(c));
+    return [['All', [...n.values()].reduce((a, b) => a + b, 0)], ...names.map(c => [c, n.get(c)])];
+  }
   /* Rebuilds the grid only when what is shown actually changes (search, category, stock, items). */
   function renderCatalog(force) {
     if (!root?.isConnected) return;
-    const list = matches(), shown = list.slice(0, 120), codes = Store.feature('item_codes_on_tiles');
+    const key = category + '\u0001' + query;
+    if (key !== lastKey) { lastKey = key; limit = PAGE; }
+    const list = matches(), shown = list.slice(0, limit);
     if (highlight >= shown.length) highlight = Math.max(0, shown.length - 1);
-    const cats = ['All', ...Store.categories.filter(c => Store.items.some(i => i.active && i.category === c))];
-    const sig = JSON.stringify([category, query, highlight, cats, shown.map(i => [i.id, i.name, i.price, i.stock, i.track_stock, i.code]), warnMode(), Store.stockShown(), codes, list.length]);
+    const cats = catChips();
+    if (category !== 'All' && !cats.some(c => c[0] === category)) { category = 'All'; lastKey = ''; return renderCatalog(true); }
+    const sig = sigOf(list, shown, cats);
     if (!force && sig === catalogSig) return paintBadges();
     catalogSig = sig;
-    $('#bCats', root).innerHTML = cats.map(c => `<button type="button" class="chip ${c === category ? 'on' : ''}" data-cat="${esc(c)}">${esc(c === 'All' ? 'All items' : c)}</button>`).join('');
+    $('#bCats', root).innerHTML = cats.map(([c, k]) => `<button type="button" class="chip ${c === category ? 'on' : ''}" data-cat="${esc(c)}">${esc(c === 'All' ? 'All items' : c)} <span class="chip-n">${k.toLocaleString('en-IN')}</span></button>`).join('');
     const grid = $('#bGrid', root);
     if (!Store.items.length) {
       grid.innerHTML = `<div class="empty"><h3>No items yet</h3><p>${Store.can('items') ? 'Add the things you sell in <a href="#/items">Items</a>.' : 'Ask the owner to add items.'}</p></div>`;
     } else if (!list.length) {
       grid.innerHTML = `<div class="empty"><h3>No match for “${esc(query)}”</h3><p>Check the spelling or code${Store.feature('extra_items') ? ', or add it as an extra item' : ''}.</p></div>`;
     } else {
-      grid.innerHTML = shown.map((i, n) => `<button type="button" class="tile ${n === highlight && query ? 'hl' : ''} ${blocked(i) ? 'off' : ''}" data-add="${esc(i.id)}" ${blocked(i) ? 'aria-disabled="true"' : ''}>
-        <span class="tile-name">${esc(i.name)}</span>
-        ${codes && i.code ? `<span class="tile-code">${esc(i.code)}</span>` : ''}
-        <span class="tile-foot"><b>${Fmt.money(i.price)}</b><small>/${esc(i.unit)}</small>${stockBadge(i)}</span></button>`).join('') +
-        (list.length > shown.length ? `<p class="grid-more">Showing 120 of ${list.length}. Type more of the name to narrow down.</p>` : '');
+      grid.innerHTML = shown.map(tile).join('') + moreHtml(shown.length, list.length);
     }
+    watchMore();
     paintBadges();
+  }
+  /* Adds the next batch of tiles to the end of the grid (no rebuild, no scroll jump). */
+  function loadMore() {
+    if (!root?.isConnected) return;
+    const list = matches(), from = $$('#bGrid .tile', root).length; if (from >= list.length) return;
+    const next = list.slice(from, from + PAGE), grid = $('#bGrid', root);
+    $('#bMore', grid)?.remove();
+    grid.insertAdjacentHTML('beforeend', next.map((i, n) => tile(i, from + n)).join('') + moreHtml(from + next.length, list.length));
+    limit = from + next.length; catalogSig = sigOf(list, list.slice(0, limit), catChips());
+    watchMore(); paintBadges();
+  }
+  function watchMore() {
+    moreObs?.disconnect(); moreObs = null;
+    const m = root && $('#bMore', root); if (!m || !('IntersectionObserver' in window)) return;
+    moreObs = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) loadMore(); }, { rootMargin: '700px' });
+    moreObs.observe(m);
   }
   /* Updates only the “×N” badges. Only the item that just changed animates. */
   function paintBadges(changedId) {
@@ -296,7 +326,7 @@ const Billing = (() => {
 
   /* ---------- mount ---------- */
   function mount(view) {
-    root = view; catalogSig = '';
+    root = view; catalogSig = ''; lastKey = '';
     const methods = Store.payments();
     if (!methods.includes(payment)) payment = methods[0] || 'Cash';
     view.innerHTML = `<div class="billing">
@@ -339,7 +369,7 @@ const Billing = (() => {
     search.value = query;
     search.addEventListener('input', () => { query = search.value; highlight = 0; renderCatalog(); });
     search.addEventListener('keydown', e => {
-      const shown = matches().slice(0, 120);
+      const shown = matches();
       if (e.key === 'Enter') {
         e.preventDefault();
         const q = query.trim().toLowerCase(); if (!q) return;
@@ -347,12 +377,12 @@ const Billing = (() => {
         const pick = exact || shown[highlight];
         if (pick) { query = ''; search.value = ''; highlight = 0; renderCatalog(); add(pick); }
         else toast(`No item matches “${query}”.`, 'warn');
-      } else if (e.key === 'ArrowDown') { e.preventDefault(); highlight = Math.min(highlight + 1, shown.length - 1); renderCatalog(); }
+      } else if (e.key === 'ArrowDown') { e.preventDefault(); highlight = Math.min(highlight + 1, shown.length - 1); while (highlight >= limit && limit < shown.length) limit += PAGE; renderCatalog(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); highlight = Math.max(highlight - 1, 0); renderCatalog(); }
       else if (e.key === 'Escape') { query = ''; search.value = ''; renderCatalog(); }
     });
     $('#bCats', view).addEventListener('click', e => { const c = e.target.closest('[data-cat]'); if (c) { category = c.dataset.cat; renderCatalog(); } });
-    $('#bGrid', view).addEventListener('click', e => { const t = e.target.closest('[data-add]'); if (!t) return; const item = Store.items.find(i => i.id === t.dataset.add); if (item) add(item); });
+    $('#bGrid', view).addEventListener('click', e => { if (e.target.closest('[data-more]')) return loadMore(); const t = e.target.closest('[data-add]'); if (!t) return; const item = Store.items.find(i => i.id === t.dataset.add); if (item) add(item); });
     $('#tExtra', view).onclick = addExtra;
 
     const lines = $('#tLines', view);
@@ -394,5 +424,5 @@ const Billing = (() => {
 
   document.addEventListener('keydown', onKey);
   document.addEventListener('items:changed', () => { if (root?.isConnected) renderCatalog(); });
-  return { mount, unmount() { root = null; document.body.classList.remove('sheet-open'); } };
+  return { mount, unmount() { moreObs?.disconnect(); moreObs = null; root = null; document.body.classList.remove('sheet-open'); } };
 })();

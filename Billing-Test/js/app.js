@@ -153,6 +153,8 @@ const App = (() => {
     const tick = () => { const c = $('#clock'); if (c) c.textContent = new Date().toLocaleString('en-IN', { timeZone: Fmt.tz(), weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
     tick(); clearInterval(App._clock); App._clock = setInterval(tick, 20000);
     net(); paintLock();
+    // The saving-and-syncing chip replaces the old online/offline badge once offline billing is on.
+    if (typeof OfflineUI !== 'undefined' && OfflineMode?.isOn) { OfflineUI.mount(); SyncEngine.syncNow({ quiet: true }); }
   }
   async function signOut() {
     if (!(await ask({ title: 'Sign out?', body: 'You will need your password to sign in again on this device.', confirm: 'Sign out' }))) return;
@@ -223,7 +225,14 @@ const App = (() => {
     const l = $('#shopLogo'); if (l) l.innerHTML = s.logo ? `<img src="${esc(s.logo)}" alt="">` : esc((s.shop_name || 'S').trim().charAt(0).toUpperCase());
   }
 
-  function net() { const n = $('#net'); if (!n) return; const on = navigator.onLine; n.className = 'net ' + (on ? 'on' : 'off'); n.innerHTML = Icon('wifi') + `<span>${on ? 'Online' : 'Offline — bills cannot be saved'}</span>`; }
+  function net() {
+    const n = $('#net'); if (!n) return;
+    // With offline billing on, the saving-and-syncing chip says everything this used to.
+    if (typeof OfflineMode !== 'undefined' && OfflineMode.isOn) { n.hidden = true; return; }
+    const on = navigator.onLine;
+    n.className = 'net ' + (on ? 'on' : 'off');
+    n.innerHTML = Icon('wifi') + `<span>${on ? 'Online' : 'Offline — bills cannot be saved'}</span>`;
+  }
   addEventListener('online', () => { net(); sync(true); }); addEventListener('offline', net);
 
   function markNav(key) {
@@ -291,8 +300,25 @@ const App = (() => {
     }
   }
 
+  /* ---------- billing with no internet ----------
+     The screens are not changed by this: they still call Cloud.rpc(...). The offline router
+     decides, for each call, whether this device answers it or the server does. */
+  async function startOffline() {
+    if (typeof OfflineMode === 'undefined' || OfflineMode.isOn) return;
+    try {
+      await OfflineMode.install(Cloud, {
+        getSettings: () => Store.settings,
+        getSys: () => Store.sys,
+        getCan: () => (p => Store.can(p)),
+        isAdmin: () => Store.isAdmin,
+        getCashier: () => Store.me?.name || ''
+      });
+    } catch (e) { try { console.warn('[offline]', e.message); } catch { /* no console */ } }
+  }
+
   async function boot() {
     try { const [id, ac] = LS.get('SHOPBILL_LAST_THEME') || []; Themes.apply(id || 'ledger', ac); } catch { Themes.apply('ledger'); }
+    await startOffline();
     // A check-in QR opened with the phone camera lands here: remember it until the member is signed in.
     const ck = location.hash.match(/^#\/checkin\/([A-Za-z0-9]{8,64})/);
     if (ck) { sessionStorage.setItem('SHOPBILL_CHECKIN', ck[1]); history.replaceState(null, '', location.pathname); }
