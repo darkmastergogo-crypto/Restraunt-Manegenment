@@ -7,11 +7,11 @@
    ===================================================================== */
 const SHOP_CONFIG = {
   // Supabase → Project Settings → API
-  supabaseUrl: "https://lkaqvohgpjtfphiholfu.supabase.co",
-  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxrYXF2b2hncGp0ZnBoaWhvbGZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MjkxMDgsImV4cCI6MjEwOTQwNTEwOH0.dfoTsQ54Mzupl-yD69Cesu2z-MewW7tdfObxLULZV_U",
+  supabaseUrl: "https://YOUR-PROJECT-ID.supabase.co",
+  supabaseAnonKey: "PASTE_YOUR_PUBLISHABLE_OR_ANON_KEY",
 
   // Shown on the sign-in screen only until the shop's own name loads.
-  shopName: "blling tes",
+  shopName: "My Shop",
 
   // Country code used for "Send on WhatsApp" when a 10-digit phone is entered.
   whatsappCountryCode: "91"
