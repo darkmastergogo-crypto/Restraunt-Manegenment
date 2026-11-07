@@ -163,6 +163,9 @@ const App = (() => {
     const tick = () => { const c = $('#clock'); if (c) c.textContent = new Date().toLocaleString('en-IN', { timeZone: Fmt.tz(), weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
     tick(); clearInterval(App._clock); App._clock = setInterval(tick, 20000);
     net(); paintLock();
+    if (typeof OfflineUI !== 'undefined') OfflineUI.mount();
+    // Now that someone is signed in, let the device introduce itself and collect invoice numbers.
+    if (typeof SyncEngine !== 'undefined') setTimeout(() => SyncEngine.syncNow({ quiet: true }), 300);
     // The hidden alert engine is heavy; start it once the first screen has had a moment to load.
     clearTimeout(App._engine); App._engine = setTimeout(() => { if (Store.me && !Store.isMember && Cloud.signedIn) { RestaurantWorkspace.start(); RestaurantWorkspace.syncTheme(); } }, 1800);
   }
@@ -239,7 +242,14 @@ const App = (() => {
     RestaurantWorkspace.syncTheme();
   }
 
-  function net() { const n = $('#net'); if (!n) return; const on = navigator.onLine; n.className = 'net ' + (on ? 'on' : 'off'); n.innerHTML = Icon('wifi') + `<span>${on ? 'Online' : 'Offline — bills cannot be saved'}</span>`; }
+  function net() {
+    const n = $('#net'); if (!n) return;
+    // With the till's own database in place, the saving chip says everything worth saying,
+    // and "bills cannot be saved" is no longer true.
+    if (typeof OfflineMode !== 'undefined' && OfflineMode.isOn) { n.hidden = true; return; }
+    const on = navigator.onLine; n.className = 'net ' + (on ? 'on' : 'off');
+    n.innerHTML = Icon('wifi') + `<span>${on ? 'Online' : 'Offline — bills cannot be saved'}</span>`;
+  }
   addEventListener('online', () => { net(); sync(true); }); addEventListener('offline', net);
 
   function markNav(key) {
@@ -308,7 +318,10 @@ const App = (() => {
     $('[data-full]', f).onclick = () => reauth?.close();
     f.onsubmit = async e => {
       e.preventDefault(); err.hidden = true; busy(e.submitter, true, 'Signing in…');
-      try { await Cloud.login(f.email.value.trim(), f.password.value); const d = reauth; reauth = null; d.close(); await refreshMe(true); RestaurantWorkspace.start(); toast('Signed in again.', 'ok'); }
+      try { await Cloud.login(f.email.value.trim(), f.password.value); const d = reauth; reauth = null; d.close(); await refreshMe(true); RestaurantWorkspace.start();
+        // Anything taken while the sign-in was dead is waiting on the device: send it now.
+        if (typeof SyncEngine !== 'undefined') SyncEngine.syncNow({ quiet: true });
+        toast('Signed in again.', 'ok'); }
       catch (ex) { err.textContent = ex.message; err.hidden = false; } finally { busy(e.submitter, false); }
     };
   });
@@ -370,6 +383,11 @@ const App = (() => {
       route();
     });
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+    // The till's own database comes up before anything is asked of the network, so the app can
+    // open, bill and print with no internet at all.
+    if (typeof OfflineMode !== 'undefined') {
+      await OfflineMode.install(Cloud, { getSettings: () => Store.settings, getCashier: () => Store.me?.name || 'Counter' });
+    }
     if (Cloud.signedIn) return start();
     loginView();
     await loadPublic();

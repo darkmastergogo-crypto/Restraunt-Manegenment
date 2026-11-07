@@ -211,3 +211,27 @@ input[type=color] { width: 64px; min-width: 64px; height: 44px; padding: 4px; bo
 input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
 input[type=color]::-webkit-color-swatch { border: 1px solid var(--line); border-radius: 6px; }
 input[type=color]::-moz-color-swatch { border: 1px solid var(--line); border-radius: 6px; }
+
+/* ---------- v20: saving & syncing ---------- */
+.sync-chip { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 11px; border-radius: 99px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-size: .82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.sync-chip:hover { border-color: var(--primary); }
+.sync-chip .sy-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.sync-chip.sy-ok .sy-dot { background: var(--green); }
+.sync-chip.sy-off { background: var(--amber-soft); border-color: var(--amber); }
+.sync-chip.sy-off .sy-dot { background: var(--amber); }
+.sync-chip.sy-busy .sy-dot { background: var(--primary); animation: syPulse 1.1s ease-in-out infinite; }
+.sync-chip.sy-bad { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+.sync-chip.sy-bad .sy-dot { background: var(--red); }
+.sync-chip.sy-warn { background: var(--amber-soft); border-color: var(--amber); }
+.sync-chip.sy-warn .sy-dot { background: var(--amber); }
+@keyframes syPulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .sync-chip .sy-dot { animation: none; } }
+@media (max-width: 760px) { .sync-chip .sy-t { display: none; } .sync-chip { padding: 0 9px; } }
+.sync-panel .sum-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.sync-panel .sum-row .sum { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface-2); }
+.sync-panel .sum-row .sum span { display: block; color: var(--muted); font-size: .76rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.sync-panel .sum-row .sum b { font-size: 1.05rem; }
+.sync-panel .notice { display: flex; gap: 10px; align-items: flex-start; }
+.sync-panel .plain-list li { gap: 10px; }
+.bill-unsent { color: var(--amber); font-weight: 700; }
