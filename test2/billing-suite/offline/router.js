@@ -84,6 +84,9 @@ const OfflineMode = (() => {
 
     if (LOCAL_FIRST.has(name)) {
       if (name === 'shop_create_bill') {
+        // Do not let the first online sale beat the background registration and receive a
+        // device-tagged fallback number. Offline billing still proceeds immediately.
+        if (online()) await SyncEngine.prepareInvoiceNumbers();
         const bill = await R().commitBill({ ...args, __settings: settings(), __cashier: cashier() });
         SyncEngine.refreshCounts(); if (online()) SyncEngine.syncNow({ quiet: true });
         return bill;
