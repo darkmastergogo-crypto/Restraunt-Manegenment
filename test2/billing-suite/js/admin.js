@@ -71,6 +71,12 @@ const Admin = (() => {
       <section class="card view-card"><div class="view-row"><div><h2>Hide admin-only tabs</h2>
           <p class="hint">Your admin logins then see exactly what a manager sees — the same side menu, the same Settings tabs, no Admin page. Use it when you hand this phone or counter to the restaurant. A <b>Show admin tabs</b> button stays at the bottom of the side menu to bring everything back.</p></div>
           <button type="button" class="btn" id="managerViewBtn">${Icon('eye')} Hide admin-only tabs</button></div></section>
+      <section class="card view-card"><div class="view-row"><div><h2>Show only admin tabs</h2>
+          <p class="hint">Hides every manager tab (Billing, Kitchen, Records, Items, Stocks, Dashboard, Requests, Tables, Notifications, Customer devices) and leaves only Admin and Settings on the side menu. A <b>Show all tabs</b> button stays at the bottom of the side menu to bring everything back.</p></div>
+          <button type="button" class="btn" id="adminOnlyViewBtn">${Icon('shield')} Show only admin tabs</button></div></section>
+      <section class="card view-card"><div class="view-row"><div><h2>Hide dish photos</h2>
+          <p class="hint">Hides the <b>Photo</b> column and thumbnails on the Items &amp; photos (Photos &amp; portions) page and on kitchen order cards. Customers still see photos on the QR menu — only staff screens change.</p></div>
+          <button type="button" class="btn" id="hideDishPhotosBtn">${Icon('image')} <span>${(typeof localStorage !== 'undefined' && localStorage.getItem('SHOPBILL_HIDE_DISH_PHOTOS') === '1') ? 'Show dish photos' : 'Hide dish photos'}</span></button></div></section>
       <section class="card"><header class="card-head"><h2>What happens when the system is shut down</h2></header>
         <ul class="hint-list"><li>Every action by owner, manager, cashier or member is refused by the server straight away.</li>
         <li>Open screens sign themselves out within a minute.</li>
@@ -343,6 +349,14 @@ const Admin = (() => {
     if (sec === 'access') {
       const f = $('#aAccess', root);
       $('#managerViewBtn', root).onclick = async e => { if (await ask({ title: 'Hide admin-only tabs?', body: 'Every admin login will see the app the way a manager does. Bring the tabs back any time with “Show admin tabs” at the bottom of the side menu.', confirm: 'Hide admin-only tabs' })) App.setManagerView(true, e.currentTarget); };
+      $('#adminOnlyViewBtn', root).onclick = async e => { if (await ask({ title: 'Show only admin tabs?', body: 'Every manager tab is hidden on this device. Only Admin and Settings remain on the side menu. Bring the rest back any time with “Show all tabs” at the bottom of the side menu.', confirm: 'Show only admin tabs' })) App.setAdminOnlyView(true, e.currentTarget); };
+      $('#hideDishPhotosBtn', root).onclick = e => {
+        const on = localStorage.getItem('SHOPBILL_HIDE_DISH_PHOTOS') === '1';
+        try { if (on) localStorage.removeItem('SHOPBILL_HIDE_DISH_PHOTOS'); else localStorage.setItem('SHOPBILL_HIDE_DISH_PHOTOS', '1'); } catch { /* ignore */ }
+        document.dispatchEvent(new CustomEvent('dish-photos:toggle'));
+        toast(on ? 'Dish photos are back on staff screens.' : 'Dish photos are hidden on staff screens.', 'ok', 4000);
+        show('access');
+      };
       f.onsubmit = e => { e.preventDefault(); save({ access: { message: f.message.value.trim() } }, e.submitter, 'Message saved.'); };
       $('#powerBtn', root).onclick = async e => {
         const on = !sys().access?.locked;

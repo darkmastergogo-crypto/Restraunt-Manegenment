@@ -127,9 +127,14 @@ const Items = (() => {
       const startTracking = item && !item.track_stock && p.track_stock ? Number(fd.get('stock') || 0) : null;
       busy(btn, true, 'Saving…');
       try {
+        // Auto-create the category server-side if the user typed a new one
+        if (p.category && p.category !== 'General' && !(Store.categories || []).includes(p.category)) {
+          try { const cats = await Cloud.rpc('shop_category_save', { p_name: p.category }); if (Array.isArray(cats)) Store.categories = cats; }
+          catch (ce) { /* if it already exists server-side, carry on */ }
+        }
         let saved = await Cloud.rpc('shop_item_save', { p });
         if (startTracking !== null) saved = await Cloud.rpc('shop_stock_adjust', { p_item_id: saved.id, p_mode: 'set', p_qty: startTracking, p_note: 'Tracking started' });
-        Store.upsertItem(saved); toast(`${saved.name} saved.`, 'ok');
+        Store.upsertItem(saved); document.dispatchEvent(new CustomEvent('items:changed')); toast(`${saved.name} saved.`, 'ok');
         if (again) {
           const keep = { cat: saved.category, unit: saved.unit };
           form.reset(); form.again.checked = true;
@@ -194,7 +199,7 @@ const Items = (() => {
   function importCSV() {
     const d = modal('Import items from CSV', `<p>Use a CSV file (Excel → Save As → CSV) with these column names in the first row:</p>
       <p class="mono small">${HEAD.join(', ')}</p>
-      <ul class="hint-list"><li><b>name</b> and <b>price</b> are needed. Other columns can be blank.</li><li>An item with the same code (or same name) is updated instead of added twice.</li><li>A number in <b>stock</b> sets the stock count and turns on stock tracking.</li></ul>
+      <ul class="hint-list"><li><b>name</b> and <b>price</b> are needed. Other columns can be blank.</li><li>An item with the same code (or same name) is updated instead of added twice.</li><li>A number in <b>stock</b> sets the stock count and turns on stock tracking.</li><li>Categories that do not exist are created for you.</li></ul>
       <div class="toolbar"><button type="button" class="btn" data-tpl>${Icon('download')} Download template</button><label class="btn btn-primary file-btn">${Icon('upload')} Choose CSV file<input type="file" accept=".csv,text/csv" hidden></label></div>
       <div id="impPreview"></div>`, { size: 'modal-md' });
     $('[data-tpl]', d).onclick = () => downloadFile('items-template.csv', toCSV([HEAD, ['Tata Salt 1kg', '8904043901015', 'Grocery', 'pcs', '28', '24', '40', '10', '2501', '5', '', ''], ['Sugar (loose)', '', 'Grocery', 'kg', '44', '40', '25', '5', '1701', '5', '', 'चीनी']]));
@@ -204,16 +209,66 @@ const Items = (() => {
       const head = rows[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
       if (!head.includes('name') || !head.includes('price')) return toast('The first row needs at least “name” and “price” columns.', 'error');
       const data = rows.slice(1).map(r => Object.fromEntries(head.map((h, n) => [h, (r[n] ?? '').trim()]))).filter(r => r.name);
+      // find categories to create: ones in the CSV but not in Store.categories
+      const existing = new Set(Store.categories || []);
+      const csvCats = [...new Set(data.map(r => (r.category || '').trim()).filter(Boolean))];
+      const newCats = csvCats.filter(c => !existing.has(c));
       const bad = data.filter(r => !/^\d{1,7}(\.\d{1,2})?$/.test(r.price));
-      $('#impPreview', d).innerHTML = `<div class="sub-box"><p><b>${data.length}</b> items found in ${esc(file.name)}.${bad.length ? ` <span class="neg">${bad.length} have an invalid price and will be skipped (e.g. “${esc(bad[0].name)}”).</span>` : ''}</p><button type="button" class="btn btn-primary" data-go>Import ${data.length - bad.length} items</button></div>`;
-      $('[data-go]', d).onclick = async ev => {
-        const good = data.filter(r => !bad.includes(r)); let added = 0, updated = 0;
-        busy(ev.currentTarget, true, 'Importing…');
-        try {
-          for (let n = 0; n < good.length; n += 300) { const r = await Cloud.rpc('shop_items_import', { p_rows: good.slice(n, n + 300) }); added += r.added; updated += r.updated; }
-          await Store.loadItems(true); toast(`Import done: ${added} added, ${updated} updated.`, 'ok'); d.close();
-        } catch (ex) { toast('Import stopped: ' + ex.message, 'error', 8000); await Store.loadItems(true); busy(ev.currentTarget, false); }
+      const okData = data.filter(r => !bad.includes(r));
+      const sel = new Set(okData.map((_, n) => n));              // all selected by default
+      const selCats = new Set(newCats);                           // all new cats selected by default
+      const render = () => {
+        $('#impPreview', d).innerHTML = `<div class="sub-box">
+          <p><b>${data.length}</b> items found in ${esc(file.name)}.${bad.length ? ` <span class="neg">${bad.length} have an invalid price and will be skipped (e.g. “${esc(bad[0].name)}”).</span>` : ''}</p>
+          ${newCats.length ? `<details open class="imp-group"><summary><b>${newCats.length} new ${newCats.length === 1 ? 'category' : 'categories'} will be created</b> <small>(<button type="button" class="linkish" data-sel-cat="all">all</button> · <button type="button" class="linkish" data-sel-cat="none">none</button>)</small></summary>
+            <ul class="imp-list">${newCats.map((c, n) => `<li><label class="check"><input type="checkbox" data-cat-n="${n}" ${selCats.has(c) ? 'checked' : ''}> <b>${esc(c)}</b></label></li>`).join('')}</ul></details>` : ''}
+          ${csvCats.filter(c => existing.has(c)).length ? `<p class="hint small">Using existing categories: ${csvCats.filter(c => existing.has(c)).map(c => esc(c)).join(', ')}</p>` : ''}
+          <details open class="imp-group"><summary><b>${okData.length} ${okData.length === 1 ? 'item' : 'items'} ready to import</b> <small>(<button type="button" class="linkish" data-sel-item="all">all</button> · <button type="button" class="linkish" data-sel-item="none">none</button>)</small></summary>
+            <ul class="imp-list">${okData.map((r, n) => `<li><label class="check"><input type="checkbox" data-item-n="${n}" ${sel.has(n) ? 'checked' : ''}> <b>${esc(r.name)}</b> <small>${esc(r.category || 'General')} · ${esc(Fmt.cur())}${esc(r.price)}${r.stock ? ' · stock ' + esc(r.stock) : ''}</small></label></li>`).join('')}</ul></details>
+          <div class="form-actions"><button type="button" class="btn btn-primary" data-go>Import <span data-count>${sel.size}</span> items${newCats.length ? ' & categories' : ''}</button></div>
+        </div>`;
       };
+      render();
+      const upd = () => { const cnt = $('[data-count]', d); if (cnt) cnt.textContent = sel.size; };
+      $('#impPreview', d).addEventListener('click', ev => {
+        const si = ev.target.closest('[data-sel-item]'); if (si) { const v = si.dataset.selItem; sel.clear(); if (v === 'all') okData.forEach((_, n) => sel.add(n)); return render(); }
+        const sc = ev.target.closest('[data-sel-cat]'); if (sc) { const v = sc.dataset.selCat; selCats.clear(); if (v === 'all') newCats.forEach(c => selCats.add(c)); return render(); }
+      });
+      $('#impPreview', d).addEventListener('change', ev => {
+        const it = ev.target.closest('[data-item-n]'); if (it) { const n = Number(it.dataset.itemN); if (it.checked) sel.add(n); else sel.delete(n); upd(); }
+        const ct = ev.target.closest('[data-cat-n]'); if (ct) { const c = newCats[Number(ct.dataset.catN)]; if (ct.checked) selCats.add(c); else selCats.delete(c); }
+      });
+      $('#impPreview', d).addEventListener('click', async ev => {
+        if (!ev.target.closest('[data-go]')) return;
+        if (!sel.size && !selCats.size) return toast('Choose at least one item or category to import.', 'warn');
+        const btn = ev.target.closest('[data-go]');
+        busy(btn, true, 'Importing…');
+        let added = 0, updated = 0, catsAdded = 0, errors = [];
+        try {
+          // Create new categories first
+          for (const c of newCats) {
+            if (!selCats.has(c)) continue;
+            try { await Cloud.rpc('shop_category_save', { p_name: c }); catsAdded++; }
+            catch (ce) { errors.push(`Category “${c}”: ${ce.message}`); }
+          }
+          const good = okData.filter((_, n) => sel.has(n));
+          // Replace unknown categories (deselected) with General so items still import
+          const keep = new Set([...(Store.categories || []), ...newCats.filter(c => selCats.has(c))]);
+          for (const r of good) if (r.category && !keep.has(r.category)) r.category = 'General';
+          for (let n = 0; n < good.length; n += 300) {
+            try { const rr = await Cloud.rpc('shop_items_import', { p_rows: good.slice(n, n + 300) }); added += rr.added; updated += rr.updated; }
+            catch (ie) { errors.push(ie.message); }
+          }
+          await Store.loadItems(true);
+          const parts = [];
+          if (catsAdded) parts.push(`${catsAdded} ${catsAdded === 1 ? 'category' : 'categories'} added`);
+          if (added) parts.push(`${added} added`);
+          if (updated) parts.push(`${updated} updated`);
+          toast('Import done: ' + (parts.join(', ') || 'nothing') + (errors.length ? `. ${errors.length} problem${errors.length === 1 ? '' : 's'}.` : '.'), errors.length ? 'warn' : 'ok', 6000);
+          if (errors.length) { console.warn('[import]', errors); }
+          d.close();
+        } catch (ex) { toast('Import stopped: ' + ex.message, 'error', 8000); await Store.loadItems(true); busy(btn, false); }
+      });
     };
   }
 

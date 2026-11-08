@@ -71,7 +71,7 @@ const Settings = (() => {
         <div id="invBody"><p class="hint">Loading…</p></div></section>
       <section class="card"><header class="card-head"><h2>Stock</h2></header>
         <p class="hint">Dishes with tracked stock stop selling when they run out — on the counter and on the QR menu.</p><input type="hidden" name="stock_mode" value="stop">
-        ${sw('stock_shown', !s.stock_hidden, 'Show stock', 'Turn off to hide the Stocks screen and stock numbers for everyone except Admin. Sales still count stock in the background.')}</section>
+        ${sw('stock_shown', !s.stock_hidden, 'Show stock', 'Turn off to hide the Stocks screen and stock numbers. Sales still count stock in the background.')}</section>
       ${Store.moduleOn('expenses') ? `<section class="card"><header class="card-head"><h2>Profit on the dashboard</h2></header>
         <div class="field"><span>Take expenses off the profit?</span><div class="seg seg-wide" role="radiogroup">
           <label><input type="radio" name="exp_profit" value="yes" ${s.expenses_in_profit !== false ? 'checked' : ''}><span><b>Yes</b><small>Net profit = sales − expenses</small></span></label>
@@ -264,7 +264,7 @@ const Settings = (() => {
         <label class="field"><span>Digits</span><select name="inv_digits" ${dis}>${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${Number(c.digits) === n ? 'selected' : ''}>${n} — ${esc(ex('', n, 1))}</option>`).join('')}</select></label>
         <label class="field"><span>Numbers restart every year in</span><select name="inv_month" ${dis}>${MONTHS.map((m, i) => `<option value="${i + 1}" ${Number(c.start_month) === i + 1 ? 'selected' : ''}>${m}${i === 3 ? ' (financial year)' : i === 0 ? ' (calendar year)' : ''}</option>`).join('')}</select></label>
         <label class="field"><span>Next number <em>only to continue from an old book</em></span><input name="inv_next" type="number" min="1" step="1" inputmode="numeric" placeholder="${Number(c.next)}" ${dis}></label>
-        ${ed ? `<div class="form-actions span-2"><button type="button" class="btn btn-primary" id="invSave">Save invoice numbers</button></div>` : `<p class="hint span-2">Only the admin login can change invoice numbers.</p>`}</div>`;
+        ${ed ? `<div class="form-actions span-2"><button type="button" class="btn btn-primary" id="invSave">Save invoice numbers</button></div>` : `<p class="hint span-2">You do not have permission to change invoice numbers.</p>`}</div>`;
     if (!ed) return;
     const paint = () => { const f = $('#fBill', root); if (!f) return; $('#invNext', root).textContent = ex(f.inv_prefix.value.trim(), Number(f.inv_digits.value), Number(f.inv_next.value) || Number(c.next)); };
     $('#fBill', root).addEventListener('input', e => { if (/^inv_/.test(e.target.name || '')) paint(); });
@@ -279,7 +279,7 @@ const Settings = (() => {
   /* ---------- limits (admin and manager) ---------- */
   function limitsSection() {
     const l = Store.sys.limits || {}, v19 = Cloud.hasV19?.();
-    return `<form id="fLimits" class="card form-grid"><header class="span-2 card-head"><h2>Limits</h2><p class="hint">How much discount and short cash a manager may give on the billing counter. The admin login is never limited. The server checks every bill.</p></header>
+    return `<form id="fLimits" class="card form-grid"><header class="span-2 card-head"><h2>Limits</h2><p class="hint">How much discount and short cash can be given on the billing counter. The server checks every bill.</p></header>
       ${v19 ? '' : `<div class="notice span-2">${Icon('alert')} <div><b>Run the database update UPDATE-v19.sql once</b><p class="hint">Discounts and short cash on counter bills switch on after it.</p></div></div>`}
       <label class="field"><span>Biggest discount allowed (%)</span><input name="max_discount_percent" type="number" min="0" max="100" step="0.5" inputmode="decimal" value="${Number(l.max_discount_percent ?? 100)}" ${v19 ? '' : 'disabled'}></label>
       <label class="field"><span>Most cash a customer can pay short (${esc(Fmt.cur())})</span><input name="max_short_amount" type="number" min="0" max="100000" step="1" inputmode="numeric" value="${Number(l.max_short_amount ?? 0)}" ${v19 ? '' : 'disabled'}></label>

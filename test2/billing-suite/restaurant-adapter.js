@@ -44,7 +44,7 @@ const Cloud=(()=>{
   const role=await R.role();
   if(!['admin','manager'].includes(role))throw Object.assign(Error('Admin or manager access required.'),{status:403});
   await Promise.all([load(),quiet(hasAddon()),quiet(hasV19())]);
-  if(role!=='admin'&&custom.locked)throw Object.assign(Error(custom.lockMessage||'This workspace is paused by the administrator.'),{code:'LOCKED'});
+  if(role!=='admin'&&custom.locked)throw Object.assign(Error(custom.lockMessage||'This workspace is paused.'),{code:'LOCKED'});
   const [commerce,contact,permissions,stock,lims]=await Promise.all([quiet(call('restaurant_commerce_settings',{p_enabled:null,p_mode:null,p_value:null})),quiet(call('restaurant_contact')),quiet(call('restaurant_manager_permissions')),quiet(call('restaurant_stock_visibility')),v19?quiet(call('restaurant_private19',{p_key:'limits'})):null]);
   if(lims)limits=lims;
   const s=settings();if(commerce)Object.assign(s,commerce,RESTAURANT_SETTINGS,{item_fields:s.item_fields});
@@ -212,5 +212,5 @@ const Cloud=(()=>{
   sectionHidden:route=>me?.role!=='superadmin'&&(custom.hiddenSections||[]).includes(({kitchen:'live',records:'history',dishSales:'history',restaurantReports:'dashboard',items:'menu',itemDetails:'menu',stockRules:'stocks',settings:'management'})[route]||route),
   cfg:SHOP_CONFIG,configured:R.configured,get signedIn(){return R.hasSession();},get userEmail(){return me?.email||R.user()?.email||'';},get userId(){return R.user()?.id||'';},login,logout:()=>R.logout(),rpc:dispatch,
   publicRpc:async(name)=>{if(name==='shop_version'){await load(revision);return String(revision||'');}if(name==='shop_app_icon')return {icon:custom.billingClone?.appIcon?.icon||'',v:custom.billingClone?.appIcon?.v||''};if(name==='shop_public_info'){try{await load();}catch{}return {...system(),icon_v:custom.billingClone?.appIcon?.v||'',access:{locked:!!custom.locked,message:custom.lockMessage||''},shop_name:settings().shop_name};}throw Error('Unsupported public API.');},
-  recover:()=>Promise.reject(Error('Contact the restaurant administrator to reset access.')),useRecoveryToken:()=>false,setPassword:()=>Promise.reject(Error('Use restaurant account management.'))};
+  recover:()=>Promise.reject(Error('Contact support to reset access.')),useRecoveryToken:()=>false,setPassword:()=>Promise.reject(Error('Use restaurant account management.'))};
 })();

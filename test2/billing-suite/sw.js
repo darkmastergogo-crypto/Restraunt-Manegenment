@@ -1,8 +1,8 @@
-/* v21: opens fast. Versioned files (…?v=21) come straight from this phone's cache; the page itself is
+/* v19: opens fast. Versioned files (…?v=19) come straight from this phone's cache; the page itself is
    fetched fresh when the internet is quick and falls back to the cached copy after 2.5 seconds or offline.
    Bills, orders and every API call always go to the server — they are never cached. */
-const CACHE = 'shopbill-suite-v21';
-const CORE = ['./', 'index.html', 'app.v21.css?v=21', 'app.v21.js?v=21', '../config.js', 'icons/icon.svg', 'icons/icon-192.png'];
+const CACHE = 'shopbill-suite-v20';
+const CORE = ['./', 'index.html', 'app.v20.css?v=20', 'app.v20.js?v=20', '../config.js', 'icons/icon.svg', 'icons/icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE).catch(() => {})).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('shopbill-suite-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 const put = (req, res) => { if (res && res.ok && res.type === 'basic') { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {}); } return res; };

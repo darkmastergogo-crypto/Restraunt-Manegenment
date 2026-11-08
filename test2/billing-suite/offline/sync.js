@@ -10,10 +10,9 @@
 const SyncEngine = (() => {
   const R = () => LocalRepo;
   const BATCH = 50, PAGE = 500, BLOCK = 100, BLOCK_LOW = 20;
-  const MAX_BACKOFF = 5 * 60 * 1000;
+  const MAX_BACKOFF = 60 * 1000;   // shorter so stuck bills don't sit for 5 min between tries
 
   let cloud = null, device = null, running = false, timer = null, started = false, signedIn = () => true;
-  let registering = null, invoiceTopUp = null, invoicePreparation = null;
   let state = { online: navigator.onLine !== false, pending: 0, failed: 0, conflicts: 0, syncing: false,
     lastOk: null, lastError: '', invoiceLeft: 0, invoiceProvisional: 0, registered: false, phase: '' };
   const listeners = new Set();
@@ -37,59 +36,27 @@ const SyncEngine = (() => {
 
   /* ---------- the device says hello and collects invoice numbers in advance ---------- */
   async function register() {
-    if (registering) return registering;
-    registering = (async () => {
-      device = await R().deviceId();
-      const platform = typeof window !== 'undefined' && window.__TAURI__ ? 'tauri' : (navigator.userAgent || '').slice(0, 40);
-      const r = await cloud.rpc('restaurant_device_register20', { p_device: device, p_label: deviceLabel(), p_platform: platform, p_version: '20' });
-      set({ registered: true });
-      const cur = await R().metaGet('cursor', null);
-      if (cur === null) await R().metaSet('cursor', Number(r.cursor_now) || 0);   // a new device starts from "now"
-      return r;
-    })();
-    try { return await registering; }
-    finally { registering = null; }
+    device = await R().deviceId();
+    const platform = typeof window !== 'undefined' && window.__TAURI__ ? 'tauri' : (navigator.userAgent || '').slice(0, 40);
+    const r = await cloud.rpc('restaurant_device_register20', { p_device: device, p_label: deviceLabel(), p_platform: platform, p_version: '20' });
+    set({ registered: true });
+    const cur = await R().metaGet('cursor', null);
+    if (cur === null) await R().metaSet('cursor', Number(r.cursor_now) || 0);   // a new device starts from "now"
+    return r;
   }
   const deviceLabel = () => { try { return (navigator.platform || 'Device') + ' · ' + new Date().toLocaleDateString('en-IN'); } catch { return 'Device'; } };
 
   async function topUpInvoices(force = false) {
-    if (invoiceTopUp) return invoiceTopUp;
-    invoiceTopUp = (async () => {
-      const block = await R().invoiceState();
-      if (!force && R().invoiceLeft(block) > BLOCK_LOW) return block;
-      const b = await cloud.rpc('restaurant_invoice_block20', { p_device: device, p_size: BLOCK });
-      // Numbers already handed to this device are never thrown away: the new block simply follows on.
-      const left = R().invoiceLeft(block);
-      const next = left > 0 ? block : { ...block, prefix: b.prefix || 'INV', digits: Number(b.digits) || 3, year: b.year, start: Number(b.start), end: Number(b.end), next: Number(b.start) };
-      if (left > 0) { next.spare = { start: Number(b.start), end: Number(b.end) }; }
-      await R().metaSet('invoice_block', next);
-      await refreshCounts();
-      return next;
-    })();
-    try { return await invoiceTopUp; }
-    finally { invoiceTopUp = null; }
-  }
-
-  /* A newly installed or restored device can be ready to take bills before its first background
-     sync has collected a number block. When there is a connection, prepare the block before
-     saving the bill so the device-tagged fallback is reserved for genuinely offline selling. */
-  async function prepareInvoiceNumbers() {
-    if (!cloud || !signedIn() || navigator.onLine === false) return;
-    if (invoicePreparation) return invoicePreparation;
-    invoicePreparation = (async () => {
-      if (!state.registered) await register();
-      await rollBlock();
-      if (R().invoiceLeft(await R().invoiceState()) === 0) {
-        await topUpInvoices(true);
-        await rollBlock();
-      }
-    })().catch(e => {
-      if (isNetworkError(e)) set({ online: false });
-      else set({ lastError: e.message || String(e) });
-      // Billing stays available if the server cannot issue a block; commitBill keeps its
-      // guaranteed unique device-tagged fallback for that case.
-    }).finally(() => { invoicePreparation = null; });
-    return invoicePreparation;
+    const block = await R().invoiceState();
+    if (!force && R().invoiceLeft(block) > BLOCK_LOW) return block;
+    const b = await cloud.rpc('restaurant_invoice_block20', { p_device: device, p_size: BLOCK });
+    // Numbers already handed to this device are never thrown away: the new block simply follows on.
+    const left = R().invoiceLeft(block);
+    const next = left > 0 ? block : { ...block, prefix: b.prefix || 'INV', digits: Number(b.digits) || 3, year: b.year, start: Number(b.start), end: Number(b.end), next: Number(b.start) };
+    if (left > 0) { next.spare = { start: Number(b.start), end: Number(b.end) }; }
+    await R().metaSet('invoice_block', next);
+    await refreshCounts();
+    return next;
   }
   /* When the block in use is finished, step onto the spare one that was fetched earlier. */
   async function rollBlock() {
@@ -209,7 +176,7 @@ const SyncEngine = (() => {
   /* ---------- when to try ---------- */
   function schedule() {
     clearTimeout(timer);
-    const soon = state.pending > 0 ? 15000 : 90000;
+    const soon = state.pending > 0 ? 8000 : 60000;   // try more often when the outbox is not empty
     timer = setTimeout(() => { if (!document.hidden && navigator.onLine !== false) syncNow({ quiet: true }).finally(schedule); else schedule(); }, soon);
   }
   async function start(c, opts = {}) {
@@ -237,7 +204,7 @@ const SyncEngine = (() => {
     await refreshCounts();
   }
 
-  return { start, stop, syncNow, pushOnce, pullOnce, register, topUpInvoices, rollBlock, prepareInvoiceNumbers, fullRefresh,
+  return { start, stop, syncNow, pushOnce, pullOnce, register, topUpInvoices, rollBlock, fullRefresh,
     retryFailed, dropFailed, refreshCounts, onChange, state: () => state,
     get device() { return device; }, _setCloud: c => { cloud = c; }, _setDevice: d => { device = d; } };
 })();

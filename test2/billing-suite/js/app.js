@@ -127,7 +127,8 @@ const App = (() => {
   }
 
   /* ---------- shell ---------- */
-  const routeOn = k => Store.can(ROUTES[k].perm) && (!ROUTES[k].mod || Store.moduleOn(ROUTES[k].mod));
+  const adminOnlyView = () => { try { return localStorage.getItem('SHOPBILL_ADMIN_ONLY_VIEW') === '1' && Store.isAdmin; } catch { return false; } };
+  const routeOn = k => Store.can(ROUTES[k].perm) && (!ROUTES[k].mod || Store.moduleOn(ROUTES[k].mod)) && (!adminOnlyView() || k === 'admin' || k === 'settings');
   const navKeys = () => Object.keys(ROUTES).filter(k => ROUTES[k].nav !== false && routeOn(k));
   const navHTML = () => navKeys().map(k => `<a href="#/${k}" data-route="${k}" class="${k === 'admin' ? 'nav-admin' : ''}">${Icon(ROUTES[k].icon)}<span>${esc(routeLabel(ROUTES[k]))}</span>${k === 'billing' && !isTouch() ? '<kbd>F2</kbd>' : ''}</a>`).join('');
   function shell() {
@@ -139,7 +140,8 @@ const App = (() => {
         <div class="side-foot">
           <button type="button" class="side-btn" data-help>${Icon('help')}<span>Help & contact</span></button>
           ${me.manager_view ? `<button type="button" class="side-btn side-restore" id="showAdminTabs">${Icon('shield')}<span>Show admin tabs</span></button>` : ''}
-          <div class="who">${Icon(me.native_role === 'admin' ? 'shield' : 'user')}<span><b>${esc(me.name)}</b><small>${me.manager_view ? 'Admin · manager view' : ROLE_LABEL[me.role] || ''} · ${esc(me.email)}</small></span></div>
+          ${adminOnlyView() ? `<button type="button" class="side-btn side-restore" id="showAllTabs">${Icon('eye')}<span>Show all tabs</span></button>` : ''}
+          <div class="who">${Icon(me.native_role === 'admin' ? 'shield' : 'user')}<span><b>${esc(me.name)}</b><small>${me.manager_view ? 'Admin · manager view' : adminOnlyView() ? 'Admin · admin-only view' : ROLE_LABEL[me.role] || ''} · ${esc(me.email)}</small></span></div>
           <button type="button" class="side-btn" id="logoutBtn">${Icon('logout')}<span>Sign out</span></button>
         </div>
       </aside>
@@ -158,6 +160,7 @@ const App = (() => {
     applyShop();
     $('#logoutBtn').onclick = signOut;
     $('#showAdminTabs')?.addEventListener('click', e => setManagerView(false, e.currentTarget));
+    $('#showAllTabs')?.addEventListener('click', () => { try { localStorage.removeItem('SHOPBILL_ADMIN_ONLY_VIEW'); } catch { /* ignore */ } shell(); route(); toast('All tabs are back.', 'ok', 4000); });
     $('#menuBtn').onclick = () => document.body.classList.add('nav-open');
     $('#scrim').onclick = () => document.body.classList.remove('nav-open');
     const tick = () => { const c = $('#clock'); if (c) c.textContent = new Date().toLocaleString('en-IN', { timeZone: Fmt.tz(), weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); };
@@ -271,7 +274,7 @@ const App = (() => {
     document.body.classList.remove('nav-open');
     document.body.dataset.route = key;
     const v = $('#view'); v.innerHTML = '';
-    if (Cloud.sectionHidden?.(key)) { v.innerHTML = '<div class="page"><section class="card empty"><h2>This tab is hidden by the administrator</h2><p>Your administrator can restore access in Settings.</p></section></div>'; return; }
+    if (Cloud.sectionHidden?.(key)) { v.innerHTML = '<div class="page"><section class="card empty"><h2>This tab is turned off</h2><p>Access can be restored in Settings.</p></section></div>'; return; }
     current.mount(v);
   }
 
@@ -336,6 +339,11 @@ const App = (() => {
     try { Store.me.system = await Cloud.rpc('shop_system_save', { p: { admin_manager_view: !!on } }); await refreshMe(true); shell(); route(); toast(on ? 'Admin-only tabs are hidden. Use “Show admin tabs” in the menu to bring them back.' : 'Admin tabs are back.', 'ok', 6000); }
     catch (e) { toast(e.message, 'error', 6000); } finally { busy(btn, false); }
   }
+  function setAdminOnlyView(on, btn) {
+    if (btn) busy(btn, true, on ? 'Hiding…' : 'Showing…');
+    try { if (on) localStorage.setItem('SHOPBILL_ADMIN_ONLY_VIEW', '1'); else localStorage.removeItem('SHOPBILL_ADMIN_ONLY_VIEW'); shell(); route(); toast(on ? 'Only admin tabs are shown. Use “Show all tabs” in the menu to bring the rest back.' : 'All tabs are back.', 'ok', 6000); }
+    catch (e) { toast(e.message, 'error', 6000); } finally { if (btn) busy(btn, false); }
+  }
 
   /* ---------- boot ---------- */
   /* The last setup this login saw opens the app at once; the fresh copy replaces it a moment later. */
@@ -395,6 +403,6 @@ const App = (() => {
     if (!Store.me && $('#loginForm')) { const f = $('#loginForm'), em = f.email.value, pw = f.password.value; loginView(); $('#loginForm').email.value = em; $('#loginForm').password.value = pw; }
   }
   function rebuildNav() { if (!Store.me || Store.isMember) return; const n = $('#sideNav'); if (!n) { shell(); return route(); } n.innerHTML = navHTML(); RestaurantWorkspace.paintCounts(); const key = (location.hash.match(/^#\/(\w+)/) || [])[1]; if (!key || !Store.can(ROUTES[key]?.perm)) route(); else markNav(key); }
-  return { boot, applyShop, applyBrand, applyTheme, help, refreshMe, start, paintLock, rebuildNav, signOut, sync, setIcon, syncIcon, loginView, setManagerView, publicInfo: null };
+  return { boot, applyShop, applyBrand, applyTheme, help, refreshMe, start, paintLock, rebuildNav, signOut, sync, setIcon, syncIcon, loginView, setManagerView, setAdminOnlyView, adminOnlyView, publicInfo: null };
 })();
 App.boot();

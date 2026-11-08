@@ -2,7 +2,7 @@
 'use strict';
 const Billing = (() => {
   const PENDING_KEY = () => 'SHOPBILL_PENDING:' + Cloud.cfg.supabaseUrl + ':' + Cloud.userEmail;
-  let cart = [], payment = 'Cash', discount = { mode: 'percent', value: '' }, customer = { name: '', phone: '', address: '' }, notes = '', received = '', fields = {};
+  let cart = [], payment = 'Cash', discount = { mode: 'amount', value: '' }, customer = { name: '', phone: '', address: '' }, notes = '', received = '', fields = {};
   let category = 'All', query = '', highlight = 0, saving = false, pending = null, lastBill = null, showExtras = false, root = null, catalogSig = '';
 
   try { pending = JSON.parse(localStorage.getItem(PENDING_KEY()) || 'null'); } catch { pending = null; }
@@ -328,7 +328,7 @@ const Billing = (() => {
           <div class="t-sums" id="tSums"></div>
         </div>
         <div class="t-controls">
-          <div class="t-row" id="tDiscRow"><label for="tDiscVal">Discount</label><div class="joined"><input id="tDiscVal" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"><select id="tDiscMode" aria-label="Discount type"><option value="percent">%</option><option value="amount">${esc(Fmt.cur())}</option></select></div></div>
+          <div class="t-row" id="tDiscRow"><label for="tDiscVal">Discount</label><div class="joined"><input id="tDiscVal" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"><select id="tDiscMode" aria-label="Discount type"><option value="amount">${esc(Fmt.cur())}</option><option value="percent">%</option></select></div></div>
           <button type="button" class="linkish" id="tCustToggle"></button>
           <div class="t-cust" id="tCust" hidden>
             <input id="tCustName" maxlength="80" placeholder="Customer name" autocomplete="off" aria-label="Customer name">

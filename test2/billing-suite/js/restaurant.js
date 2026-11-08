@@ -252,7 +252,7 @@ const Tables = (() => {
       <header class="ocard-head"><div><b>${esc(RX.table(t.table_number))}</b><small>ID ${esc(t.table_number)}</small></div><span class="badge ${t.status === 'Reserved' ? 'badge-amber' : 'badge-green'}">${t.status === 'Reserved' ? 'Reserved' : 'Available'}</span></header>
       <div class="ocard-body stack">
         <form class="inline-form" data-rename><label class="field grow"><span>Table name</span><input name="name" value="${esc(RX.table(t.table_number))}" maxlength="60" required ${canRename() ? '' : 'disabled'}></label><button class="btn" ${canRename() ? '' : 'disabled'}>Save name</button></form>
-        ${canRename() ? '' : '<p class="hint">Table name editing is turned off by the administrator.</p>'}
+        ${canRename() ? '' : '<p class="hint">Table name editing is turned off.</p>'}
         <label class="field"><span>Availability</span><select data-status><option value="Available" ${t.status !== 'Reserved' ? 'selected' : ''}>Available</option><option value="Reserved" ${t.status === 'Reserved' ? 'selected' : ''}>Reserved</option></select></label>
         ${admin ? `<div class="tqr">${QR.svg(link(t), 168)}<div class="stack"><label class="field"><span>Customer link</span><input readonly value="${esc(link(t))}" data-link></label>
           <div class="toolbar"><a class="btn btn-sm" href="${esc(link(t))}" target="_blank" rel="noopener">${Icon('globe')} Open menu</a><button type="button" class="btn btn-sm" data-copy>${Icon('copy')} Copy</button><button type="button" class="btn btn-sm" data-share>Share</button><button type="button" class="btn btn-sm" data-qr>${Icon('download')} QR</button><button type="button" class="btn btn-sm" data-print>${Icon('printer')} Print</button></div></div></div>` : ''}
@@ -529,13 +529,14 @@ const MenuDetails = (() => {
     const sel = $('#mdCat', root); sel.innerHTML = '<option value="All">All categories</option>' + categories.map(c => `<option>${esc(c)}</option>`).join(''); sel.value = categories.includes(cat) ? cat : 'All';
     $('#mdStatus', root).textContent = total ? `${items.length} of ${total} dishes` : '';
     const admin = RX.isAdmin();
+    const hidePhotos = (() => { try { return localStorage.getItem('SHOPBILL_HIDE_DISH_PHOTOS') === '1' && !admin; } catch { return false; } })();
     $('#mdBody', root).innerHTML = items.length ? items.map(i => {
-      const img = RestaurantCloud.safeImage(i.image);
+      const img = hidePhotos ? '' : RestaurantCloud.safeImage(i.image);
       return `<tr data-id="${esc(i.id)}" class="${shown(i) ? '' : 'is-muted'}">
-        <td data-label="Dish"><div class="dish-cell"><span class="dish-thumb">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : Icon('image')}</span><span><b>${esc(i.name)}</b><small>${esc(i.category)}${i.veg === false ? ' · Non-veg' : ''}</small></span></div></td>
+        <td data-label="Dish"><div class="dish-cell">${hidePhotos ? '' : `<span class="dish-thumb">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : Icon('image')}</span>`}<span><b>${esc(i.name)}</b><small>${esc(i.category)}${i.veg === false ? ' · Non-veg' : ''}</small></span></div></td>
         <td data-label="Price" class="num"><b>${i.sizes_enabled ? 'From ' : ''}${Fmt.money(priceOf(i))}</b>${i.sizes_enabled ? `<small>${sizes(i).map(k => esc(label(i, k)) + ' ' + Fmt.money(i.size_prices[k])).join(' · ')}</small>` : ''}</td>
         <td data-label="Labels"><div class="toolbar">${i.stock_sold_out ? '<span class="badge badge-red">Sold out</span>' : shown(i) ? '<span class="badge badge-green">On menu</span>' : '<span class="badge">Hidden</span>'}${i.recommended ? '<span class="badge badge-soft">Recommended</span>' : ''}${i.best_seller ? '<span class="badge badge-amber">Best seller</span>' : ''}</div></td>
-        <td class="row-act"><button type="button" class="btn btn-sm" data-act="price">Prices & sizes</button><button type="button" class="btn btn-sm btn-ghost" data-act="photo">${Icon('image')} Photo</button><button type="button" class="btn btn-sm btn-ghost" data-act="more" ${busyIds.has(i.id) ? 'disabled' : ''}>More</button></td></tr>`;
+        <td class="row-act"><button type="button" class="btn btn-sm" data-act="price">Prices & sizes</button>${hidePhotos ? '' : `<button type="button" class="btn btn-sm btn-ghost" data-act="photo">${Icon('image')} Photo</button>`}<button type="button" class="btn btn-sm btn-ghost" data-act="more" ${busyIds.has(i.id) ? 'disabled' : ''}>More</button></td></tr>`;
     }).join('') : `<tr><td colspan="4"><div class="empty"><h3>${loading ? 'Loading dishes…' : 'No dishes here'}</h3><p>${loading ? '' : q || cat !== 'All' || avail !== 'all' ? 'Try another search or filter.' : 'Add dishes in Items first.'}</p></div></td></tr>`;
     paintMore(); void admin;
   }
@@ -914,7 +915,7 @@ const RestaurantSettings = (() => {
     if (root !== body) return;
     const hidden = new Set(custom.hiddenSections || []);
     body.innerHTML = `<div class="stack">
-      ${admin ? `<form class="card form-grid" id="rsMgr"><header class="span-2 card-head"><h2>What managers can do</h2><p class="hint">Admins always see everything.</p></header>
+      ${admin ? `<form class="card form-grid" id="rsMgr"><header class="span-2 card-head"><h2>What managers can do</h2></header>
         <div class="span-2">${sw('rename', custom.managerCanRenameTables !== false, 'Rename tables', 'Managers can change table names. QR codes keep working.')}${sw('devices', perms.customer_devices === true, 'See and block customer browsers', 'Shows the Customer devices screen to managers.')}${sw('orderBlock', perms.order_device_block === true, 'Block a device from an order card', 'Shows Block device on kitchen order cards for managers.')}</div>
         <fieldset class="checks span-2"><legend>Screens managers can open</legend>${SECTIONS.map(([k, l]) => `<label class="check"><input type="checkbox" data-section="${k}" ${hidden.has(k) ? '' : 'checked'}> ${esc(l)}</label>`).join('')}</fieldset>
         ${errLine(perms)}<div class="form-actions span-2"><button class="btn btn-primary">Save manager access</button></div></form>` : ''}
@@ -1035,7 +1036,7 @@ const RestaurantSettings = (() => {
   /* Staff & logins: the restaurant's waiter accounts, drawn like the billing staff list. */
   async function waiters(body) {
     root = body;
-    body.innerHTML = `<div class="card"><header class="card-head"><h2>Staff & logins</h2><p class="hint">Waiters sign in on the waiter app with their mobile number or email, and their password. Admin and manager logins are managed by support.</p></header>
+    body.innerHTML = `<div class="card"><header class="card-head"><h2>Staff & logins</h2><p class="hint">Waiters sign in on the waiter app with their mobile number or email, and their password.</p></header>
       <form id="waForm" class="staff-form"><label class="field"><span>Name</span><input name="name" maxlength="60" required placeholder="e.g. Ravi" autocomplete="off"></label><label class="field"><span>Mobile number <em>to sign in with</em></span><input name="phone" type="tel" inputmode="numeric" maxlength="16" placeholder="98765 43210" autocomplete="off"></label><label class="field"><span>Email <em>optional with a mobile number</em></span><input name="email" type="email" placeholder="ravi@example.com" autocomplete="off"></label><label class="field"><span>Password <em>8+ characters</em></span><input name="password" type="text" minlength="8" required autocomplete="new-password"></label><button class="btn btn-primary">${Icon('plus')} Add waiter</button></form>
       <div class="summary" id="waSum"></div><p class="status-line" id="waStatus" role="status">Loading…</p>
       <div class="table-wrap"><table class="table cards-on-mobile"><thead><tr><th>Name</th><th>Status</th><th>Last seen</th><th></th></tr></thead><tbody id="waBody"></tbody></table></div></div>`;
