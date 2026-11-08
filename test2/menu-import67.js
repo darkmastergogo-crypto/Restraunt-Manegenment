@@ -21,8 +21,9 @@
    for(const k of ['veg','available','visible','recommended','bestseller']){const v=bool(o[k]??'',line,k,errors);if(v!==undefined)o[k]=v;else delete o[k];}
    return o;});
   if(errors.length)throw Error(`Nothing imported. ${errors.join(' ')}`);
-  state.textContent=`Validating ${data.length} records on server…`;
-  const result=await Cloud.rpc('restaurant_import_menu67',{p_rows:data},true);
+  state.textContent=`Preparing categories for ${data.length} items…`;
+  const {names}=await CsvCategories.ensure(Cloud.rpc,data.map(row=>row.category));
+  const result=await Cloud.rpc('restaurant_import_menu67',{p_rows:data.map(row=>({...row,category:names.get(row.category)}))},true);
   if(!result.ok){const message=(result.errors||[]).map(e=>`Row ${e.row}: ${e.message}`).join(' ');throw Error(`Nothing imported. ${message}`);}
   state.textContent=`Completed: ${result.committed} committed (${result.created} new, ${result.updated} updated). Synchronizing menu…`;
   await refreshCloud();await loadStaffMenuPage63(true);setTimeout(()=>state.textContent='',7000);
