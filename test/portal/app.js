@@ -186,13 +186,46 @@ const logoInput = () => input('Logo','logo',{ type:'file',accept:'image/png,imag
 
 async function ownerPage() {
   screen('Main Owner portal',false);
-  view.append(node('p',{},'Create restaurants, open the existing workspace, and manage restaurant access.'));
+  document.body.classList.add('owner-dashboard');
   const overview = await rpc('overview');
-  const stats = node('p',{},overview.total + ' restaurants · ' + overview.active + ' active · ' + (overview.total-overview.active) + ' suspended');
-  const activity = node('details',{},node('summary',{},'Recent activity'),
-    node('ul',{},...overview.activity.map(a=>node('li',{},new Date(a.created_at).toLocaleString() + ' · ' +
-      a.action + (a.slug ? ' · ' + a.slug : '') + (a.subject ? ' · ' + a.subject : '')))));
-  view.append(stats,activity);
+  const suspended = overview.total - overview.active;
+  const activityRows = overview.activity || [];
+  const metric = (icon,label,value,kind) => node('article',{className:'owner-metric '+kind},
+    node('span',{className:'metric-icon','aria-hidden':'true'},icon),
+    node('div',{},node('small',{},label),node('strong',{},String(value))));
+  const side = node('aside',{className:'owner-sidebar'},
+    node('div',{className:'owner-sidebar-brand'},'RESTAURANT',node('span',{},'CONTROL')),
+    link('⌂  Dashboard','/owner'),link('▣  Restaurants','#restaurants'),
+    link('♧  Clients','#restaurants'),link('♙  Users','#restaurants'),
+    link('▥  Analytics','#insights'),link('⚙  Settings','/account'));
+  const hero = node('section',{className:'owner-hero'},
+    node('div',{},node('span',{className:'owner-kicker'},'MAIN OWNER WORKSPACE'),
+      node('h1',{},'Welcome back!'),node('p',{},'Manage all your restaurant clients from one place.')),
+    node('a',{href:'#add-restaurant',className:'button primary owner-add-link'},'+  Add Restaurant'));
+  const metrics = node('section',{className:'owner-metrics','aria-label':'Platform totals'},
+    metric('▣','Total Restaurants',overview.total,'red'),metric('♧','Active Restaurants',overview.active,'purple'),
+    metric('▥','Recent Activity',activityRows.length,'green'),metric('◉','Suspended',suspended,'orange'));
+  const ring = node('div',{className:'owner-ring',style:'--active-ratio:'+
+    (overview.total ? Math.round(overview.active/overview.total*100) : 0)+'%'},
+    node('div',{},node('strong',{},String(overview.total)),node('small',{},'Restaurants')));
+  const insights = node('section',{className:'owner-insights',id:'insights'},
+    node('article',{className:'owner-panel'},node('h2',{},'Platform overview'),
+      node('p',{},'Live restaurant counts from your platform'),
+      node('div',{className:'owner-overview-bars'},
+        node('span',{},'Active',node('b',{},String(overview.active))),
+        node('div',{className:'owner-bar'},node('i',{style:'width:'+
+          (overview.total ? Math.round(overview.active/overview.total*100) : 0)+'%'})),
+        node('span',{},'Suspended',node('b',{},String(suspended))),
+        node('div',{className:'owner-bar suspended'},node('i',{style:'width:'+
+          (overview.total ? Math.round(suspended/overview.total*100) : 0)+'%'})))),
+    node('article',{className:'owner-panel'},node('h2',{},'Restaurants by Status'),ring,
+      node('p',{className:'owner-legend'},'🟢 Active '+overview.active+'   •   🟠 Suspended '+suspended)),
+    node('article',{className:'owner-panel'},node('h2',{},'Recent Activity'),
+      node('ul',{className:'owner-activity'},...activityRows.slice(0,5).map(a=>
+        node('li',{},node('strong',{},a.action),node('small',{},
+          (a.slug||'Platform')+' · '+new Date(a.created_at).toLocaleString()))))));
+  view.replaceChildren(side,node('div',{className:'owner-content'},hero,metrics,insights));
+  const content = view.querySelector('.owner-content');
   const add = node('details',{id:'add-restaurant',className:'owner-panel owner-add-form'},node('summary',{},'Add restaurant'));
   add.append(form('Create restaurant and invite owner',[
     input('Restaurant name','name',{ maxLength:100 }),
