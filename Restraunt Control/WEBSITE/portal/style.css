@@ -1,0 +1,32 @@
+:root { color-scheme: light; font: 16px/1.5 system-ui,sans-serif; color: #172832; background: #f1f5f4; --accent: #006b56; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .6rem; padding: .8rem clamp(1rem,4vw,4rem); background: #fff; border-bottom: 1px solid #ccdcd5; align-items: center; }
+a { color: var(--accent); }
+.brand { color: #10382e; text-decoration: none; font-weight: 750; letter-spacing: -.025em; }
+nav, .actions { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; }
+main { width: min(64rem, calc(100% - 2rem)); margin: clamp(1rem,5vw,4rem) auto; }
+#view { background: #fff; border: 1px solid #ccdcd5; border-radius: 1rem; padding: clamp(1rem,4vw,2.5rem); }
+#view.compact { width: min(100%,32rem); margin: auto; }
+h1 { font-size: clamp(1.6rem,4vw,2.5rem); letter-spacing: -.04em; line-height: 1.15; margin: 0 0 .65rem; }
+h2 { font-size: 1.2rem; margin-bottom: .35rem; }
+p { margin: .45rem 0 1rem; }
+form { display: grid; gap: .75rem; margin: 1rem 0; }
+label { display: grid; gap: .25rem; font-weight: 550; min-width: 0; }
+input,select,button,.button { font: inherit; padding: .55rem .8rem; border: 1px solid #9aafa8; border-radius: .45rem; background: #fff; color: inherit; min-width: 0; }
+button,.button { width: fit-content; min-height: 2.7rem; cursor: pointer; text-decoration: none; }
+button:disabled { opacity: .55; cursor: wait; }
+.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+:focus-visible { outline: 3px solid #399bc0; outline-offset: 3px; }
+.rows { display: grid; gap: .75rem; }
+.row { padding: 1rem; border: 1px solid #ccdcd5; border-radius: .65rem; overflow-wrap: anywhere; }
+.row h2 { margin: 0; }
+.logo { width: 4rem; height: 4rem; object-fit: contain; border-radius: .5rem; margin-bottom: .75rem; }
+#status { white-space: pre-line; text-align: center; font-weight: 600; color: #235a47; }
+#status[data-error] { color: #98251d; }
+.qr { width: 11rem; height: 11rem; }
+code { overflow-wrap: anywhere; }
+details { margin: .75rem 0; }
+summary { cursor: pointer; }
+
+.bulk-select { display: flex; align-items: center; margin: .5rem 0; }
