@@ -14,19 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
-  <script>
-    /* Paint the saved theme, app name and logo before anything else, so changes made in Admin never flash on start. */
-    (function () {
-      try {
-        var t = JSON.parse(localStorage.getItem('SHOPBILL_THEME_CSS') || 'null');
-        if (t) { document.documentElement.dataset.theme = t[0]; var s = document.createElement('style'); s.id = 'themeStyle'; s.textContent = t[1]; document.head.appendChild(s); document.querySelector('meta[name=theme-color]').setAttribute('content', t[2]); }
-        var b = JSON.parse(localStorage.getItem('SHOPBILL_BRAND') || 'null');
-        if (b) { document.title = b.title; document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', b.short); }
-        var i = JSON.parse(localStorage.getItem('SHOPBILL_ICON') || 'null');
-        if (i && i.icon) { var l = document.querySelector('link[rel=icon]'); l.href = i.icon; l.type = 'image/png'; document.querySelector('link[rel=apple-touch-icon]').href = i.icon; }
-      } catch (e) { /* first start */ }
-    })();
-  </script>
+  <script>(function(){try{var t=JSON.parse(localStorage.getItem('SHOPBILL_THEME_CSS')||'null');if(t){document.documentElement.dataset.theme=t[0];var s=document.createElement('style');s.id='themeStyle';s.textContent=t[1];document.head.appendChild(s);document.querySelector('meta[name=theme-color]').setAttribute('content',t[2]);}var b=JSON.parse(localStorage.getItem('SHOPBILL_BRAND')||'null');if(b){document.title=b.title;document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content',b.short);}var i=JSON.parse(localStorage.getItem('SHOPBILL_ICON')||'null');if(i&&i.icon){var l=document.querySelector('link[rel=icon]');l.href=i.icon;l.type='image/png';document.querySelector('link[rel=apple-touch-icon]').href=i.icon;}}catch(e){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -36,6 +24,15 @@
   <div id="app" class="loading"></div>
   <noscript>Turn on JavaScript to use this app.</noscript>
   <script src="../config.js"></script>
+  <script>
+    try {
+      const session = JSON.parse(localStorage.getItem('restaurant-platform-session') || 'null');
+      const url = String(globalThis.RESTAURANT_CONFIG?.supabaseUrl || '').replace(//$/, '');
+      if (session?.access_token && session?.refresh_token && session?.user?.id && url) {
+        localStorage.setItem('YUMMY46:' + url + ':staff-session-v19', JSON.stringify(session));
+      }
+    } catch {}
+  </script>
   <script>window.RESTAURANT_STAFF_PERSIST = true;</script>
   <script src="app.v21.js?v=21"></script>
 </body>
