@@ -27,7 +27,7 @@
   <script>
     try {
       const session = JSON.parse(localStorage.getItem('restaurant-platform-session') || 'null');
-      const url = String(globalThis.RESTAURANT_CONFIG?.supabaseUrl || '').replace(//$/, '');
+      const url = String(globalThis.RESTAURANT_CONFIG?.supabaseUrl || '').replace(/\/$/, '');
       if (session?.access_token && session?.refresh_token && session?.user?.id && url) {
         localStorage.setItem('YUMMY46:' + url + ':staff-session-v19', JSON.stringify(session));
       }
