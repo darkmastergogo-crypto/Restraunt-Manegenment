@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Restaurant</title>
+  <meta name="description" content="Kitchen orders, tables, billing, stock and sales for your restaurant.">
+  <meta name="theme-color" content="#1c2433">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Restaurant">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <script>
+    /* Paint the saved theme, app name and logo before anything else, so changes made in Admin never flash on start. */
+    (function () {
+      try {
+        var t = JSON.parse(localStorage.getItem('SHOPBILL_THEME_CSS') || 'null');
+        if (t) { document.documentElement.dataset.theme = t[0]; var s = document.createElement('style'); s.id = 'themeStyle'; s.textContent = t[1]; document.head.appendChild(s); document.querySelector('meta[name=theme-color]').setAttribute('content', t[2]); }
+        var b = JSON.parse(localStorage.getItem('SHOPBILL_BRAND') || 'null');
+        if (b) { document.title = b.title; document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', b.short); }
+        var i = JSON.parse(localStorage.getItem('SHOPBILL_ICON') || 'null');
+        if (i && i.icon) { var l = document.querySelector('link[rel=icon]'); l.href = i.icon; l.type = 'image/png'; document.querySelector('link[rel=apple-touch-icon]').href = i.icon; }
+      } catch (e) { /* first start */ }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="css/app.css?v=19">
+  <link rel="stylesheet" href="css/restaurant.css?v=19">
+  <link rel="stylesheet" href="workspace.css?v=19">
+</head>
+<body>
+  <div id="app" class="loading"></div>
+  <noscript>Turn on JavaScript to use this app.</noscript>
+  <script src="../config.js"></script>
+  <script src="config.js?v=19"></script>
+  <script src="compat.js"></script>
+  <script>window.RESTAURANT_STAFF_PERSIST = true;</script>
+  <script src="restaurant-cloud.js?v=20-load1"></script>
+  <script src="restaurant-adapter.js?v=20-load1"></script>
+  <script src="js/themes.js?v=19"></script>
+  <script src="js/ui.js?v=20-load1"></script>
+  <script src="js/calc.js?v=19"></script>
+  <script src="js/qr.js?v=19"></script>
+  <script src="js/receipt.js?v=19"></script>
+  <script src="js/billing.js?v=20-load1"></script>
+  <script src="js/records.js?v=20-load1"></script>
+  <script src="js/dashboard.js?v=20-load1"></script>
+  <script src="../csv-categories.js?v=1"></script>
+  <script src="js/items.js?v=20-load1"></script>
+  <script src="js/stocks.js?v=20-load1"></script>
+  <script src="js/expenses.js?v=20-load1"></script>
+  <script src="js/members.js?v=19"></script>
+  <script src="js/portal.js?v=19"></script>
+  <script src="workspace.js?v=19"></script>
+  <script src="../menu17-data.js?v=19"></script>
+  <script src="js/restaurant.js?v=20-load1"></script>
+  <script src="js/menu-design.js?v=20-load1"></script>
+  <script src="js/settings.js?v=19"></script>
+  <script src="js/admin.js?v=19"></script>
+  <script src="offline/local-db.js?v=20"></script>
+  <script src="offline/repo.js?v=20"></script>
+  <script src="offline/sync.js?v=20-sync2"></script>
+  <script src="offline/router.js?v=20-load1"></script>
+  <script src="offline/ui.js?v=20-sync2"></script>
+  <script src="js/app.js?v=19"></script>
+</body>
+</html>
