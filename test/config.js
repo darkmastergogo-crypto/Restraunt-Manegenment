@@ -1,5 +1,6 @@
 /* Separate shop configuration. Public browser-safe values only; never use a service-role key. */
-const RESTAURANT_CONFIG = {\n  platform: true,
+const RESTAURANT_CONFIG = {
+  platform: true,
   publicMenuUrl: "", // Blank uses this deployment for table QR links.
   restaurantName: "Yummy Momo",
   tagline: "Yummy in your tummy",
