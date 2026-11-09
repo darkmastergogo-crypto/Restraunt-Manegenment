@@ -3,7 +3,10 @@ import { auth, rpc, worker } from './auth.js';
 const view = document.querySelector('#view');
 const status = document.querySelector('#status');
 const nav = document.querySelector('#navigation');
-const [, page, slug] = location.pathname.split('/');
+const pathParts = location.pathname.split('/').filter(Boolean);
+const page = pathParts[0] || '';
+const slug = (page === 'login' || page === 'members') ? (pathParts[1] || '') : '';
+const ownerSection = page === 'owner' ? (pathParts[1] || 'dashboard') : '';
 const params = new URLSearchParams(location.search);
 const slugRE = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
 const currentLink = slug ? '/login/' + slug : '/login';
@@ -184,6 +187,69 @@ async function uploadLogo(restaurant,file) {
 }
 const logoInput = () => input('Logo','logo',{ type:'file',accept:'image/png,image/jpeg,image/webp',required:false });
 
+function ownerSidebar(active = 'dashboard') {
+  const entry = (key, icon, label, href) => {
+    const item = link(icon + '  ' + label, href);
+    if (active === key) item.classList.add('active');
+    return item;
+  };
+  return node('aside',{className:'owner-sidebar'},
+    node('div',{className:'owner-sidebar-brand'},'RESTAURANT',node('span',{},'CONTROL')),
+    entry('dashboard','⌂','Dashboard','/owner'),
+    entry('restaurants','▣','Restaurants','/owner/restaurants'),
+    entry('clients','♧','Clients','/owner/clients'),
+    entry('users','♙','Users','/owner/users'),
+    entry('analytics','▥','Analytics','/owner/analytics'),
+    entry('billing','◉','Billing','/owner/billing'),
+    entry('settings','⚙','Settings','/account'));
+}
+
+async function ownerDirectoryPage(section) {
+  const title = { restaurants:'Restaurants', clients:'Client directory', users:'User access directory', analytics:'Platform analytics', billing:'Billing & subscriptions' }[section] || 'Main Owner portal';
+  const description = {
+    restaurants:'Manage every restaurant from one organized workspace.',
+    clients:'Each client is separated by restaurant; open only the restaurant you intend to manage.',
+    users:'Invite, suspend, and manage each restaurant’s administrators, managers, and staff.',
+    analytics:'Review platform activity and active restaurant status.',
+    billing:'Review restaurant subscription status and open each account for management.'
+  }[section] || '';
+  screen(title,false);
+  document.body.classList.add('owner-dashboard');
+  const [overview, records] = await Promise.all([
+    rpc('overview'),
+    rpc('restaurants',{ p_query:'', p_offset:0, p_active:null })
+  ]);
+  const content = node('div',{className:'owner-content'},
+    node('section',{className:'owner-page-header'},
+      node('div',{},node('span',{className:'owner-kicker'},'MAIN OWNER WORKSPACE'),node('h1',{},title),node('p',{},description)),
+      link('+  Add Restaurant','/owner#add-restaurant',true)));
+  const listing = node('section',{className:'owner-listing owner-directory'},node('h2',{},section === 'users' ? 'Users by restaurant' : section === 'clients' ? 'Clients by restaurant' : title));
+  if (section === 'analytics') {
+    const suspended = overview.total - overview.active;
+    listing.append(node('div',{className:'owner-metrics'},
+      node('article',{className:'owner-metric red'},node('span',{className:'metric-icon'},'▣'),node('div',{},node('small',{},'Restaurants'),node('strong',{},String(overview.total)))),
+      node('article',{className:'owner-metric green'},node('span',{className:'metric-icon'},'●'),node('div',{},node('small',{},'Active'),node('strong',{},String(overview.active)))),
+      node('article',{className:'owner-metric orange'},node('span',{className:'metric-icon'},'◉'),node('div',{},node('small',{},'Suspended'),node('strong',{},String(suspended))))
+    ),node('article',{className:'owner-panel'},node('h2',{},'Recent activity'),
+      node('ul',{className:'owner-activity'},...(overview.activity || []).slice(0,12).map(a =>
+        node('li',{},node('strong',{},a.action),node('small',{},(a.slug || 'Platform')+' · '+new Date(a.created_at).toLocaleString()))))));
+  } else {
+    const cards = records.slice(0,100).map(r => {
+      const action = section === 'users' ? 'Manage users' : section === 'clients' ? 'Manage client access' : 'Open restaurant';
+      const actionHref = section === 'restaurants' ? destination(r) : '/members/' + r.slug;
+      const label = section === 'users'
+        ? 'Administrators, managers, and staff'
+        : section === 'clients' ? 'Restaurant client account' : r.active ? 'Active restaurant' : 'Suspended restaurant';
+      return card(logo(r),node('h2',{},r.name),node('p',{},r.slug+' · '+label),
+        actions(link(action,actionHref,true),link('Open workspace',destination(r)),link('Client sign-in','/login/'+r.slug)));
+    });
+    listing.append(rows(...cards));
+    if (!cards.length) listing.append(node('p',{},'No restaurants found.'));
+  }
+  content.append(listing);
+  view.replaceChildren(ownerSidebar(section),content);
+}
+
 async function ownerPage() {
   screen('Main Owner portal',false);
   document.body.classList.add('owner-dashboard');
@@ -193,11 +259,7 @@ async function ownerPage() {
   const metric = (icon,label,value,kind) => node('article',{className:'owner-metric '+kind},
     node('span',{className:'metric-icon','aria-hidden':'true'},icon),
     node('div',{},node('small',{},label),node('strong',{},String(value))));
-  const side = node('aside',{className:'owner-sidebar'},
-    node('div',{className:'owner-sidebar-brand'},'RESTAURANT',node('span',{},'CONTROL')),
-    link('⌂  Dashboard','/owner'),link('▣  Restaurants','#restaurants'),
-    link('♧  Clients','#restaurants'),link('♙  Users','#restaurants'),
-    link('▥  Analytics','#insights'),link('⚙  Settings','/account'));
+  const side = ownerSidebar('dashboard');
   const hero = node('section',{className:'owner-hero'},
     node('div',{className:'owner-hero-copy'},node('span',{className:'owner-kicker'},'MAIN OWNER WORKSPACE'),
       node('h1',{},'Welcome back!'),node('p',{},'Manage all your restaurant clients from one place.')),
@@ -270,9 +332,9 @@ async function ownerPage() {
   const quick = node('section',{className:'owner-panel owner-quick-actions'},
     node('h2',{},'Quick Actions'),
     node('div',{className:'quick-grid'},
-      link('▣  Add Restaurant','#add-restaurant'),link('♧  Manage Restaurants','#restaurants'),
-      link('♙  Manage Users','#restaurants'),link('▥  View Activity','#insights'),
-      link('⚙  Platform Settings','/account'),link('↗  Client sign-in','/login')));
+      link('▣  Add Restaurant','#add-restaurant'),link('♧  Manage Restaurants','/owner/restaurants'),
+      link('♙  Manage Users','/owner/users'),link('▥  View Analytics','/owner/analytics'),
+      link('◉  Billing & plans','/owner/billing'),link('↗  Client sign-in','/login')));
   content.append(quick);
   async function load() {
     checked.clear();
@@ -370,7 +432,10 @@ async function route(verified) {
   const access = await rpc('me');
   navigation(access.main_owner);
   if (page === 'owner') {
-    if (access.main_owner) return ownerPage();
+    if (access.main_owner) {
+      if (ownerSection === 'dashboard') return ownerPage();
+      return ownerDirectoryPage(ownerSection);
+    }
     screen('Main Owner access required');
     view.append(link('Open restaurant access','/restaurants'));
     return;
