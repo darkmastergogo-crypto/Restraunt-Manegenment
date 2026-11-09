@@ -25,6 +25,10 @@
       "destination": "/portal/index.html"
     },
     {
+      "source": "/members/:slug",
+      "destination": "/portal/index.html"
+    },
+    {
       "source": "/activate",
       "destination": "/portal/index.html"
     },
