@@ -68,3 +68,17 @@ body.owner-dashboard{background:#f8f1ed;color:#241b1c}
 .owner-quick-actions{margin-top:16px}.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.quick-grid a{min-height:76px;display:grid;place-items:center;text-align:center;text-decoration:none;color:#5b2119;background:linear-gradient(145deg,#fff,#f6e8e1);border:1px solid #f0ded6;border-radius:13px;font-size:13px;font-weight:750;padding:9px;transition:transform .15s,box-shadow .15s}.quick-grid a:hover{transform:translateY(-2px);box-shadow:0 9px 18px #5125161c}
 @media(max-width:680px){.owner-hero-actions{margin-top:12px;justify-content:space-between}.owner-hero-plate{width:80px;height:58px}.owner-hero-plate:before,.owner-hero-plate:after{top:16px}.owner-hero-plate:before{left:15px}.owner-hero-plate:after{right:15px}.owner-hero-plate i{left:27px;top:25px}.owner-hero-plate b{left:43px;top:18px}.quick-grid{grid-template-columns:repeat(2,1fr)}}
 /* Consolidated production dashboard revision. */
+
+
+/* Main Owner directories: real routes, clear hierarchy, responsive controls. */
+.owner-sidebar a.active{background:linear-gradient(100deg,#bd4931,#9d291d);box-shadow:0 8px 18px #0004}
+.owner-sidebar a:first-of-type:not(.active){background:transparent}
+.owner-page-header{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:18px;padding:25px 30px;border-radius:20px;background:linear-gradient(105deg,#fffaf7 18%,#f7e8e1 60%,#eed0c2);border:1px solid #f0ded6}
+.owner-page-header h1{margin:7px 0;font-size:clamp(30px,4vw,46px);letter-spacing:-.045em}
+.owner-page-header p{margin:0;max-width:650px;color:#655754}
+.owner-directory{min-height:300px}
+.owner-directory .rows{gap:15px}
+.owner-directory .row{position:relative;display:flex;flex-direction:column;min-height:250px}
+.owner-directory .row .actions{margin-top:auto}
+.owner-directory .row .logo{background:linear-gradient(135deg,#fde1d2,#f4b59c);object-fit:cover}
+@media(max-width:680px){.owner-page-header{display:block;padding:20px}.owner-page-header .button{display:inline-block;margin-top:16px}.owner-directory .row{min-height:0}}
