@@ -199,9 +199,11 @@ async function ownerPage() {
     link('♧  Clients','#restaurants'),link('♙  Users','#restaurants'),
     link('▥  Analytics','#insights'),link('⚙  Settings','/account'));
   const hero = node('section',{className:'owner-hero'},
-    node('div',{},node('span',{className:'owner-kicker'},'MAIN OWNER WORKSPACE'),
+    node('div',{className:'owner-hero-copy'},node('span',{className:'owner-kicker'},'MAIN OWNER WORKSPACE'),
       node('h1',{},'Welcome back!'),node('p',{},'Manage all your restaurant clients from one place.')),
-    node('a',{href:'#add-restaurant',className:'button primary owner-add-link'},'+  Add Restaurant'));
+    node('div',{className:'owner-hero-actions'},
+      node('div',{className:'owner-hero-plate','aria-hidden':'true'},node('i',{}),node('b',{})),
+      node('a',{href:'#add-restaurant',className:'button primary owner-add-link'},'+  Add Restaurant')));
   const metrics = node('section',{className:'owner-metrics','aria-label':'Platform totals'},
     metric('▣','Total Restaurants',overview.total,'red'),metric('♧','Active Restaurants',overview.active,'purple'),
     metric('▥','Recent Activity',activityRows.length,'green'),metric('◉','Suspended',suspended,'orange'));
@@ -209,8 +211,9 @@ async function ownerPage() {
     (overview.total ? Math.round(overview.active/overview.total*100) : 0)+'%'},
     node('div',{},node('strong',{},String(overview.total)),node('small',{},'Restaurants')));
   const insights = node('section',{className:'owner-insights',id:'insights'},
-    node('article',{className:'owner-panel'},node('h2',{},'Platform overview'),
-      node('p',{},'Live restaurant counts from your platform'),
+    node('article',{className:'owner-panel owner-growth'},node('div',{className:'panel-heading'},node('h2',{},'Restaurant growth overview'),node('span',{},'Live')),
+      node('p',{},'A visual summary of active restaurants on your platform.'),
+      node('div',{className:'owner-growth-chart','aria-label':'Restaurant growth visual'},node('span',{}),node('i',{}),node('b',{})),
       node('div',{className:'owner-overview-bars'},
         node('span',{},'Active',node('b',{},String(overview.active))),
         node('div',{className:'owner-bar'},node('i',{style:'width:'+
@@ -264,6 +267,13 @@ async function ownerPage() {
     await load();
   }),actions(button('Suspend selected',bulk(false)),button('Resume selected',bulk(true))));
   content.append(filters,listing);
+  const quick = node('section',{className:'owner-panel owner-quick-actions'},
+    node('h2',{},'Quick Actions'),
+    node('div',{className:'quick-grid'},
+      link('▣  Add Restaurant','#add-restaurant'),link('♧  Manage Restaurants','#restaurants'),
+      link('♙  Manage Users','#restaurants'),link('▥  View Activity','#insights'),
+      link('⚙  Platform Settings','/account'),link('↗  Client sign-in','/login')));
+  content.append(quick);
   async function load() {
     checked.clear();
     const records = await rpc('restaurants',{ p_query:query,p_offset:offset,p_active:active });
