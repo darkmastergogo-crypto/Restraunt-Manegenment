@@ -12,7 +12,7 @@ const SyncEngine = (() => {
   const BATCH = 50, PAGE = 500, BLOCK = 100, BLOCK_LOW = 20;
   const MAX_BACKOFF = 60 * 1000;   // shorter so stuck bills don't sit for 5 min between tries
 
-  let cloud = null, device = null, running = false, timer = null, started = false, signedIn = () => true;
+  let cloud = null, device = null, active = null, timer = null, started = false, signedIn = () => true;
   let state = { online: navigator.onLine !== false, pending: 0, failed: 0, conflicts: 0, syncing: false,
     lastOk: null, lastError: '', invoiceLeft: 0, invoiceProvisional: 0, registered: false, phase: '' };
   const listeners = new Set();
@@ -22,8 +22,8 @@ const SyncEngine = (() => {
 
   // Only a genuine failure to reach the server counts as being offline. A server that answers
   // with a refusal is online, and saying otherwise once hid a real fault behind "no internet".
-  const isNetworkError = e => e?.code === 'NETWORK' || e?.code === 'ETIMEDOUT' || e?.name === 'TypeError' ||
-    /Failed to fetch|NetworkError|Could not reach|internet/i.test(e?.message || '');
+  const isNetworkError = e => e?.code === 'NETWORK' ||
+    /Failed to fetch|NetworkError|Could not reach/i.test(e?.message || '');
   const missingFn = e => e?.httpStatus === 404 || /Could not find the function|schema cache|PGRST202/i.test(e?.message || '');
 
   async function refreshCounts() {
@@ -68,32 +68,42 @@ const SyncEngine = (() => {
   }
 
   /* ---------- up ---------- */
-  async function pushOnce() {
+  async function pushOnce({ force = false, attempted = new Set() } = {}) {
     const all = await R().pending();
     if (!all.length) return { sent: 0, done: 0 };
     const now = Date.now();
-    const due = all.filter(o => !o.next_try_at || Date.parse(o.next_try_at) <= now)
+    const due = all.filter(o => !attempted.has(o.op_id) && (force || !(Date.parse(o.next_try_at) > now)))
       .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).slice(0, BATCH);
     if (!due.length) return { sent: 0, done: 0 };
     set({ phase: `Sending ${due.length} of ${all.length}` });
     const reply = await cloud.rpc('restaurant_sync_push20', { p_device: device, p_ops: due.map(o => ({ op_id: o.op_id, kind: o.kind, payload: o.payload })) });
-    const results = reply?.results || [];
+    const results = new Map((reply?.results || []).map(result => [result.op_id, result]));
     let done = 0;
-    for (const [i, res] of results.entries()) {
-      const op = due[i];
-      if (!op) continue;
-      if (res.ok) { await settle(op, res.result); done++; }
-      else if (res.permanent) {
-        await LocalDB.put('outbox', { ...op, state: 'failed', error: String(res.error || 'The server refused this.'), tries: (op.tries || 0) + 1 });
-        await R().conflict({ op_id: op.op_id, kind: op.kind, reason: String(res.error || ''), payload: op.payload });
-      } else {
-        const tries = (op.tries || 0) + 1;
-        const wait = Math.min(MAX_BACKOFF, 2000 * Math.pow(2, Math.min(tries, 8))) * (0.75 + Math.random() * 0.5);
-        await LocalDB.put('outbox', { ...op, tries, error: String(res.error || ''), next_try_at: new Date(Date.now() + wait).toISOString() });
-      }
+    for (const op of due) {
+      attempted.add(op.op_id);
+      const res = results.get(op.op_id);
+      if (res?.ok === true) { await settle(op, res.result); done++; }
+      else await recordFailure(op, res);
     }
     await refreshCounts();
     return { sent: due.length, done };
+  }
+
+  async function recordFailure(op, result) {
+    await LocalDB.tx(['outbox', 'conflicts'], async h => {
+      const current = await h.get('outbox', op.op_id);
+      if (!current || current.state !== 'pending' || current.tries !== op.tries) return;
+      const tries = (current.tries || 0) + 1;
+      const error = String(result?.error || 'The server did not confirm receipt. The bill is still saved here.');
+      if (result?.permanent) {
+        await h.put('outbox', { ...current, state: 'failed', error, tries });
+        await h.put('conflicts', { id: op.op_id, op_id: op.op_id, kind: op.kind, reason: error,
+          payload: op.payload, created_at: R().nowISO(), seen: 0 });
+      } else {
+        const wait = Math.min(MAX_BACKOFF, 2000 * Math.pow(2, Math.min(tries, 8)) * (0.75 + Math.random() * 0.5));
+        await h.put('outbox', { ...current, tries, error, next_try_at: new Date(Date.now() + wait).toISOString() });
+      }
+    });
   }
 
   /* One accepted note: mark it done and write back whatever the server decided. */
@@ -146,30 +156,45 @@ const SyncEngine = (() => {
   }
 
   /* ---------- the round trip ---------- */
-  async function syncNow({ quiet = false } = {}) {
-    if (running || !cloud || !signedIn()) return state;
+  async function syncNow({ quiet = false, force = false } = {}) {
+    if (active) {
+      await active;
+      if (!force || !state.pending) return state;
+      if (active) return active;
+    }
+    if (!cloud || !signedIn()) return state;
     if (navigator.onLine === false) { set({ online: false }); return state; }
-    running = true; set({ syncing: true, phase: 'Starting', lastError: '' });
+    active = runSync(quiet, force).finally(() => { active = null; });
+    return active;
+  }
+
+  async function runSync(quiet, force) {
+    set({ syncing: true, phase: 'Starting' });
     try {
       if (!state.registered) await register();
       await rollBlock();
-      let guard = 0;
-      for (;;) {                                  // keep going while the outbox still empties
-        const r = await pushOnce();
-        if (!r.done || ++guard > 20) break;
-        if (!(await R().pending()).length) break;
+      const attempted = new Set();
+      for (let batch = 0; batch < 21; batch++) {
+        const r = await pushOnce({ force, attempted });
+        if (!r.sent) break;
       }
+      const pending = await R().pending();
       await pullOnce();
       await topUpInvoices();
       await refreshCounts();
-      set({ online: true, lastOk: new Date().toISOString(), phase: '' });
-      await R().metaSet('last_sync', state.lastOk);
+      set({ online: true, phase: '', lastError: pending.find(op => op.error)?.error || '' });
+      if (!state.pending && !state.failed) {
+        const lastOk = new Date().toISOString();
+        await R().metaSet('last_sync', lastOk);
+        set({ lastOk });
+      }
     } catch (e) {
+      await refreshCounts().catch(() => {});
       if (missingFn(e)) set({ lastError: 'Run OFFLINE-SYNC-v20.sql in Supabase once to switch syncing on.', phase: '' });
       else if (isNetworkError(e)) set({ online: false, phase: '', lastError: '' });
-      else set({ lastError: e.message || String(e), phase: '' });
+      else set({ online: navigator.onLine !== false, lastError: e.message || String(e), phase: '' });
       if (!quiet && !isNetworkError(e)) try { console.warn('[sync]', e.message); } catch { /* no console */ }
-    } finally { running = false; set({ syncing: false }); }
+    } finally { set({ syncing: false }); }
     return state;
   }
 
@@ -184,6 +209,7 @@ const SyncEngine = (() => {
     if (opts.signedIn) signedIn = opts.signedIn;
     await refreshCounts();
     if (started) return;
+    set({ lastOk: await R().metaGet('last_sync', null) });
     started = true;
     addEventListener('online', () => { set({ online: true }); syncNow({ quiet: true }); });
     addEventListener('offline', () => set({ online: false }));
@@ -193,10 +219,15 @@ const SyncEngine = (() => {
   }
   function stop() { clearTimeout(timer); started = false; listeners.clear(); }
 
-  async function retryFailed() {
-    for (const op of await R().failed()) await LocalDB.put('outbox', { ...op, state: 'pending', tries: 0, next_try_at: R().nowISO(), error: '' });
+  async function retryFailed(opId = null) {
+    await LocalDB.tx(['outbox', 'conflicts'], async h => {
+      const failed = (await h.all('outbox', { index: 'state', equals: 'failed' })).filter(op => !opId || op.op_id === opId);
+      for (const op of failed) await h.put('outbox', { ...op, state: 'pending', tries: 0, next_try_at: R().nowISO(), error: '' });
+      const ids = new Set(failed.map(op => op.op_id));
+      for (const conflict of await h.all('conflicts', {})) if (ids.has(conflict.op_id)) await h.del('conflicts', conflict.id);
+    });
     await refreshCounts();
-    return syncNow();
+    return syncNow({ force: true });
   }
   async function dropFailed(opId) {
     const op = await LocalDB.get('outbox', opId);

@@ -10,6 +10,7 @@ const OfflineUI = (() => {
     if (s.failed) return { cls: 'sy-bad', text: `${plural(s.failed, 'bill', 'bills')} not sent` };
     if (!s.online) return { cls: 'sy-off', text: s.pending ? `Offline · ${plural(s.pending, 'bill', 'bills')} saved here` : 'Offline · saving here' };
     if (s.syncing) return { cls: 'sy-busy', text: s.phase || 'Sending…' };
+    if (s.lastError) return { cls: 'sy-warn', text: s.pending ? `${plural(s.pending, 'bill', 'bills')} waiting to retry` : 'Sync needs attention' };
     if (s.pending) return { cls: 'sy-busy', text: `${plural(s.pending, 'bill', 'bills')} to send` };
     return { cls: 'sy-ok', text: 'Saved and synced' };
   }
@@ -42,12 +43,12 @@ const OfflineUI = (() => {
     const prov = s.invoiceProvisional;
     const d = modal('Saving & syncing', `<div class="stack sync-panel">
       <div class="sum-row">
-        <div class="sum"><span>Right now</span><b>${esc(wording(s).text)}</b></div>
-        <div class="sum"><span>Waiting to send</span><b>${s.pending}</b></div>
-        <div class="sum"><span>Last synced</span><b>${esc(when(s.lastOk))}</b></div>
+        <div class="sum"><span>Right now</span><b data-sync-status>${esc(wording(s).text)}</b></div>
+        <div class="sum"><span>Waiting to send</span><b data-sync-pending>${s.pending}</b></div>
+        <div class="sum"><span>Last synced</span><b data-sync-last>${esc(when(s.lastOk))}</b></div>
       </div>
       ${!s.online ? `<div class="notice">${Icon('wifi')}<div><b>No internet just now</b><p class="hint">Keep billing. Everything is saved on this device and sent on by itself the moment the connection is back.</p></div></div>` : ''}
-      ${s.lastError ? `<div class="notice notice-bad">${Icon('alert')}<div><b>Could not sync</b><p class="hint">${esc(s.lastError)}</p></div></div>` : ''}
+      <div class="notice notice-bad" data-sync-error ${s.lastError ? '' : 'hidden'}>${Icon('alert')}<div><b>Could not sync</b><p class="hint">${esc(s.lastError)}</p></div></div>
       ${left <= 20 ? `<div class="notice ${left === 0 ? 'notice-bad' : ''}">${Icon('bill')}<div><b>${left === 0 ? 'Offline invoice numbers used up' : `${left} invoice numbers left on this device`}</b>
         <p class="hint">${left === 0
           ? 'Bills still save, with a number carrying this device’s tag so it can never clash. Connect to pick up a fresh block of ordinary numbers.'
@@ -68,23 +69,28 @@ const OfflineUI = (() => {
           <label class="btn btn-ghost file-btn">${Icon('upload')} Restore…<input type="file" accept="application/json,.json" hidden data-restore></label></div>
         <p class="hint">A backup holds every bill on this device, including any still waiting to be sent. Keep it somewhere else — if this device is lost, wiped or the app is uninstalled, what is on it goes too.</p></section>
       <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>Close</button>
-        ${s.pending ? `<button type="button" class="btn" data-retry-all>${Icon('refresh')} Retry pending</button>` : ''}
-        <button type="button" class="btn btn-primary" data-sync ${s.online ? '' : 'disabled'}>${Icon('refresh')} Sync now</button></div></div>`, { size: 'modal-md' });
+        <button type="button" class="btn btn-primary" data-sync>${Icon('refresh')} Sync now</button></div></div>`, { size: 'modal-md' });
 
-    const stop = SyncEngine.onChange(() => { /* keep the chip live while the panel is open */ });
+    const stop = SyncEngine.onChange(current => {
+      d.querySelector('[data-sync-status]').textContent = wording(current).text;
+      d.querySelector('[data-sync-pending]').textContent = current.pending;
+      d.querySelector('[data-sync-last]').textContent = when(current.lastOk);
+      const error = d.querySelector('[data-sync-error]');
+      error.hidden = !current.lastError;
+      error.querySelector('p').textContent = current.lastError;
+    });
     d.addEventListener('close', () => stop(), { once: true });
     d.addEventListener('click', async e => {
       const t = e.target;
-      if (t.closest('[data-sync]')) { busy(t.closest('[data-sync]'), true, 'Syncing…'); await SyncEngine.syncNow(); busy(t.closest('[data-sync]'), false); d.close(); panel(); return; }
-      if (t.closest('[data-retry-all]')) {
-        busy(t.closest('[data-retry-all]'), true, 'Retrying…');
-        const now = LocalRepo.nowISO();
-        for (const op of (await LocalDB.all('outbox', { index: 'state', equals: 'pending' }))) {
-          await LocalDB.put('outbox', { ...op, tries: 0, next_try_at: now, error: '' });
-        }
-        await SyncEngine.syncNow(); d.close(); panel(); return;
+      const sync = t.closest('[data-sync]');
+      if (sync) {
+        busy(sync, true, 'Syncing…');
+        await SyncEngine.syncNow({ force: true });
+        if (d.open) { d.close(); panel(); }
+        return;
       }
-      const r = t.closest('[data-retry]'); if (r) { await LocalDB.put('outbox', { ...(await LocalDB.get('outbox', r.dataset.retry)), state: 'pending', tries: 0, next_try_at: LocalRepo.nowISO() }); await SyncEngine.syncNow(); d.close(); panel(); return; }
+      const r = t.closest('[data-retry]');
+      if (r) { await SyncEngine.retryFailed(r.dataset.retry); if (d.open) { d.close(); panel(); } return; }
       const dr = t.closest('[data-drop]'); if (dr) {
         if (!(await ask({ title: 'Drop this one?', body: 'It will never be sent to the server. The bill stays on this device, marked as not sent. Use this only when the reason above cannot be fixed.', confirm: 'Drop it', danger: true }))) return;
         await SyncEngine.dropFailed(dr.dataset.drop); d.close(); panel(); return;

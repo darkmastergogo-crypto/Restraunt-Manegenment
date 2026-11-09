@@ -1,0 +1,60 @@
+/* Contract checks against the existing restaurant API. Does not contact a server. */
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
+const base=path.resolve(__dirname,'..'),web=path.join(base,'WEBSITE'),read=p=>fs.readFileSync(path.join(web,p),'utf8');
+let V19=false,role='admin',revision=1,custom={name:'Test restaurant',bill:{template:'classic'},billingClone:{settings:{invoice:{qr:{enabled:true}}}},hiddenSections:[]},calls=[],stock=8,menuPatches=[];
+const menu=Array.from({length:301},(_,i)=>({id:'dish-'+i,name:'Dish '+i,category:'Momos',price:80,available:true,stock:{tracked:true,remaining:stock},...(i===0?{sizes_enabled:true,size_prices:{half:45,full:80},size_labels:{half:'Half',full:'Full'},size_stock:{half:{tracked:true,remaining:8},full:{tracked:true,remaining:12}}}:{})}));
+const sample={id:'order-1',order_id:'QR-42',created_at:new Date().toISOString(),order_source:'qr',status:'Served',payment_method:null,items:[{id:'dish-1',name:'Dish 1',qty:2,price:80,subtotal:160}],items_subtotal:160,tax_amount:0,total:160};
+const R={configured:true,hasSession:()=>true,user:()=>({id:'u-test',email:'test@example.invalid'}),role:async()=>role,sessionRead:()=>({user:{email:'test@example.invalid'}}),login:async()=>{},logout:async()=>{},uploadMenuImage:async()=> 'https://test-images.invalid/r2/logo-unique.png',patchMenu:async(id,p)=>menuPatches.push({id,p}),
+ async rpc(name,a={},auth){calls.push({name,a,auth});assert.match(name,/^(restaurant_|workspace_)/,'Only existing restaurant APIs (plus the optional v17 add-on) may be sent to the database');if(V19&&name==='restaurant_invoice19')return {prefix:'INV',digits:3,start_month:4,next:8,next_text:'INV008',can_edit:role==='admin'};if(V19&&name==='restaurant_private19')return a.p_key==='limits'?{max_discount_pct:10,max_short_amount:5}:{};if(V19&&name==='restaurant_counter_bill19')return {...sample,order_source:'manual',order_id:'MAN-43',invoice_no:'INV008',daily_number:3,discount_amount:9,total:81,payment_method:a.p_payment_method};if(V19&&name==='restaurant_bills19')return {total:1,rows:[{...sample,invoice_no:'INV007',daily_number:2}],summary:{sales:160,bills:1,cancelled:0,cash:0,upi:0}};if(/19$/.test(name))throw Object.assign(Error('Could not find the function public.'+name+' in the schema cache'),{httpStatus:404});if(name.startsWith('workspace_'))throw Object.assign(Error('Could not find the function public.'+name+' in the schema cache'),{httpStatus:404});assert.equal(auth,true);
+  if(name==='restaurant_custom48'){if(a.p_settings){assert.equal(a.p_expected,revision,'Customization uses optimistic concurrency');custom=structuredClone(a.p_settings);revision++;}return {settings:custom,revision};}
+  if(name==='restaurant_commerce_settings')return {tax_enabled:false,tax_scope:'bill',tax_mode:'percent',tax_value:0};
+  if(name==='restaurant_stock_visibility')return {stocks_hidden:a.p_hidden??false};
+  if(name==='restaurant_contact')return {contact_name:'Counter',phone:'',details:'',manual_waiter_access:true};
+  if(name==='restaurant_manager_permissions')return {customer_devices:true};
+  if(name==='restaurant_staff_menu_page63')return {items:menu.slice(a.p_offset,a.p_offset+a.p_limit),total:menu.length,categories:['Momos']};
+  if(name==='restaurant_stocks')return [{menu_id:'dish-0',variant:'half',tracked:true,remaining:stock,revision:7}];
+  if(name==='restaurant_set_stock'){assert.equal(a.p_revision,7);stock=a.p_quantity;return {};}
+  if(name==='restaurant_manual_order')return {...sample,order_source:'manual',order_id:'MAN-42',payment_method:a.p_payment_method};
+  if(name==='restaurant_set_record_payment59')return {...sample,payment_method:a.p_payment_method};
+  if(name==='restaurant_filtered_records')return {records:[sample,{...sample,id:'pending',status:'Pending'},{...sample,id:'cancelled',status:'Cancelled'}],total_orders:3};
+  throw Error('Unexpected API '+name);
+ }};
+const ctx=vm.createContext({RestaurantCloud:R,RESTAURANT_CONFIG:{restaurantName:'Test',currency:'₹'},SHOP_CONFIG:{},PERMISSIONS:[['Screens',[['billing','Billing'],['dashboard','Dashboard']]]],Intl,Date,URL,crypto:crypto.webcrypto,console});
+vm.runInContext(read('billing-suite/restaurant-adapter.js')+'\nthis.adapter=Cloud;',ctx);const C=ctx.adapter;
+async function rejected(args,rx){const writes=calls.filter(x=>x.name==='restaurant_manual_order').length;await assert.rejects(C.rpc('shop_create_bill',args),rx);assert.equal(calls.filter(x=>x.name==='restaurant_manual_order').length,writes,'Invalid bills must not be sent');}
+(async()=>{
+ role='waiter';await assert.rejects(C.rpc('shop_me'),/Admin or manager/);assert.equal(calls.length,0,'A waiter must be rejected before loading staff settings');
+ role='admin';let me=await C.rpc('shop_me');assert.equal(me.native_role,'admin');assert.equal(me.settings.contact_name,'Counter');
+ const catalog=await C.rpc('shop_items_list');assert.equal(catalog.items.length,302,'All 301 dishes, including two portions, are retained');assert.equal(catalog.items[0].name,'Dish 0 — Half');
+ const adjusted=await C.rpc('shop_stock_adjust',{p_item_id:catalog.items[0].id,p_mode:'in',p_qty:3});assert.equal(adjusted.stock,11);assert.equal(calls.find(x=>x.name==='restaurant_set_stock').a.p_variant,'half');
+ const item={id:catalog.items[2].id,name:'Dish 1',price:80,category:'Momos',active:true,track_stock:true,low_stock_at:0,unit:'pcs',item_type:'product'};
+ await assert.rejects(C.rpc('shop_item_save',{p:{...item,cost_price:20}}),/UPDATE-v19/);assert.equal(menuPatches.length,0,'Unsupported item metadata cannot be silently dropped');
+ await C.rpc('shop_item_save',{p:item});assert.equal(menuPatches.length,1);assert(!('description'in menuPatches[0].p),'An unseen description must not be erased');
+ const args={p_request_id:'test-request',p_items:[{id:catalog.items[0].id,qty:2}],p_payment_method:'Cash',p_discount_value:0,p_expected_total:90,p_extra:null};
+ await rejected({...args,p_payment_method:'Card'},/Card/);await rejected({...args,p_discount_value:5},/iscounts/i);await rejected({...args,p_extra:{customer_address:'test'}},/custom bill fields/);await rejected({...args,p_items:[{id:catalog.items[0].id,qty:1.5}]},/whole quantities/);
+ await C.rpc('shop_create_bill',args);const manual=calls.find(x=>x.name==='restaurant_manual_order').a;assert.equal(manual.p_request_id,'test-request');assert.equal(manual.p_items[0].size,'half');assert.equal(manual.p_items[0].qty,2);assert.equal(manual.p_payment_method,'Cash');
+ const unknown=C.orderToBill(sample);assert.equal(unknown.payment_method,'Not recorded');assert.equal(unknown.native_payment_method,null);assert.equal(C.orderToBill({...sample,status:'Pending'}).status,'Pending');assert(C.recordPaymentEditable(unknown));
+ assert(!C.recordPaymentEditable({...unknown,order_source:'manual'}));assert(!C.recordPaymentEditable({...unknown,native_payment_method:'Cash'}));assert(!C.recordPaymentEditable({...unknown,created_at:'2020-01-01T00:00:00Z'}));
+ const paid=await C.rpc('shop_record_payment_save',{p_id:sample.id,p_method:'Online'});assert.equal(paid.native_payment_method,'Online');assert.equal(paid.payment_method,'UPI');assert(!C.recordPaymentEditable(paid));
+ const saved=await C.rpc('shop_settings_save',{p:{logo:'data:image/png;base64,dGVzdA==',contact_name:'Reception',stock_hidden:true}});assert.match(saved.logo,/test-images.*r2/);assert.equal(custom.bill.template,'classic');assert.equal(custom.billingClone.settings.invoice.qr.enabled,true);assert(calls.some(x=>x.name==='restaurant_stock_visibility'&&x.a.p_hidden===true));
+ await C.rpc('shop_system_save',{p:{access:{locked:true,message:'Paused'}}});assert.equal(custom.locked,true);assert.equal(custom.lockMessage,'Paused');
+ role='manager';await assert.rejects(C.rpc('shop_me'),/Paused/);role='admin';await C.rpc('shop_me');
+ await C.rpc('shop_system_save',{p:{access:{locked:false}}});assert.equal(custom.locked,false);assert.equal(custom.lockMessage,'Paused','Unlock preserves the configured message');
+ await assert.rejects(C.rpc('shop_system_save',{p:{roles:{manager:['admin']}}}),/existing manager and waiter permissions/);
+ role='manager';custom.hiddenSections=['history','dashboard','menu'];me=await C.rpc('shop_me');assert(C.sectionHidden('restaurantReports'));assert(C.sectionHidden('dishSales'));assert(C.sectionHidden('itemDetails'));assert(me.perms.includes('devices'));
+ const bills=await C.rpc('shop_bills_list',{p_from:'2026-11-01',p_to:'2026-11-01',p_offset:0,p_limit:50,p_status:'all',p_payment:'all'});assert.equal(bills.rows.length,2);assert.equal(bills.summary.sales,160);assert.equal(bills.summary.cash,0,'Missing payments are never invented as cash');
+ const html=read('billing-suite/index.html');for(const url of [...html.matchAll(/(?:src|href)="([^"#]+)"/g)].map(m=>m[1]).filter(x=>!/^https?:/.test(x))){assert(fs.existsSync(path.resolve(web,'billing-suite',url.split('?')[0])),url+' must exist');}
+ assert(read('kitchen.html').includes("location.replace('billing-suite/index.html#/"));assert(!read('billing-suite/js/app.js').includes('Open restaurant workspace'));assert(/event\.source\s*===\s*kernel\?\.contentWindow/.test(read('billing-suite/workspace.js')));assert(read('workspace-engine.js').includes('event.source!==parent'));
+ const original=path.resolve(base,'..','billing-source','WEBSITE','css','app.css');if(fs.existsSync(original))assert.equal(read('billing-suite/css/app.css'),fs.readFileSync(original,'utf8'),'The original billing CSS is retained verbatim');
+ // v19 database functions present: discounts go to the checked counter-bill function, Records use one call, limits come from the private store.
+ V19=true;const Cv=(()=>{const c2=vm.createContext({RestaurantCloud:R,RESTAURANT_CONFIG:{restaurantName:'Test',currency:'₹'},SHOP_CONFIG:{},PERMISSIONS:[['Screens',[['billing','Billing'],['dashboard','Dashboard']]]],Intl,Date,URL,crypto:crypto.webcrypto,console});vm.runInContext(read('billing-suite/restaurant-adapter.js')+'\nthis.adapter=Cloud;',c2);return c2.adapter;})();
+ role='manager';custom.hiddenSections=[];const m19=await Cv.rpc('shop_me');assert(m19.perms.includes('discount')&&m19.perms.includes('limits'),'v19 managers can discount within Limits');assert.equal(m19.system.limits.max_discount_percent,10);
+ await Cv.rpc('shop_items_list');const n0=calls.filter(x=>x.name==='restaurant_manual_order').length;
+ const b19=await Cv.rpc('shop_create_bill',{...args,p_discount_mode:'percent',p_discount_value:10,p_expected_total:81,p_gross_total:90});const cb=calls.filter(x=>x.name==='restaurant_counter_bill19').at(-1).a;
+ assert.equal(cb.p_discount_value,10);assert.equal(cb.p_expected_total,90,'Server checks the full price first');assert.equal(cb.p_expected_final,81,'and then the discounted total');assert.equal(calls.filter(x=>x.name==='restaurant_manual_order').length,n0,'No second order is created');assert.equal(b19.bill_no,'INV008');assert.equal(b19.order_no,3);
+ const fr0=calls.filter(x=>x.name==='restaurant_filtered_records').length;const r19=await Cv.rpc('shop_bills_list',{p_from:'2026-01-01',p_to:'2026-11-01',p_offset:0,p_limit:50,p_status:'all',p_payment:'all'});assert.equal(r19.rows[0].bill_no,'INV007');assert.equal(calls.filter(x=>x.name==='restaurant_bills19').length,1,'A whole year is one call');assert.equal(calls.filter(x=>x.name==='restaurant_filtered_records').length,fr0,'No per-day calls');
+ role='waiter';const before=calls.length;await assert.rejects(Cv.rpc('shop_me'),/Admin or manager/);assert.equal(calls.length,before,'Waiters are still refused before anything is loaded');
+ console.log('PASS v19: discounts through the checked counter-bill function, invoice/order numbers, one-call records, private limits.');
+ console.log('PASS: role boundaries, 301-dish pagination/portions, stock revisions, invalid-bill preflight, manual-order mapping, QR payment constraints, R2/settings preservation, system lock, manager visibility, payment accounting, assets, and single-shell routing.');
+})().catch(e=>{console.error(e);process.exitCode=1;});
