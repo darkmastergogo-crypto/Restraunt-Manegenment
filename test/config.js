@@ -24,3 +24,10 @@ const RESTAURANT_CONFIG = {
   categories: ["All", "Steamed Momos", "Fried Momos", "Kurkure Momos", "Tandoori Momos", "Chutney & Dips", "Drinks", "Desserts"],
   menuItems: []
 };
+
+const tenantMatch = location.pathname.match(/^\/r\/([a-z0-9-]+)\//);
+if (tenantMatch) {
+  RESTAURANT_CONFIG.restaurantSlug = tenantMatch[1];
+  RESTAURANT_CONFIG.restaurantName = tenantMatch[1].split('-').map(word => word ? word[0].toUpperCase() + word.slice(1) : '').join(' ');
+  RESTAURANT_CONFIG.tagline = '';
+}
