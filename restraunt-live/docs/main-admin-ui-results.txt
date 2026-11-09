@@ -1,9 +1,0 @@
-main admin desktop fits
-creation stays in main admin; search and copy URLs work
-main admin mobile fits
-Settings opens selected restaurant directly
-restaurant owner controls have no Create restaurant and link back to main admin
-main admin sign-in mobile fits
-denied response clears restaurant list; empty authorized state renders
-No uncaught browser errors. Local demo/mocked error states only; hosted authentication not exercised.
-Mobile creation and generated-URL dialogs visually checked at 390 px; inputs and actions fit.

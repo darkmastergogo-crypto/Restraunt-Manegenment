@@ -1,3 +1,0 @@
-Built static owner site. No server credentials copied.
-Built static restaurant site. No server credentials copied.
-Generated client assets and manifest identities verified; placeholder public values only.
