@@ -235,11 +235,13 @@ async function ownerDirectoryPage(section) {
         node('li',{},node('strong',{},a.action),node('small',{},(a.slug || 'Platform')+' · '+new Date(a.created_at).toLocaleString()))))));
   } else {
     const cards = records.slice(0,100).map(r => {
-      const action = section === 'users' ? 'Manage users' : section === 'clients' ? 'Manage client access' : 'Open restaurant';
-      const actionHref = section === 'restaurants' ? destination(r) : '/members/' + r.slug;
+      const action = section === 'users' ? 'Manage users' : section === 'clients' ? 'Manage client access' : section === 'billing' ? 'Open restaurant' : 'Open restaurant';
+      const actionHref = (section === 'restaurants' || section === 'billing') ? destination(r) : '/members/' + r.slug;
       const label = section === 'users'
         ? 'Administrators, managers, and staff'
-        : section === 'clients' ? 'Restaurant client account' : r.active ? 'Active restaurant' : 'Suspended restaurant';
+        : section === 'clients' ? 'Restaurant client account'
+        : section === 'billing' ? (r.active ? 'Active subscription access' : 'Suspended subscription access')
+        : r.active ? 'Active restaurant' : 'Suspended restaurant';
       return card(logo(r),node('h2',{},r.name),node('p',{},r.slug+' · '+label),
         actions(link(action,actionHref,true),link('Open workspace',destination(r)),link('Client sign-in','/login/'+r.slug)));
     });
