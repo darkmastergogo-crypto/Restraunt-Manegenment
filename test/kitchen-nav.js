@@ -9,6 +9,25 @@
   var nav = $('managerNav');
   var overlay = $('kitchenNavOverlay');
   if (!toggle || !nav || !overlay) return;
+  if (!document.getElementById('billingSuiteLink')) {
+    var suiteLink = document.createElement('a');
+    suiteLink.id = 'billingSuiteLink';
+    suiteLink.className = 'nav-tab-btn';
+    suiteLink.href = 'billing-suite/index.html#/billing';
+    suiteLink.textContent = 'Billing workspace';
+    nav.appendChild(suiteLink);
+  }
+
+  /* Reference-style drawer footer. Uses existing account/contact/sign-out actions. */
+  if (!nav.querySelector('.manager-drawer-footer')) {
+    var footer = document.createElement('div');
+    footer.className = 'manager-drawer-footer';
+    footer.innerHTML = '<button type="button" data-drawer-contact>ⓘ <span>Help &amp; contact</span></button><button type="button" data-drawer-account>◉ <span id="drawerRoleName">Admin</span><small>Signed in</small></button><button type="button" data-drawer-signout>⇥ <span>Sign out</span></button>';
+    footer.querySelector('[data-drawer-contact]').onclick = function(){ closeDrawer(); window.YummyContact?.open?.(); };
+    footer.querySelector('[data-drawer-account]').onclick = function(){ closeDrawer(); $('staffAccount')?.setAttribute('open',''); };
+    footer.querySelector('[data-drawer-signout]').onclick = function(){ closeDrawer(); window.signOutStaff?.(); };
+    nav.appendChild(footer);
+  }
 
   function closeDrawer() {
     nav.classList.remove('open');

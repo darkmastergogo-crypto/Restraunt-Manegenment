@@ -42,7 +42,7 @@ const RECEIPT_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
       if(window.CategoryMenu49?.enabled()){CategoryMenu49.nav(getActiveMenuItems());return;}
       const bar = document.getElementById('categoriesBar');bar.removeAttribute('data-signature49');document.getElementById('browseMenu').hidden=window.Custom48?.get().showCategoryLinks===false;document.getElementById('menuSort').hidden=window.Custom48?.get().showCategoryLinks===false;
       const scroll=bar.scrollLeft,hadFocus=bar.contains(document.activeElement);bar.replaceChildren();
-      const categories=[...new Set(['All','Best Sellers','Recommended',...Cloud.categories.slice(1)])];
+      const hiddenCats=window.Custom48?.get().categoryOptions||{};const categories=[...new Set(['All','Best Sellers','Recommended',...Cloud.categories.slice(1).filter(c=>hiddenCats[c]?.hidden!==true)])];
       if(!categories.includes(activeCategory))activeCategory='All';
       const dropdown=document.getElementById('menuSort');if(dropdown){dropdown.replaceChildren(...categories.map(cat=>{const o=document.createElement('option');o.value=cat;o.textContent=cat==='All'?'All categories':cat;return o;}));dropdown.value=activeCategory;}
       for(const cat of categories){
@@ -63,7 +63,7 @@ const RECEIPT_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
     // Helper to normalize category matching
     function normalizeCategory(cat){return Cloud.normalizeCategory(cat);}
 
-    function getActiveMenuItems(){return sharedMenu.filter(i=>i.available!==false);}
+    function getActiveMenuItems(){const hidden=window.Custom48?.get().categoryOptions||{};return sharedMenu.filter(i=>i.available!==false&&hidden[i.category]?.hidden!==true);}
 
     // Render Menu Items
     function renderMenuItems(filteredList = null,changedId = null) {
@@ -87,7 +87,7 @@ const RECEIPT_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
         const options=offeredSizes(item);if(item.sizes_enabled&&!options.includes(selectedSizes[item.id]))selectedSizes[item.id]=options[0];
         const size=item.sizes_enabled?selectedSizes[item.id]:null,key=cartKey(item.id,size),unitPrice=size?Number(item.size_prices[size]):item.price;
         const inCartQty=cart[key]?.qty||0;const sizeAttr=size?' data-size="'+size+'"':'';
-        const imgHtml = (window.Custom48?.photoMode()==='dish' && item.image)
+        const imgHtml = item.image
           ? `<img class="item-img" data-low-src="${Cloud.esc(Cloud.safeImage(item.image))}" alt="${Cloud.esc(item.name)}" loading="lazy" decoding="async" fetchpriority="low">`
           : `<div class="item-img" style="display:flex;align-items:center;justify-content:center;font-size:2.8rem;background:var(--soft);border-radius:12px;"><svg class="ui-icon" aria-hidden="true" style="width:42px;height:42px;color:var(--red)"><use href="icons.svg#momo"></use></svg></div>`;
 

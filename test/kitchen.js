@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id), esc=Cloud.esc, config=Cloud.cfg;
-const money=n=>(config.currency||'₹')+Number(n||0).toFixed(2);
+const money=n=>{const value=Number(n);return (config.currency||'₹')+(Number.isFinite(value)?value:0).toFixed(2);};
 const timeText=v=>new Date(v).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 const dateText=v=>new Date(v).toLocaleDateString();
 let kitchenRequests=null;
@@ -8,6 +8,7 @@ let staffMenuQuery='',staffMenuCategory='All',staffMenuAvailability='all',pricin
 const staffSizeLabel=(size,item)=>MenuOptions.label(item,size);
 const staffDisplayedPrice=item=>{if(!item.sizes_enabled)return item.price;const offered=MenuOptions.keys(item).filter(size=>Object.prototype.hasOwnProperty.call(item.size_prices||{},size)&&!(item.size_stock?.[size]?.tracked&&item.size_stock[size].remaining<=0));return offered.length?Math.min(...offered.map(size=>Number(item.size_prices[size]))):item.price;};
 let staffRole=null,orders=[],menuItems=[],currentTab='live',currentFilter='active',currentBillOrderId=null,currentTableId=null;
+const workspacePanel=new URLSearchParams(location.search).get('panel')==='1'||window.frameElement?.dataset.panel==='true';
 const photoSelections={new:0,edit:0};
 let state=Cloud.read('KITCHEN_ADMIN_STATE_v1',{}),tables=[],photoDrafts={new:{data:''},edit:{data:''}},editingPhotoItemId=null;
 let soundEnabled=false,audioContext=null,alarmNodes=[],alarmIds=[],alarmState=Cloud.read('RESTAURANT_ALARMS_v2',{}),toastTimer,pollTimer=null,summaryPollTimer=null;
@@ -23,14 +24,14 @@ async function enterStaff(){
  staffRole=await Cloud.role();
  if(!['admin','manager'].includes(staffRole))throw Error('Admin or manager access required. Waiters should scan the private waiter QR.');
  $('tabManagementBtn').hidden=!['admin','manager'].includes(staffRole);$('tabDevicesBtn').hidden=staffRole!=='admin';$('managerDeviceAccessPanel').hidden=staffRole!=='admin';$('tableAdminSetup').hidden=staffRole!=='admin';$('tablesSection').querySelector('h2').textContent=staffRole==='admin'?'Table setup & QR codes':'Tables';$('tabMenuBtn').hidden=false;$('tabStocksBtn').hidden=false;$('adminMenuPanel').hidden=staffRole!=='admin';$('managerMenuPanel').hidden=staffRole!=='manager';$('rotateWaiterButton').hidden=!['admin','manager'].includes(staffRole);$('resetControls').hidden=staffRole!=='admin';$('orderDevicePermissionPanel').hidden=staffRole!=='admin';configureManagementAccess();
- BackgroundAlerts.init('kitchen');loggedIn=true;$('loginPanel').hidden=true;$('managerNav').hidden=false;$('staffMain').hidden=false;$('staffSession').hidden=false;
+ if(!workspacePanel)BackgroundAlerts.init('kitchen');loggedIn=true;$('loginPanel').hidden=true;$('managerNav').hidden=false;$('staffMain').hidden=false;$('staffSession').hidden=false;
  void window.Custom48?.sync(true);
- $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';KitchenOps.init();$('headerCallWaiter').hidden=false;
- kitchenRequests=CallRequests.mount({root:$('kitchenRequests'),kind:'kitchen',onUpdate:data=>{$('requestsBadge').textContent=data.pending_count;renderRequestAlerts(data.pending_calls);},onError:()=>{$('requestsBadge').textContent='!';requestRows=[];requestRing.update([]);}});
- setConnection('Connecting');switchTab(location.hash==='#notifications'?'notifications':location.hash==='#requests'?'requests':'live');await refreshCloud();await refreshStaffPulse46();
+ $('staffIdentity').textContent=(staffRole==='admin'?'Admin':'Manager')+' · signed in';if(!workspacePanel)KitchenOps.init();$('headerCallWaiter').hidden=false;
+ if(!workspacePanel)kitchenRequests=CallRequests.mount({root:$('kitchenRequests'),kind:'kitchen',onUpdate:data=>{$('requestsBadge').textContent=data.pending_count;renderRequestAlerts(data.pending_calls);},onError:()=>{$('requestsBadge').textContent='!';requestRows=[];requestRing.update([]);}});
+ setConnection('Connecting');const requested=location.hash.slice(1);switchTab(['notifications','requests','menu','management','tables','devices'].includes(requested)?requested:'live');if(!workspacePanel){await refreshCloud();await refreshStaffPulse46();}
  if(typeof pollTimer==='function')pollTimer();if(typeof summaryPollTimer==='function')summaryPollTimer();
- pollTimer=Cloud.schedule('staff-pulse',5000,()=>{if(loggedIn)return refreshStaffPulse46();});
- summaryPollTimer=Cloud.schedule('staff-screen',30000,()=>{if(loggedIn)return refreshBackgroundData();});
+ if(!workspacePanel){pollTimer=Cloud.schedule('staff-pulse',5000,()=>{if(loggedIn)return refreshStaffPulse46();});
+ summaryPollTimer=Cloud.schedule('staff-screen',30000,()=>{if(loggedIn)return refreshBackgroundData();});}
 }
 function setConnection(label){
  const badge=$('syncBadge'),box=badge.parentElement,live=label==='Live',when=lastSuccessfulSync?new Date(lastSuccessfulSync).toLocaleString([],{dateStyle:'medium',timeStyle:'short'}):'';
@@ -123,8 +124,8 @@ function switchTab(tab){
  }
  if(blocked){blocked.hidden=true;blocked.style.display='none';}
  if(tab==='stocks'&&YummyStocksSettings.hidden()){showToast('Stocks are hidden. An admin can show them in Management.');return;}
- currentTab=tab;tabs.forEach(t=>{const section=$(t+'Section');if(section){section.hidden=t!==tab;section.style.display=t===tab?'block':'none';}const button=$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn');if(button)button.classList.toggle('active',t===tab);});
- if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(false);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();loadTelegramSettings();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
+ currentTab=tab;const title={live:'Pending Orders',history:'Records',dashboard:'Dashboard',requests:'Requests',tables:'Tables',menu:'Items',stocks:'Stocks',management:'Settings',devices:'Customer devices',notifications:'Notifications',billing:'Billing'}[tab]||'Billing';const staffTitle=document.querySelector('.header-left h1');if(staffTitle)staffTitle.dataset.refTitle=title;tabs.forEach(t=>{const section=$(t+'Section');if(section){section.hidden=t!==tab;section.style.display=t===tab?'block':'none';}const button=$('tab'+t[0].toUpperCase()+t.slice(1)+'Btn');if(button)button.classList.toggle('active',t===tab);});
+ if(tab==='billing')YummyBilling.open();if(tab==='management'&&staffRole==='admin'){window.Custom48?.open();YummyContact.loadSettings();YummyStocksSettings.sync();}if(tab==='dashboard')refreshSalesAnalytics(false);if(tab==='live'&&currentFilter==='Cancelled')refreshCancelledOrders();if(tab==='management'){configureManagementAccess();loadWaiterAccessSettings();if(staffRole==='admin'){RestaurantAlerts.sync(true);loadFooterSettings();loadActivityRetention();loadManagerDeviceAccess();loadReviewSettings();renderAdminMenu();loadRetentionSettings();loadTaxSettings();loadWaiterPermissions();}}if(tab==='notifications'){refreshStockNotifications();refreshSecurityNotifications();}if(tab==='devices')refreshCustomerDevices();if(tab==='tables')refreshTables();if(tab==='history')refreshRecords();if(tab==='requests')kitchenRequests?.refresh();if(tab==='menu'){renderAdminMenu();void refreshBackgroundData();}if(tab==='stocks')refreshStocks();if(tab==='dashboard')void refreshBackgroundData();
 }
 function setFilter(f){if(['all','Served'].includes(f)){recordStatusFilter=f==='all'?'All':f;recordOffset=0;$('recordStatusFilter').value=recordStatusFilter;switchTab('history');return;}currentFilter=['active','Pending','Cancelled'].includes(f)?f:'active';if(currentFilter==='Cancelled'){cancelledOffset=0;refreshCancelledOrders();}renderOrders();}
 function statusPill(o){return `<span class="status-pill ${esc(o.status.toLowerCase())}">${esc(o.status)}</span>`;}
@@ -228,23 +229,17 @@ function renderDashboard(){
  $('adminDate').textContent=dateText(new Date());$('adminTime').textContent=timeText(new Date());if(currentTab==='dashboard'&&!window.Custom48?.sectionHidden('dashboard'))refreshSalesAnalytics();
 }
 function renderAdminMenu(){
- if(staffRole==='admin'&&typeof initMenuIO==='function')initMenuIO();
  const category=$('staffMenuCategory');if(category){const names=['All',...Cloud.categories.slice(1)];if(!names.includes(staffMenuCategory))staffMenuCategory='All';category.replaceChildren(...names.map(c=>new Option(c==='All'?'All categories':c,c)));category.value=staffMenuCategory;}
  const root=staffRole==='admin'?$('adminMenuList'):$('managerMenuList'),other=staffRole==='admin'?$('managerMenuList'):$('adminMenuList');
- const expandedSettings=new Set([...root.querySelectorAll('details.staff-item-settings[open]')].map(e=>e.dataset.itemSettings));
- const expandedMore=new Set([...root.querySelectorAll('details.staff-item-more[open]')].map(e=>e.dataset.itemMore));
- other.innerHTML='';
+ const expanded=new Set([...root.querySelectorAll('details[open]')].map(e=>e.dataset.itemSettings));other.innerHTML='';
  const q=staffMenuQuery.toLowerCase().trim(),list=menuItems.filter(i=>(staffMenuCategory==='All'||i.category===staffMenuCategory)&&(staffMenuAvailability==='all'||(staffMenuAvailability==='available'?i.available:!i.available))&&(!q||[i.name,i.category,i.description].some(v=>String(v||'').toLowerCase().includes(q))));
  $('staffMenuCount').textContent=list.length+' of '+menuItems.length+' dishes';
- root.innerHTML=list.length?list.map(i=>{const flagCount=(i.recommended?1:0)+(i.best_seller?1:0);return `<article class="menu-row organized-menu-row" data-menu-id="${esc(i.id)}">
- <div class="staff-dish-header"><div class="menu-emoji">${window.Custom48?.photoMode()==='dish'&&Cloud.safeImage(i.image)?`<img class="menu-photo" src="${esc(Cloud.safeImage(i.image))}" alt="${esc(i.name)}" loading="lazy">`:'🍽️'}</div><div class="menu-copy"><h4>${esc(i.name)}</h4><p class="muted">${esc(i.category)}${i.recommended?' · ⭐ Recommended':''}${i.best_seller?' · 🔥 Best seller':''}</p></div><div class="staff-dish-price"><b>${i.sizes_enabled?'From ':''}${money(staffDisplayedPrice(i))}</b><span class="staff-availability">${i.stock_sold_out?'Sold out':i.available?'Available':'Unavailable · hidden'}</span></div></div>
- <div class="staff-menu-actions"><button class="primary-btn" data-pricing="${esc(i.id)}">Prices &amp; sizes</button>${staffRole==='manager'&&!i.sizes_enabled?`<button class="secondary-btn" data-price-only="${esc(i.id)}">Change price</button>`:''}<button class="secondary-btn availability" data-availability="${esc(i.id)}" aria-pressed="${i.manual_available??i.available}">${(i.manual_available??i.available)?(i.stock_sold_out?'Listed · hide manually':'Available ✓ · set unavailable'):'Hidden · show manually'}</button></div>
- <details class="staff-item-more" data-item-more="${esc(i.id)}"${expandedMore.has(i.id)?' open':''}><summary>More${i.description||i.sizes_enabled?' · description &amp; sizes':''}${flagCount?' · '+flagCount+' label'+(flagCount>1?'s':''):''}</summary><div class="staff-item-more-body">
+ root.innerHTML=list.length?list.map(i=>`<article class="menu-row organized-menu-row" data-menu-id="${esc(i.id)}">
+ <div class="staff-dish-header"><div class="menu-emoji">${Cloud.safeImage(i.image)?`<img class="menu-photo" src="${esc(Cloud.safeImage(i.image))}" alt="${esc(i.name)}" loading="lazy">`:'🍽️'}</div><div class="menu-copy"><h4>${esc(i.name)}</h4><p class="muted">${esc(i.category)}</p></div><div class="staff-dish-price"><b>${i.sizes_enabled?'From ':''}${money(staffDisplayedPrice(i))}</b><span class="staff-availability">${i.stock_sold_out?'Sold out':i.available?'Available':'Unavailable · hidden'}</span></div></div>
  ${i.description?`<p class="staff-dish-description">${esc(i.description)}</p>`:''}
  ${i.sizes_enabled?`<div class="staff-size-summary">${MenuOptions.keys(i).map(size=>`<span>${esc(staffSizeLabel(size,i))} <b>${money(i.size_prices[size])}</b>${i.size_stock?.[size]?.tracked?' · '+(i.size_stock[size].remaining===0?'Sold out':i.size_stock[size].remaining+' left'):''}</span>`).join('')}</div>`:''}
- <div class="staff-menu-actions"><button class="secondary-btn" data-recommended="${esc(i.id)}" aria-pressed="${i.recommended===true}">${i.recommended?'Recommended ✓ · remove':'Mark recommended'}</button><button class="secondary-btn" data-best-seller="${esc(i.id)}" aria-pressed="${i.best_seller===true}">${i.best_seller?'Best seller ✓ · remove':'Mark best seller'}</button></div>
- </div></details>
- ${staffRole==='admin'?`<details class="staff-item-settings" data-item-settings="${esc(i.id)}"${expandedSettings.has(i.id)?' open':''}><summary>Item settings · category, details &amp; photo</summary><div class="staff-item-settings-body"><label>Category<select data-dish-category="${esc(i.id)}">${Cloud.categories.slice(1).map(c=>`<option value="${esc(c)}" ${c===i.category?'selected':''}>${esc(c)}</option>`).join('')}</select></label><div class="staff-detail-actions"><button class="secondary-btn" data-edit="${esc(i.id)}">Edit details</button><button class="secondary-btn" data-item-photo="${esc(i.id)}">Change photo</button><button class="danger-btn" data-delete-item="${esc(i.id)}">Delete</button></div></div></details>`:''}</article>`;}).join(''):'<p class="empty">'+(menuItems.length?'No dishes match these filters.':'Your menu is empty. Admin can use + Add Item to add dishes.')+'</p>';
+ <div class="staff-menu-actions"><button class="primary-btn" data-pricing="${esc(i.id)}">Prices &amp; sizes</button>${staffRole==='manager'&&!i.sizes_enabled?`<button class="secondary-btn" data-price-only="${esc(i.id)}">Change price</button>`:''}<button class="secondary-btn availability" data-availability="${esc(i.id)}" aria-pressed="${i.manual_available??i.available}">${(i.manual_available??i.available)?(i.stock_sold_out?'Listed · hide manually':'Available ✓ · set unavailable'):'Hidden · show manually'}</button><button class="secondary-btn" data-recommended="${esc(i.id)}" aria-pressed="${i.recommended===true}">${i.recommended?'Recommended ✓ · remove':'Mark recommended'}</button><button class="secondary-btn" data-best-seller="${esc(i.id)}" aria-pressed="${i.best_seller===true}">${i.best_seller?'Best seller ✓ · remove':'Mark best seller'}</button></div>
+ ${staffRole==='admin'?`<details class="staff-item-settings" data-item-settings="${esc(i.id)}"${expanded.has(i.id)?' open':''}><summary>Item settings · category, details &amp; photo</summary><div class="staff-item-settings-body"><label>Category<select data-dish-category="${esc(i.id)}">${Cloud.categories.slice(1).map(c=>`<option value="${esc(c)}" ${c===i.category?'selected':''}>${esc(c)}</option>`).join('')}</select></label><div class="staff-detail-actions"><button class="secondary-btn" data-edit="${esc(i.id)}">Edit details</button><button class="secondary-btn" data-item-photo="${esc(i.id)}">Change photo</button><button class="danger-btn" data-delete-item="${esc(i.id)}">Delete</button></div></div></details>`:''}</article>`).join(''):'<p class="empty">'+(menuItems.length?'No dishes match these filters.':'Your menu is empty. Admin can use + Add Item to add dishes.')+'</p>';
 }
 function filterStaffMenu(){staffMenuQuery=$('staffMenuSearch').value;staffMenuCategory=$('staffMenuCategory').value;staffMenuAvailability=$('staffMenuAvailability').value;renderAdminMenu();}
 function clearStaffMenuFilters(){staffMenuQuery='';staffMenuCategory='All';staffMenuAvailability='all';$('staffMenuSearch').value='';$('staffMenuAvailability').value='all';renderAdminMenu();}
@@ -259,11 +254,11 @@ function addPricingSize(key='',label='',price=''){
 }
 function openMenuPricing(id){
  const item=menuItems.find(i=>i.id===id);if(!item)return;pricingMenuId=id;pricingVersion=item.updated_at;pricingSnapshot={name:item.name,description:item.description||'',category:item.category,veg:item.veg!==false,sizes_enabled:item.sizes_enabled===true,price:Number(item.price),size_prices:item.size_prices||{},size_labels:item.size_labels||{}};
- $('pricingItemName').textContent=item.name;$('pricingUseSizes').checked=item.sizes_enabled===true;$('pricingBasePrice').value=Number(item.price).toFixed(2);
+ $('pricingItemName').textContent=item.name;$('pricingUseSizes').checked=item.sizes_enabled===true;$('pricingBasePrice').value=(Number.isFinite(Number(item.price))?Number(item.price):0).toFixed(2);
  $('pricingDishName').value=item.name;$('pricingDescription').value=item.description||'';$('pricingVeg').checked=item.veg!==false;
  $('pricingCategory').replaceChildren(...Cloud.categories.slice(1).map(c=>new Option(c,c)));$('pricingCategory').value=item.category;
  $('pricingDetails').hidden=staffRole!=='admin';$('pricingDetails').disabled=staffRole!=='admin';
- $('pricingSizeRows').replaceChildren();for(const key of MenuOptions.keys(item))addPricingSize(key,MenuOptions.label(item,key),Number(item.size_prices[key]).toFixed(2));
+ $('pricingSizeRows').replaceChildren();for(const key of MenuOptions.keys(item)){const value=Number(item.size_prices?.[key]);addPricingSize(key,MenuOptions.label(item,key),(Number.isFinite(value)?value:0).toFixed(2));}
  $('pricingStatus').textContent='';updatePricingMode();$('menuPricingModal').showModal();
 }
 function updatePricingMode(){
@@ -361,7 +356,7 @@ let currentBillSnapshot=null;
 function receiptHtml(o){return YummyReceipt.html(o);}
 function showBillPreview(id){const o=findOrder(id);if(!o){showToast('Bill not found. Refresh records and try again.');return;}currentBillOrderId=id;currentBillSnapshot=structuredClone(o);$('billPreview').innerHTML=receiptHtml(currentBillSnapshot);if(!$('billModal').open)$('billModal').showModal();}
 function closeBillModal(){$('billModal').close();}
-async function printBill(){try{await window.Custom48?.sync();}catch(error){showToast('Bill settings could not load: '+error.message);return;}const o=currentBillSnapshot||findOrder(currentBillOrderId);if(!o){showToast('Open a bill before printing.');return;}$('printReceipt').innerHTML=receiptHtml(o);await YummyReceipt.ready($('printReceipt'));closeBillModal();window.print();}
+async function printBill(){try{await window.Custom48?.sync();}catch(error){showToast('Bill settings could not load: '+error.message);return;}const o=currentBillSnapshot||findOrder(currentBillOrderId);if(!o){showToast('Open a bill before printing.');return;}const target=$('printReceipt');target.innerHTML=receiptHtml(o);target.dataset.receiptTotal=String(o.total||0);target.dataset.paymentMethod=String(o.payment_method||'');await YummyReceipt.ready(target);closeBillModal();window.print();}
 let exportBusy=false;
 async function exportRecords(){
  if(exportBusy)return;exportBusy=true;showToast('Preparing the selected period export…');

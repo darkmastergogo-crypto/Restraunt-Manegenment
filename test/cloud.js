@@ -6,7 +6,7 @@ const Cloud = (() => {
  const key=String(cfg.supabaseAnonKey||'');
  let publicKey=key.startsWith('sb_publishable_');
  if(key.startsWith('eyJ')){try{publicKey=JSON.parse(atob(key.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).role==='anon';}catch{}}
- const configured=publicKey && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) && key.length>20 && !/YOUR_|PASTE_/i.test(key+url);
+ const configured=publicKey && (cfg.platform === true || /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) && key.length>20 && !/YOUR_|PASTE_/i.test(key+url);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const safeImage=v=>typeof v==='string' && (/^https:\/\//i.test(v)||/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v))?v:'';
  // Release58: true deferred public menu images. `data-low-src` never starts a
@@ -43,33 +43,84 @@ const Cloud = (() => {
  let legacyProject='';try{legacyProject=localStorage.getItem('YUMMY46_LEGACY_PROJECT')||url;if(url&&!localStorage.getItem('YUMMY46_LEGACY_PROJECT'))localStorage.setItem('YUMMY46_LEGACY_PROJECT',url);}catch{}
  const privateKey=(k,staff=false)=>'YUMMY46:'+url+':'+(staff?'staff:'+String(session?.user?.id||'signed-out'):'public-device')+':'+k;
  const localKey=k=>'YUMMY46:'+url+':device:'+k;
- const read=(k,f)=>{try{const saved=localStorage.getItem(localKey(k))??(legacyProject===url?localStorage.getItem(k):null);return JSON.parse(saved||'null')??f;}catch{return f;}};
- const write=(k,v)=>{try{const text=JSON.stringify(v);localStorage.setItem(localKey(k),text);if(legacyProject===url)localStorage.setItem(k,text);}catch{throw Error('Browser storage is unavailable. Enable storage before ordering.');}};
+ const read=(k,f)=>{try{const saved=localStorage.getItem(localKey(k))??(!cfg.platform&&legacyProject===url?localStorage.getItem(k):null);return JSON.parse(saved||'null')??f;}catch{return f;}};
+ const write=(k,v)=>{try{const text=JSON.stringify(v);localStorage.setItem(localKey(k),text);if(!cfg.platform&&legacyProject===url)localStorage.setItem(k,text);}catch{throw Error('Browser storage is unavailable. Enable storage before ordering.');}};
  const remove=k=>{localStorage.removeItem(localKey(k));if(legacyProject===url)localStorage.removeItem(k);};
  let session=null,legacyStaffOwner='';
- try{session=JSON.parse(sessionStorage.getItem(privateKey('RESTAURANT_STAFF_SESSION_v3'))||(legacyProject===url?sessionStorage.getItem('RESTAURANT_STAFF_SESSION_v3'):null)||'null');legacyStaffOwner=localStorage.getItem('YUMMY46_LEGACY_STAFF:'+url)||session?.user?.id||'';if(legacyStaffOwner)localStorage.setItem('YUMMY46_LEGACY_STAFF:'+url,legacyStaffOwner);}catch{}
- const canAdoptSession=staff=>legacyProject===url&&(!staff||session?.user?.id===legacyStaffOwner);
+ // v19: one staff sign-in shared by every staff screen in this browser — tabs, the hidden alert engine and
+ // reopening the app. Refreshes are serialised across all of them (Web Locks + shared storage), so a refresh
+ // token is never spent twice. Spending one twice makes Supabase revoke the whole sign-in ("Refresh Token Not Found").
+ const PERSIST=typeof window!=='undefined'&&(cfg.platform || window.RESTAURANT_STAFF_PERSIST===true);
+ const SESSION_KEY=cfg.platform?'restaurant-platform-session':'YUMMY46:'+url+':staff-session-v19';
+ const stored=()=>{if(!PERSIST)return null;try{const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');return s?.access_token&&s?.refresh_token&&s?.user?.id?s:null;}catch{return null;}};
+ const store=s=>{if(!PERSIST)return;try{s?localStorage.setItem(SESSION_KEY,JSON.stringify(s)):localStorage.removeItem(SESSION_KEY);}catch{}};
+ const ended=reason=>{try{dispatchEvent(new CustomEvent('restaurant:session-ended',{detail:reason||''}));}catch{}};
+ const authError=()=>Object.assign(Error('Your sign-in ended. Sign in again.'),{code:'AUTH',httpStatus:401});
+ try{session=stored()||JSON.parse(sessionStorage.getItem(privateKey('RESTAURANT_STAFF_SESSION_v3'))||(!cfg.platform&&legacyProject===url?sessionStorage.getItem('RESTAURANT_STAFF_SESSION_v3'):null)||'null');legacyStaffOwner=localStorage.getItem('YUMMY46_LEGACY_STAFF:'+url)||session?.user?.id||'';if(legacyStaffOwner)localStorage.setItem('YUMMY46_LEGACY_STAFF:'+url,legacyStaffOwner);}catch{}
+ if(PERSIST&&session&&!stored())store(session);
+ const canAdoptSession=staff=>!cfg.platform&&legacyProject===url&&(!staff||session?.user?.id===legacyStaffOwner);
  function sessionRead(k,f=null,staff=false){try{return JSON.parse(sessionStorage.getItem(privateKey(k,staff))||(canAdoptSession(staff)?sessionStorage.getItem(k):null)||'null')??f;}catch{return f;}}
  function sessionWrite(k,v,staff=false){const text=JSON.stringify(v);sessionStorage.setItem(privateKey(k,staff),text);if(canAdoptSession(staff))sessionStorage.setItem(k,text);}
  function sessionRemove(k,staff=false){sessionStorage.removeItem(privateKey(k,staff));if(canAdoptSession(staff))sessionStorage.removeItem(k);}
  try{localStorage.removeItem('RESTAURANT_STAFF_SESSION_v2');}catch{}
  let refreshPromise=null;
  function requireConfig(){if(!configured)throw Error('Cloud not configured. The owner must upload config.js with the Supabase Project URL and PUBLIC key.');}
- async function transport(path,{method='GET',body,staff=false,headers={},raw=false}={}) {
+ async function transport(path,{method='GET',body,staff=false,headers={},raw=false,retried=false}={}) {
   requireConfig();
-  if(staff){if(!session)throw Error('Please sign in as staff.');if(session.expires_at*1000<Date.now()+60000)await refresh();}
+  if(staff){if(cfg.platform&&!session?.ephemeral&&stored()?.user?.id!==session?.user?.id){ended('changed');throw authError();}
+    if(!session){ended('missing');throw authError();}if(session.expires_at*1000<Date.now()+60000)await refresh();}
   const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),15000);
+  let res;
   try {
-   const res=await fetch(url+path,{method,headers:{apikey:key,...(staff?{Authorization:'Bearer '+session.access_token}:key.startsWith('eyJ')?{Authorization:'Bearer '+key}:{}),'Content-Type':'application/json',...headers},body:body===undefined?undefined:(raw?body:JSON.stringify(body)),signal:controller.signal,cache:'no-store'});
+   res=await fetch(url+path,{method,headers:{apikey:key,...(staff?{Authorization:'Bearer '+session.access_token}:key.startsWith('eyJ')?{Authorization:'Bearer '+key}:{}),'Content-Type':'application/json',...headers},body:body===undefined?undefined:(raw?body:JSON.stringify(body)),signal:controller.signal,cache:'no-store'});
    const text=await res.text();let data;try{data=JSON.parse(text);}catch{data=text;}
    if(!res.ok){const error=Error(data?.message||data?.msg||data?.error_description||data?.error||('Cloud request failed (HTTP '+res.status+').'));error.httpStatus=res.status;const retry=res.headers.get('Retry-After');error.retryAt=retry?(isNaN(Number(retry))?Date.parse(retry):Date.now()+Number(retry)*1000):0;throw error;}
    return data;
-  }catch(e){if(e.name==='AbortError'){const timeout=Error('Cloud request timed out. Check your connection and retry.');timeout.code='ETIMEDOUT';throw timeout;}throw e;}finally{clearTimeout(timer);}
+  }catch(e){
+   if(e.name==='AbortError'){const timeout=Error('The connection is slow and the request timed out. Try again.');timeout.code='ETIMEDOUT';throw timeout;}
+   if(e instanceof TypeError&&!res){const offline=Error(navigator.onLine===false?'You are offline. Check the internet and try again.':'Could not reach the server. Check the internet and try again.');offline.code='NETWORK';throw offline;}
+   // An expired access token (phone asleep, clock drift): renew once and repeat the same call.
+   if(staff&&e.httpStatus===401&&!retried&&!path.startsWith('/auth/')&&session){clearTimeout(timer);await refresh(true);return transport(path,{method,body,staff,headers,raw,retried:true});}
+   if(staff&&e.httpStatus===401&&retried&&!path.startsWith('/auth/')){session=null;store(null);clearPrivate();ended('rejected');throw authError();}
+   if(cfg.platform&&staff&&e.httpStatus===403&&e.message==='Restaurant access denied.')ended('membership');
+   throw e;
+  }finally{clearTimeout(timer);}
  }
- function saveSession(s){if(session?.user?.id!==s.user?.id)clearPrivate();session={...s,expires_at:s.expires_at||Math.floor(Date.now()/1000)+(s.expires_in||3600)};sessionWrite('RESTAURANT_STAFF_SESSION_v3',session);return session;}
- async function refresh(){if(!refreshPromise)refreshPromise=request('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:session.refresh_token}}).then(saveSession).catch(e=>{clearPrivate();session=null;try{sessionRemove('RESTAURANT_STAFF_SESSION_v3');}catch{}throw e;}).finally(()=>refreshPromise=null);return refreshPromise;}
- async function login(email,password){return saveSession(await request('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}}));}
- async function logout(){try{if(session)await request('/auth/v1/logout',{method:'POST',staff:true});}finally{session=null;sessionRemove('RESTAURANT_STAFF_SESSION_v3');clearPrivate();}}
+ function saveSession(s,ephemeral=!!(session?.ephemeral&&session?.user?.id===s?.user?.id)){
+  if(session?.user?.id!==s.user?.id)clearPrivate();
+  session={...s,expires_at:s.expires_at||Math.floor(Date.now()/1000)+(s.expires_in||3600)};
+  if(ephemeral)session.ephemeral=true;else{delete session.ephemeral;if(PERSIST)store(session);else sessionWrite('RESTAURANT_STAFF_SESSION_v3',session);}
+  return session;
+ }
+ function refresh(force=false){
+  if(refreshPromise)return refreshPromise;
+  const run=async()=>{
+   if(!session)throw authError();
+   const fresh=s=>s.expires_at*1000>Date.now()+60000;
+   const latest=session.ephemeral?null:stored();
+   if(latest&&latest.user.id===session.user.id&&latest.refresh_token!==session.refresh_token){session=latest;if(fresh(latest))return session;}
+   else if(!force&&fresh(session))return session;
+   try{return saveSession(await transport('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:session.refresh_token}}));}
+   catch(e){
+    if(!(e.httpStatus>=400&&e.httpStatus<500))throw e; // offline or server busy: keep the sign-in and try again later
+    const again=session?.ephemeral?null:stored();
+    if(session&&again&&again.user.id===session.user.id&&again.refresh_token!==session.refresh_token){session=again;return session;}
+    session=null;store(null);try{sessionRemove('RESTAURANT_STAFF_SESSION_v3');}catch{}clearPrivate();ended('expired');throw authError();
+   }
+  };
+  refreshPromise=(PERSIST&&navigator.locks?.request?navigator.locks.request(SESSION_KEY,run):run()).finally(()=>{refreshPromise=null;});
+  return refreshPromise;
+ }
+ if(PERSIST){
+  addEventListener('storage',e=>{if(e.key!==SESSION_KEY||session?.ephemeral)return;const next=stored();
+   if(cfg.platform && next?.user?.id!==session?.user?.id && window.top===window && (session || next)){location.reload();return;}
+   if(!next){if(session){session=null;clearPrivate();ended('signed-out');}return;}
+   if(session?.user?.id!==next.user.id)clearPrivate();session=next;});
+  const keepFresh=()=>{if(!document.hidden&&navigator.onLine!==false&&session&&!session.ephemeral&&session.expires_at*1000<Date.now()+300000)refresh().catch(()=>{});};
+  setInterval(keepFresh,60000);document.addEventListener('visibilitychange',keepFresh);addEventListener('online',keepFresh);
+ }
+ async function login(email,password,{keep=true}={}){if(cfg.platform&&keep){location.assign('/login/'+cfg.restaurantSlug);throw Error('Continue on the secure sign-in page.');}return saveSession(await transport('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password}}),!keep);}
+ async function logout(){const s=session;try{if(s)await transport('/auth/v1/logout?scope=local',{method:'POST',staff:true});}catch{}finally{session=null;if(!s?.ephemeral){store(null);try{sessionRemove('RESTAURANT_STAFF_SESSION_v3');}catch{}}clearPrivate();}}
  // Caches are memory-only and partitioned by project, account and capability scope.
  // No receipt tokens or staff responses enter public HTTP/Service Worker caches.
  const menuCache=new Map();let orderCache=null;let cacheEpoch=0;
@@ -92,7 +143,7 @@ const Cloud = (() => {
    failures.delete(id);return data;
   }).catch(error=>{
    const tries=(failure?.tries||0)+1;
-   const retryable=error.code==='ETIMEDOUT'||error.name==='TypeError'||[408,425,429].includes(error.httpStatus)||error.httpStatus>=500;
+   const retryable=error.code==='ETIMEDOUT'||error.code==='NETWORK'||error.name==='TypeError'||[408,425,429].includes(error.httpStatus)||error.httpStatus>=500;
    const delay=retryable?Math.min(60000,1000*2**Math.min(tries,6))*(.75+Math.random()*.5):30000;
    if(epoch===cacheEpoch){if(failures.size>200)failures.clear();failures.set(id,{tries,error,until:Math.max(Date.now()+delay,error.retryAt||0)});}
    throw error;
@@ -135,12 +186,41 @@ const Cloud = (() => {
   const match=/^data:image\/(webp|png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(data);
   if(!match)throw Error('Unsupported image. Choose WebP, PNG or JPEG.');
   const bytes=Uint8Array.from(atob(match[2]),c=>c.charCodeAt(0));if(bytes.length>1048576)throw Error('Photo must be under 1 MB.');
+  const ext=match[1];
   const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(b=>b.toString(16).padStart(2,'0')).join('');
-  const path='thumbs/'+hash+'.'+match[1],publicURL=url+'/storage/v1/object/public/menu-images/'+path;
+  const r2Base=String(cfg.imagesBaseUrl||'').replace(/\/$/,'');
+  const slug=String(cfg.restaurantSlug||'').trim();
+  if(cfg.platform){
+   if(!session)throw Error('Please sign in as staff.');
+   await refresh();
+   const uploaded=await fetch('/r/'+slug+'/_media/'+hash+'.'+ext,{method:'PUT',headers:{Authorization:'Bearer '+session?.access_token,'Content-Type':'image/'+ext},body:bytes});
+   if(!uploaded.ok)throw Error('Image upload failed or access expired.');
+   return new URL((await uploaded.json()).url,location.origin).href;
+  }
+  if(r2Base && slug) return uploadToR2(bytes,hash,ext,r2Base,slug);
+  // Legacy path: Supabase Storage. Used only while imagesBaseUrl is blank.
+  const path='thumbs/'+hash+'.'+ext,publicURL=url+'/storage/v1/object/public/menu-images/'+path;
   let check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
   if(!check.ok){
-   try{await request('/storage/v1/object/menu-images/'+path,{method:'POST',body:bytes,raw:true,staff:true,headers:{'Content-Type':'image/'+match[1],'Cache-Control':'max-age=31536000','x-upsert':'false'}});}
+   try{await request('/storage/v1/object/menu-images/'+path,{method:'POST',body:bytes,raw:true,staff:true,headers:{'Content-Type':'image/'+ext,'Cache-Control':'max-age=31536000','x-upsert':'false'}});}
    catch(e){if(e.httpStatus!==409)throw e;}
+   check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
+  }
+  if(!check.ok)throw Error('Uploaded photo could not be verified. Original photo has been preserved.');return publicURL;
+ }
+ // Cloudflare R2 path: bytes go straight from this browser to R2 over a short-lived
+ // presigned URL handed out by /api/r2-upload-url. No image bytes touch Supabase,
+ // so this keeps Supabase egress to just API/database traffic.
+ async function uploadToR2(bytes,hash,ext,r2Base,slug){
+  const objectKey='restaurants/'+slug+'/thumbs/'+hash+'.'+ext,publicURL=r2Base+'/'+objectKey;
+  let check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
+  if(!check.ok){
+   if(!session)throw Error('Please sign in as staff.');
+   const signRes=await fetch('/api/r2-upload-url',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({restaurant:slug,hash,ext,supabaseUrl:url,supabaseAnonKey:key})});
+   const signData=await signRes.json().catch(()=>({}));
+   if(!signRes.ok)throw Error(signData?.error||'Could not prepare image upload.');
+   const put=await fetch(signData.uploadUrl,{method:'PUT',body:bytes,headers:{'Content-Type':'image/'+ext}});
+   if(!put.ok)throw Error('Image upload to storage failed.');
    check=await fetch(publicURL,{method:'HEAD',cache:'no-store'});
   }
   if(!check.ok)throw Error('Uploaded photo could not be verified. Original photo has been preserved.');return publicURL;
@@ -160,7 +240,7 @@ const Cloud = (() => {
   const epoch=cacheEpoch;const job=rpc('restaurant_table_names',{p_table:table,p_waiter_key:key},staff).then(rows=>{if(epoch===cacheEpoch){setTableNames(rows);tableNamesAt.set(id,Date.now());}return rows;}).finally(()=>tableNamesBusy.delete(id));tableNamesBusy.set(id,job);return job;
  }
  const orderLabel=o=>Number.isSafeInteger(Number(o?.daily_number))&&Number(o.daily_number)>0?'Order no. '+Number(o.daily_number):'Order number pending sync';
- return {cfg,configured,tableName,setTableNames,refreshTableNames,orderLabel,esc,safeImage,deferImages,read,write,remove,privateKey,sessionRead,sessionWrite,sessionRemove,categories,setCategories,normalizeCategory,menuRow,rpc,request,login,logout,hasSession:()=>!!session,
+ return {cfg,configured,tableName,setTableNames,refreshTableNames,orderLabel,esc,safeImage,deferImages,read,write,remove,privateKey,sessionRead,sessionWrite,sessionRemove,categories,setCategories,normalizeCategory,menuRow,rpc,request,login,logout,hasSession:()=>!!session,user:()=>session?.user||null,ensureFresh:()=>session?refresh():Promise.reject(authError()),
   mfaFactors:async()=>{const user=await request('/auth/v1/user',{staff:true});return (user.factors||[]).filter(f=>f.factor_type==='totp');},
   mfaEnroll:()=>request('/auth/v1/factors',{method:'POST',body:{factor_type:'totp',friendly_name:'Yummy Momo admin '+new Date().toISOString(),issuer:'Yummy Momo'},staff:true}),
   mfaUnenrollPending:id=>request('/auth/v1/factors/'+encodeURIComponent(id),{method:'DELETE',staff:true}),
@@ -171,7 +251,7 @@ const Cloud = (() => {
    if(!tokens.access_token||!tokens.refresh_token)throw Error('Verification did not return a valid session. Sign in again.');
    saveSession(tokens);
   },
-  role:async()=>{const data=await request('/rest/v1/staff_users?select=role&user_id=eq.'+session.user.id,{staff:true});if(!data[0])throw Error('This account has no staff access. Ask the owner to add it to staff_users.');return data[0].role;},
+  role:async()=>{const data=await request('/rest/v1/staff_users?select=role&user_id=eq.'+session.user.id,{staff:true});if(!data[0])throw Object.assign(Error('This account has no active restaurant access.'),{status:403});return data[0].role;},
   menu,syncMenu,schedule,uploadMenuImage,clearPrivate,
   saveMenu:async rows=>{const prepared=[];for(const row of rows)prepared.push({...row,image:await uploadMenuImage(row.image)});return request('/rest/v1/menu_items?on_conflict=id',{method:'POST',body:prepared,staff:true,headers:{Prefer:'resolution=merge-duplicates,return=minimal'}});},
   patchMenu:async(id,body)=>{if(Object.hasOwn(body,'image'))body={...body,image:await uploadMenuImage(body.image)};return request('/rest/v1/menu_items?id=eq.'+encodeURIComponent(id),{method:'PATCH',body,staff:true,headers:{Prefer:'return=minimal'}});},
