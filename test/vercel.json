@@ -1,24 +1,106 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/portal/index.html" },
-    { "source": "/login", "destination": "/portal/index.html" },
-    { "source": "/login/:slug", "destination": "/portal/index.html" },
-    { "source": "/owner", "destination": "/portal/index.html" },
-    { "source": "/restaurants", "destination": "/portal/index.html" },
-    { "source": "/account", "destination": "/portal/index.html" },
-    { "source": "/activate", "destination": "/portal/index.html" },
-    { "source": "/recover", "destination": "/portal/index.html" },
-    { "source": "/r/:slug/billing-suite/:path*", "destination": "/billing-suite/:path*" },
-    { "source": "/billing-suite/manifest.webmanifest", "destination": "/api/billing-suite-manifest" }
+    {
+      "source": "/",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/login/:slug",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/owner",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/restaurants",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/account",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/activate",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/recover",
+      "destination": "/portal/index.html"
+    },
+    {
+      "source": "/r/:slug/billing-suite/:path*",
+      "destination": "/billing-suite/:path*"
+    },
+    {
+      "source": "/r/:slug/config.js",
+      "destination": "/config.js"
+    },
+    {
+      "source": "/billing-suite/manifest.webmanifest",
+      "destination": "/api/billing-suite-manifest"
+    }
   ],
   "headers": [
-    { "source": "/(.*)", "headers": [
-      { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "Referrer-Policy", "value": "same-origin" },
-      { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
-    ]},
-    { "source": "/(.*)", "missing": [{ "type": "query", "key": "v" }], "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-    { "source": "/((?!sw\\.js$)(?!billing-suite/sw\\.js$).*)", "has": [{ "type": "query", "key": "v" }], "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
-    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.r2.cloudflarestorage.com; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "missing": [
+        {
+          "type": "query",
+          "key": "v"
+        }
+      ],
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/((?!sw\\.js$)(?!billing-suite/sw\\.js$).*)",
+      "has": [
+        {
+          "type": "query",
+          "key": "v"
+        }
+      ],
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
   ]
 }
