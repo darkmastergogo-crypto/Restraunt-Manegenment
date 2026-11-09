@@ -193,7 +193,7 @@ async function ownerPage() {
     node('ul',{},...overview.activity.map(a=>node('li',{},new Date(a.created_at).toLocaleString() + ' · ' +
       a.action + (a.slug ? ' · ' + a.slug : '') + (a.subject ? ' · ' + a.subject : '')))));
   view.append(stats,activity);
-  const add = node('details',{},node('summary',{},'Add restaurant'));
+  const add = node('details',{id:'add-restaurant',className:'owner-panel owner-add-form'},node('summary',{},'Add restaurant'));
   add.append(form('Create restaurant and invite owner',[
     input('Restaurant name','name',{ maxLength:100 }),
     input('URL code','slug',{ pattern:slugRE.source.slice(1,-1), maxLength:40, placeholder:'restaurant-name' }),
@@ -208,10 +208,11 @@ async function ownerPage() {
     const errors = results.filter(r => r.status === 'rejected').map(r => r.reason.message);
     note(errors.length ? 'Restaurant created. ' + errors.join(' ') : 'Restaurant created and owner invitation sent.', !!errors.length);
   }));
-  view.append(add);
+  content.append(add);
   let query = '', active = null, offset = 0;
   const checked = new Set();
-  const listing = node('section',{},node('h2',{},'Restaurants'));
+  const listing = node('section',{id:'restaurants',className:'owner-listing'},node('h2',{},'Your Restaurants'));
+  const filters = node('section',{className:'owner-panel owner-filters'});
   const filter = node('label',{},'Status',node('select',{ name:'active' },
     node('option',{ value:'' },'All statuses'),node('option',{ value:'active' },'Active'),
     node('option',{ value:'suspended' },'Suspended')));
@@ -223,16 +224,17 @@ async function ownerPage() {
     await ownerPage();
     note(count + ' restaurants updated.');
   };
-  view.append(form('Search',[input('Find a restaurant','query',{ required:false,type:'search' }),filter],async data => {
+  filters.append(form('Search',[input('Find a restaurant','query',{ required:false,type:'search' }),filter],async data => {
     query = data.query.trim();
     active = data.active ? data.active==='active' : null;
     offset = 0;
     await load();
-  }),actions(button('Suspend selected',bulk(false)),button('Resume selected',bulk(true))),listing);
+  }),actions(button('Suspend selected',bulk(false)),button('Resume selected',bulk(true))));
+  content.append(filters,listing);
   async function load() {
     checked.clear();
     const records = await rpc('restaurants',{ p_query:query,p_offset:offset,p_active:active });
-    listing.replaceChildren(node('h2',{},'Restaurants'));
+    listing.replaceChildren(node('h2',{},'Your Restaurants'));
     listing.append(rows(...records.slice(0,50).map(r => {
       const edit = node('details',{},node('summary',{},'Edit restaurant'));
       edit.append(form('Save restaurant',[input('Restaurant name','name',{ value:r.name,maxLength:100 }),logoInput(),
