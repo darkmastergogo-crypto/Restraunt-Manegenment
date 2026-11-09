@@ -157,7 +157,7 @@ const OfflineMode = (() => {
     // Syncing talks to the restaurant API directly. Sending its calls through the billing
     // adapter would make them look like unknown actions, which once looked like "no internet".
     const rawRpc = (n, a) => (/^shop_/.test(n) ? base(n, a) : RestaurantCloud.rpc(n, a, true));
-    await SyncEngine.start({ rpc: rawRpc }, { signedIn: () => c.signedIn !== false });
+    SyncEngine.start({ rpc: rawRpc }, { signedIn: () => c.signedIn !== false }).catch(e => console.warn('[sync] could not start:', e.message));
     return true;
   }
 

@@ -122,13 +122,13 @@ const RestaurantCloud = (() => {
  // No receipt tokens or staff responses enter public HTTP/Service Worker caches.
  const menuCache=new Map();let orderCache=null;let cacheEpoch=0;
  const pendingReads=new Map(),failures=new Map();
- const readRPC=new Set(['restaurant_menu_sync47','restaurant_active_sync47','restaurant_receipt_sync47','restaurant_staff_pulse47','restaurant_waiter_sync47','restaurant_table_names','restaurant_get_device_orders','restaurant_order_loyalty','restaurant_staff_menu','restaurant_customer_menu','restaurant_open_device_visit','restaurant_requests_page47','restaurant_manual_menu','restaurant_sales_analytics','restaurant_recent_cancelled','restaurant_dish_sales','restaurant_filtered_records','restaurant_records','restaurant_waiter_public56','restaurant_staff_menu_page63','restaurant_staff_menu_item63','restaurant_manual_menu_page63','restaurant_sales_analytics_section63']);
+ const readRPC=new Set(['restaurant_menu_sync47','restaurant_active_sync47','restaurant_receipt_sync47','restaurant_staff_pulse47','restaurant_waiter_sync47','restaurant_table_names','restaurant_get_device_orders','restaurant_order_loyalty','restaurant_staff_menu','restaurant_customer_menu','restaurant_open_device_visit','restaurant_requests_page47','restaurant_manual_menu','restaurant_sales_analytics','restaurant_recent_cancelled','restaurant_dish_sales','restaurant_bills19','restaurant_dashboard19','restaurant_stocks','restaurant_filtered_records','restaurant_records','restaurant_waiter_public56','restaurant_staff_menu_page63','restaurant_staff_menu_item63','restaurant_manual_menu_page63','restaurant_sales_analytics_section63']);
  function scope(){return url+'|'+(session?.user?.id||'customer');}
  function clearPrivate(){cacheEpoch++;menuCache.clear();orderCache=null;pendingReads.clear();failures.clear();tableNames.clear();tableNamesAt.clear();}
  function request(path,options={}){
   const endpoint=path.split('/').at(-1),args=options.body||{};
   const configRead=['restaurant_manager_permissions','restaurant_alert_settings','restaurant_stock_visibility'].includes(endpoint)&&Object.values(args).every(v=>v===null);
-  const listRead=['restaurant_notifications','restaurant_stock_alerts','restaurant_categories','restaurant_admin_devices'].includes(endpoint)&&(!args.p_action||args.p_action==='list');
+  const listRead=['restaurant_notifications','restaurant_stock_alerts','restaurant_categories','restaurant_admin_devices','restaurant_manage_tables'].includes(endpoint)&&(!args.p_action||args.p_action==='list');
   const isRead=(options.method||'GET')==='GET'||readRPC.has(endpoint)||configRead||listRead;
   if(!isRead)return transport(path,options); // Writes are NEVER automatically retried or deduplicated.
   const id=scope()+'|'+path+'|'+JSON.stringify(options.body||{}),failure=failures.get(id);

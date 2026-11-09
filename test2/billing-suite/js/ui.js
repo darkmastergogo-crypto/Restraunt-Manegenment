@@ -27,6 +27,10 @@ const Store = {
   items: [],
   categories: [],
   itemsLoadedAt: 0,
+  itemsOwner: null,
+  itemsRequest: null,
+  itemsError: '',
+  get itemsReady() { return this.itemsOwner === Cloud.userId; },
   get settings() { return this.me?.settings || {}; },
   get sys() { return this.me?.system || App.publicInfo || {}; },
   get role() { return this.me?.role || ''; },
@@ -51,11 +55,25 @@ const Store = {
   itemField(k) { const f = this.settings.item_fields || {}; return k in f ? !!f[k] : k === 'hsn'; },
   invoice() { return this.settings.invoice || {}; },
   async loadItems(force = false) {
+    const owner = Cloud.userId;
+    if (!this.itemsReady) { this.items = []; this.categories = []; this.itemsLoadedAt = 0; }
+    if (!force && this.itemsRequest?.owner === owner) return this.itemsRequest.job;
     if (!force && this.itemsLoadedAt && Date.now() - this.itemsLoadedAt < 15000) return this.items;
-    const data = await Cloud.rpc('shop_items_list');
-    this.items = data.items || []; this.categories = data.categories || []; this.itemsLoadedAt = Date.now();
-    document.dispatchEvent(new CustomEvent('items:changed'));
-    return this.items;
+    this.itemsError = '';
+    const job = Cloud.rpc('shop_items_list').then(data => {
+      if (owner !== Cloud.userId || this.itemsRequest?.job !== job) return this.items;
+      this.items = data.items || []; this.categories = data.categories || [];
+      this.itemsOwner = owner; this.itemsLoadedAt = data.offline ? 0 : Date.now();
+      return this.items;
+    }).catch(error => {
+      if (owner === Cloud.userId && this.itemsRequest?.job === job) this.itemsError = error.message;
+      throw error;
+    }).finally(() => {
+      if (this.itemsRequest?.job === job) this.itemsRequest = null;
+      if (owner === Cloud.userId) document.dispatchEvent(new CustomEvent('items:changed'));
+    });
+    this.itemsRequest = { owner, job };
+    return job;
   },
   upsertItem(item) {
     const i = this.items.findIndex(x => x.id === item.id);

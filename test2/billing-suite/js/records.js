@@ -6,13 +6,19 @@ const Records = (() => {
 
   function range() { return periodRange(f.period, f.from, f.to); }
 
-  const cache = new Map();
+  const cache = new Map(), pending = new Map();
   async function load() {
-    const id = ++req, [from, to] = range(), args = { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_offset: offset, p_limit: PAGE }, k = JSON.stringify(args), hit = cache.get(k);
-    if (hit) { data = hit; render(); }
+    const id = ++req, [from, to] = range(), args = { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_offset: offset, p_limit: PAGE }, k = JSON.stringify([Cloud.userId, args]), hit = cache.get(k);
+    data = hit || null;
+    if (hit) render();
+    else {
+      for (const sel of ['#rSummary', '#rBody', '#rPage']) $(sel, root).textContent = '';
+      $('#rPrev', root).disabled = $('#rNext', root).disabled = true;
+    }
     $('#rStatus', root).innerHTML = `<span class="spin-dot" aria-hidden="true"></span>${hit ? 'Updating…' : 'Loading bills…'}`;
     try {
-      const d = await Cloud.rpc('shop_bills_list', args);
+      if (!pending.has(k)) pending.set(k, Cloud.rpc('shop_bills_list', args).finally(() => pending.delete(k)));
+      const d = await pending.get(k);
       if (cache.size > 20) cache.delete(cache.keys().next().value);
       cache.set(k, d);
       if (id !== req || !root?.isConnected) return;
@@ -143,5 +149,5 @@ const Records = (() => {
     $('#rBody', view).addEventListener('keydown', e => { if (e.key === 'Enter') { const tr = e.target.closest('tr[data-id]'); if (tr) pick(tr); } });
     load();
   }
-  return { mount, openBill, unmount() { root = null; } };
+  return { mount, openBill, unmount() { clearTimeout(timer); req++; root = null; } };
 })();

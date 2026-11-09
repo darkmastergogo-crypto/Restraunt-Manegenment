@@ -53,13 +53,14 @@ const Kitchen = (() => {
   async function refresh(full = false) {
     const id = ++req;
     try {
-      if (full) { try { perms = await RX.rpc('restaurant_manager_permissions', {}); } catch { perms = {}; } }
-      await RestaurantCloud.refreshTableNames({ staff: true }).catch(() => {});
-      const rows = await RestaurantCloud.orders();
-      if (filter === 'Cancelled') await loadCancelled();
-      if (id !== req) return;
-      orders = rows; loaded = true; error = '';
-      await loadDevices();
+      const access = full && !RX.isAdmin() ? RX.rpc('restaurant_manager_permissions', {}).catch(() => ({})) : Promise.resolve(perms);
+      const names = RestaurantCloud.refreshTableNames({ staff: true }).catch(() => {});
+      const [rows] = await Promise.all([RestaurantCloud.orders(), filter === 'Cancelled' ? loadCancelled() : null]);
+      if (id !== req || !root?.isConnected) return;
+      orders = rows; loaded = true; error = ''; render();
+      perms = await access;
+      if (id !== req || !root?.isConnected) return;
+      await Promise.all([names, loadDevices()]);
     } catch (e) { if (id === req) error = 'Orders could not refresh: ' + e.message; }
     if (id === req) render();
   }
@@ -110,11 +111,12 @@ const Kitchen = (() => {
     if (!root?.isConnected) return;
     const open = orders.filter(o => OPEN.includes(o.status));
     const pending = open.filter(o => o.status === 'Pending'), cooking = open.filter(o => o.status !== 'Pending');
-    $('#kSummary', root).innerHTML = RX.sum('Waiting to accept', pending.length, pending.length ? 'is-warn' : '') + RX.sum('In the kitchen', cooking.length) + RX.sum('Open orders value', Fmt.money(open.reduce((n, o) => n + Number(o.total || 0), 0)), 'big') + RX.sum('Served recently', orders.filter(o => o.status === 'Served').length);
-    $$('#kFilter button', root).forEach(b => { b.classList.toggle('on', b.dataset.f === filter); const c = b.querySelector('span'); if (c) c.textContent = b.dataset.f === 'active' ? open.length : b.dataset.f === 'Pending' ? pending.length : b.dataset.f === 'Cooking' ? cooking.length : ''; });
+    $('#kSummary', root).innerHTML = loaded ? RX.sum('Waiting to accept', pending.length, pending.length ? 'is-warn' : '') + RX.sum('In the kitchen', cooking.length) + RX.sum('Open orders value', Fmt.money(open.reduce((n, o) => n + Number(o.total || 0), 0)), 'big') + RX.sum('Served recently', orders.filter(o => o.status === 'Served').length) : '';
+    $$('#kFilter button', root).forEach(b => { b.classList.toggle('on', b.dataset.f === filter); const c = b.querySelector('span'); if (c) c.textContent = !loaded ? '' : b.dataset.f === 'active' ? open.length : b.dataset.f === 'Pending' ? pending.length : b.dataset.f === 'Cooking' ? cooking.length : ''; });
+    const ready = filter === 'Cancelled' ? !!cancelled : loaded;
     const list = filter === 'Cancelled' ? cancelledRows() : filter === 'active' ? open : filter === 'Cooking' ? cooking : pending;
-    $('#kStatus', root).textContent = error || (!loaded ? 'Loading orders…' : filter === 'Cancelled' ? 'Cancelled and rejected orders stay here for a few hours. Full history is in Records.' : `Live · updated ${Fmt.time(new Date().toISOString())}`);
-    $('#kList', root).innerHTML = list.length ? list.map(card).join('') : loaded ? `<div class="empty"><h3>${filter === 'Cancelled' ? 'No cancelled orders' : 'No orders here'}</h3><p>${filter === 'Cancelled' ? 'Nothing was cancelled or rejected recently.' : 'New customer orders appear here automatically.'}</p></div>` : '';
+    $('#kStatus', root).textContent = error || (!ready ? 'Loading orders…' : filter === 'Cancelled' ? 'Cancelled and rejected orders stay here for a few hours. Full history is in Records.' : `Live · updated ${Fmt.time(new Date().toISOString())}`);
+    $('#kList', root).innerHTML = list.length ? list.map(card).join('') : ready ? `<div class="empty"><h3>${filter === 'Cancelled' ? 'No cancelled orders' : 'No orders here'}</h3><p>${filter === 'Cancelled' ? 'Nothing was cancelled or rejected recently.' : 'New customer orders appear here automatically.'}</p></div>` : '';
     $('#kPager', root).innerHTML = filter === 'Cancelled' && cancelled ? RX.pager(cOffset, cancelledRows().length, cancelled.total || 0, 'cancelled orders') : '';
   }
 
@@ -153,19 +155,19 @@ const Kitchen = (() => {
   }
 
   function mount(view) {
-    root = view; loaded = false; error = '';
+    root = view; orders = []; cancelled = null; devices = new Map(); perms = {}; cOffset = 0; loaded = false; error = '';
     view.innerHTML = `<div class="page rx">
       ${RX.head('Kitchen orders', 'New QR orders appear here automatically. Accept, cook and serve them in order.', `${RX.isAdmin() ? `<button type="button" class="btn" id="kOffers">${Icon('tag')} Offers</button>` : ''}<button type="button" class="btn" id="kCall">${Icon('bell')} Call waiter</button><button type="button" class="btn" id="kAlerts">${Icon('bell')} Alerts</button><button type="button" class="btn" id="kRefresh">${Icon('refresh')} Refresh</button>`)}
       <div class="summary" id="kSummary"></div>
       <div class="filters"><div class="seg seg-scroll" id="kFilter">${[['active', 'Open'], ['Pending', 'Pending'], ['Cooking', 'Cooking'], ['Cancelled', 'Cancelled']].map(([k, l]) => `<button type="button" data-f="${k}">${l} <span></span></button>`).join('')}</div></div>
       <p class="status-line" id="kStatus" role="status"></p>
       <div class="mgrid ogrid" id="kList"></div><div id="kPager"></div></div>`;
-    $('#kFilter', view).onclick = async e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; cOffset = 0; render(); if (filter === 'Cancelled') { await refresh(); } };
+    $('#kFilter', view).onclick = async e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; cOffset = 0; cancelled = null; render(); if (filter === 'Cancelled') { await refresh(); } };
     $('#kRefresh', view).onclick = async e => { busy(e.currentTarget, true, 'Refreshing…'); RestaurantCloud.invalidateOrders(); await refresh(true); busy(e.currentTarget, false); };
     $('#kCall', view).onclick = callWaiter;
     const ko = $('#kOffers', view); if (ko) ko.onclick = () => MenuDesign.offersModal();
     $('#kAlerts', view).onclick = () => AlertsPanel.open();
-    $('#kPager', view).onclick = e => { const b = e.target.closest('[data-page]'); if (!b) return; cOffset = Math.max(0, cOffset + Number(b.dataset.page) * 50); refresh(); };
+    $('#kPager', view).onclick = e => { const b = e.target.closest('[data-page]'); if (!b) return; cOffset = Math.max(0, cOffset + Number(b.dataset.page) * 50); cancelled = null; render(); refresh(); };
     $('#kList', view).addEventListener('click', e => {
       const art = e.target.closest('[data-id]'); if (!art) return; const o = orders.find(x => x.id === art.dataset.id) || cancelled?.records?.find(x => x.id === art.dataset.id); if (!o) return;
       const n = e.target.closest('[data-next]'); if (n) return setStatus(o, n.dataset.next, n);
@@ -186,11 +188,11 @@ const Requests = (() => {
   const title = c => c.request_kind === 'Reception' ? 'Counter' : RX.table(c.table_number);
   const what = c => c.request_kind === 'Reception' ? 'Waiter requested at the counter.' : c.request_kind === 'ReservedScan' ? 'Reserved table QR opened — please check seating.' : c.request_kind === 'Song' ? `Song requested: ${c.request_text || 'Untitled song'}` : c.request_origin === 'staff_dashboard' || c.request_origin === 'staff' ? 'Staff requested a waiter.' : c.request_kind && !['Waiter', 'Call'].includes(c.request_kind) ? `${c.request_kind} requested.` : 'Customer requested assistance.';
   async function load() {
-    const id = ++req;
+    const id = ++req, page = offset;
     try {
       let d;
       if (filter === 'Pending' && offset === 0) { const p = await RX.rpc('restaurant_staff_pulse47', { p_known: KNOWN }); const calls = Array.isArray(p.calls) ? p.calls : []; d = { calls, total: calls.length }; }
-      else { d = await RX.rpc('restaurant_requests_page47', { p_key: null, p_status: filter, p_offset: offset, p_limit: 50 }); if (!Array.isArray(d.calls)) throw Error('Invalid request response.'); if (offset > 0 && !d.calls.length) { offset = Math.max(0, offset - 50); return load(); } }
+      else { d = await RX.rpc('restaurant_requests_page47', { p_key: null, p_status: filter, p_offset: offset, p_limit: 50 }); if (id !== req || !root?.isConnected) return; if (!Array.isArray(d.calls)) throw Error('Invalid request response.'); if (page > 0 && !d.calls.length) { offset = Math.max(0, page - 50); return load(); } }
       if (id !== req) return; data = d; error = '';
     } catch (e) { if (id === req) error = 'Requests could not update: ' + e.message; }
     if (id === req) render();
@@ -213,13 +215,13 @@ const Requests = (() => {
     catch (e) { toast('Could not save: ' + e.message, 'error', 6000); } finally { handling.delete(c.id); await load(); }
   }
   function mount(view) {
-    root = view; data = null; offset = 0;
+    root = view; data = null; offset = 0; error = '';
     view.innerHTML = `<div class="page rx">${RX.head('Requests', 'Waiter calls, reserved-table scans and song requests from customers.', `<button type="button" class="btn" id="qAlerts">${Icon('bell')} Alerts</button><button type="button" class="btn" id="qRefresh">${Icon('refresh')} Refresh</button>`)}
       <div class="filters"><div class="seg seg-scroll" id="qFilter">${['Pending', 'Handled', 'Expired', 'All'].map(s => `<button type="button" data-f="${s}">${s}</button>`).join('')}</div></div>
       <p class="status-line" id="qStatus" role="status"></p><div class="mgrid ogrid" id="qList"></div><div id="qPager"></div></div>`;
-    $('#qFilter', view).onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; offset = 0; data = null; render(); load(); };
+    $('#qFilter', view).onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; offset = 0; data = null; error = ''; render(); load(); };
     $('#qRefresh', view).onclick = load; $('#qAlerts', view).onclick = () => AlertsPanel.open();
-    $('#qPager', view).onclick = e => { const b = e.target.closest('[data-page]'); if (b) { offset = Math.max(0, offset + Number(b.dataset.page) * 50); load(); } };
+    $('#qPager', view).onclick = e => { const b = e.target.closest('[data-page]'); if (b) { offset = Math.max(0, offset + Number(b.dataset.page) * 50); data = null; error = ''; render(); load(); } };
     $('#qList', view).addEventListener('click', e => { const a = e.target.closest('[data-id]'); const c = a && data?.calls.find(x => x.id === a.dataset.id); if (!c) return; if (e.target.closest('[data-onway]')) act(c, true); if (e.target.closest('[data-handle]')) act(c, false); });
     render(); load(); stop = RX.poll(5000, load);
   }
@@ -228,12 +230,17 @@ const Requests = (() => {
 
 /* ---------------- Tables & QR codes ---------------- */
 const Tables = (() => {
-  let root = null, rows = [], busyAll = false, error = '';
+  let root = null, rows = [], busyAll = false, error = '', loaded = false, owner = null, req = 0;
   const canRename = () => RX.isAdmin() || Cloud.custom().managerCanRenameTables !== false;
   const link = t => { const u = new URL(RestaurantCloud.cfg.publicMenuUrl || '../', location.href); u.searchParams.set('table', t.table_number); u.searchParams.set('qr', t.qr_key); u.hash = ''; return u.href; };
   async function load() {
-    try { rows = await RX.rpc('restaurant_manage_tables', { p_action: 'list', p_table: null, p_status: null }); RestaurantCloud.setTableNames(rows); error = ''; } catch (e) { error = 'Tables could not load: ' + e.message; }
-    render();
+    const id = ++req;
+    try {
+      const list = await RX.rpc('restaurant_manage_tables', { p_action: 'list', p_table: null, p_status: null });
+      if (id !== req || !root?.isConnected) return;
+      rows = list; loaded = true; RestaurantCloud.setTableNames(rows); error = '';
+    } catch (e) { if (id === req) error = 'Tables could not load: ' + e.message; }
+    if (id === req) render();
   }
   function namedSvg(t) {
     const holder = document.createElement('div'); holder.innerHTML = QR.svg(link(t), 600); const svg = holder.querySelector('svg');
@@ -245,6 +252,12 @@ const Tables = (() => {
   }
   function render() {
     if (!root?.isConnected) return;
+    if (!loaded) {
+      $('#tStatus', root).textContent = error || 'Loading tables…';
+      if ($('#tExport', root)) $('#tExport', root).disabled = true;
+      return;
+    }
+    if ($('#tExport', root)) $('#tExport', root).disabled = false;
     const admin = RX.isAdmin(), reserved = rows.filter(t => t.status === 'Reserved').length;
     $('#tSummary', root).innerHTML = RX.sum('Tables', rows.length) + RX.sum('Available', rows.length - reserved) + RX.sum('Reserved', reserved, reserved ? 'is-warn' : '');
     $('#tStatus', root).textContent = error;
@@ -353,7 +366,8 @@ const Tables = (() => {
     w.document.write(`<!doctype html><title>${esc(RX.table(t.table_number))}</title><body style="font-family:system-ui;text-align:center;padding:24px"><h1 style="margin:0 0 4px">${esc(Store.settings.shop_name || '')}</h1><p style="margin:0 0 16px;color:#444">Scan to see the menu and order</p>${QR.svg(link(t), 320)}<h2>${esc(RX.table(t.table_number))}</h2><script>onload=()=>{print()}<\/script></body>`); w.document.close();
   }
   function mount(view) {
-    root = view;
+    root = view; error = '';
+    if (owner !== Cloud.userId) { owner = Cloud.userId; loaded = false; rows = []; }
     view.innerHTML = `<div class="page rx">${RX.head('Tables & QR codes', 'Each table has its own QR code. Customers scan it to see the menu, order and call a waiter.', `${RX.isAdmin() ? `<button type="button" class="btn" id="tExport">${Icon('download')} Export all QR</button>` : ''}<button type="button" class="btn" id="tRefresh">${Icon('refresh')} Refresh</button>`)}
       <div class="summary" id="tSummary"></div>
       <form class="card inline-add" id="tAdd"><label class="field grow"><span>New table name</span><input name="name" maxlength="60" required placeholder="e.g. Garden 1" autocomplete="off"></label><button class="btn btn-primary">${Icon('plus')} Add table</button></form>
@@ -379,24 +393,39 @@ const Tables = (() => {
 
 /* ---------------- Notifications ---------------- */
 const Notices = (() => {
-  let root = null, stock = null, sec = null, sOff = 0, nOff = 0, perms = {}, stop = null, busyIds = new Set();
-  const canSecurity = () => RX.isAdmin() || perms.customer_devices === true || perms.order_device_block === true;
+  let root = null, stock = null, sec = null, sOff = 0, nOff = 0, stop = null, busyIds = new Set(), req = 0;
+  const canSecurity = perms => RX.isAdmin() || perms?.customer_devices === true || perms?.order_device_block === true;
   const sizeName = n => n.variant === 'single' || !n.variant ? '' : ' — ' + (n.size_label || n.variant);
   async function load() {
-    try { perms = await RX.rpc('restaurant_manager_permissions', {}); } catch { perms = {}; }
-    try { stock = await RX.rpc('restaurant_stock_alerts', { p_offset: sOff }); if (sOff > 0 && !stock.notifications?.length) { sOff = Math.max(0, Math.floor(Math.max(0, stock.total - 1) / 50) * 50); stock = await RX.rpc('restaurant_stock_alerts', { p_offset: sOff }); } } catch (e) { stock = { error: e.message }; }
-    if (canSecurity()) { try { sec = await RX.rpc('restaurant_notifications', { p_offset: nOff }); if (nOff > 0 && !sec.notifications?.length) { nOff = Math.max(0, Math.floor(Math.max(0, sec.total - 1) / 50) * 50); sec = await RX.rpc('restaurant_notifications', { p_offset: nOff }); } } catch (e) { sec = { error: e.message }; } } else sec = null;
+    const id = ++req;
+    const fetchPage = async (name, offset) => {
+      try {
+        let data = await RX.rpc(name, { p_offset: offset });
+        if (offset > 0 && !data.notifications?.length) {
+          offset = Math.max(0, Math.floor(Math.max(0, data.total - 1) / 50) * 50);
+          data = await RX.rpc(name, { p_offset: offset });
+        }
+        return { data, offset };
+      } catch (e) { return { data: { error: e.message }, offset }; }
+    };
+    const security = async () => {
+      const perms = RX.isAdmin() ? null : await RX.rpc('restaurant_manager_permissions', {}).catch(() => null);
+      return canSecurity(perms) ? fetchPage('restaurant_notifications', nOff) : { data: null, offset: 0 };
+    };
+    const [low, blocked] = await Promise.all([fetchPage('restaurant_stock_alerts', sOff), security()]);
+    if (id !== req || !root?.isConnected) return;
+    stock = low.data; sOff = low.offset; sec = blocked.data; nOff = blocked.offset;
     render();
   }
   function render() {
     if (!root?.isConnected) return;
     const su = stock?.unread || 0, nu = sec?.unread || 0;
-    $('#nSummary', root).innerHTML = RX.sum('Unread low-stock alerts', su, su ? 'is-warn' : '') + (sec ? RX.sum('Unread blocked-browser alerts', nu, nu ? 'is-bad' : '') : '') + RX.sum('Kept for', Math.round(Number(stock?.retention_minutes || 1440) / 60) + ' hours');
+    $('#nSummary', root).innerHTML = stock && !stock.error ? RX.sum('Unread low-stock alerts', su, su ? 'is-warn' : '') + (sec ? RX.sum('Unread blocked-browser alerts', nu, nu ? 'is-bad' : '') : '') + RX.sum('Kept for', Math.round(Number(stock?.retention_minutes || 1440) / 60) + ' hours') : '';
     const sRows = stock?.notifications || [];
     $('#nStock', root).innerHTML = `<div class="card-title-row"><div><h2>${Icon('box')} Low stock</h2><p class="hint">A dish or size with 5% or less of its tracked stock left.</p></div><div class="toolbar"><button type="button" class="btn btn-sm" data-s-refresh>${Icon('refresh')} Refresh</button><button type="button" class="btn btn-sm" data-s-all ${su ? '' : 'disabled'}>${Icon('check')} Mark all read</button></div></div>
       ${stock?.error ? `<p class="status-line">Stock alerts could not load: ${esc(stock.error)}</p>` : ''}
       <div class="table-wrap"><table class="table cards-on-mobile"><thead><tr><th>Dish</th><th class="num">Left at alert</th><th>When</th><th>Status</th><th></th></tr></thead><tbody>
-      ${sRows.length ? sRows.map(n => `<tr class="${n.read_at ? 'is-muted' : ''}"><td data-label="Dish"><b>${esc(n.dish_name)}${esc(sizeName(n))}</b><small>${esc(n.category || '')}</small></td><td class="num" data-label="Left at alert">${Number(n.remaining)} of ${Number(n.baseline)}<small>${n.baseline ? (100 * n.remaining / n.baseline).toFixed(1) + '%' : ''}</small></td><td data-label="When">${esc(RX.when(n.created_at))}</td><td data-label="Status">${n.read_at ? '<span class="badge">Read</span>' : '<span class="badge badge-amber">New</span>'}</td><td class="row-act">${n.read_at ? '' : `<button type="button" class="btn btn-sm btn-ghost" data-s-read="${esc(n.id)}">Mark read</button>`}</td></tr>`).join('') : '<tr><td colspan="5"><div class="empty slim"><p>No low-stock alerts.</p></div></td></tr>'}
+      ${sRows.length ? sRows.map(n => `<tr class="${n.read_at ? 'is-muted' : ''}"><td data-label="Dish"><b>${esc(n.dish_name)}${esc(sizeName(n))}</b><small>${esc(n.category || '')}</small></td><td class="num" data-label="Left at alert">${Number(n.remaining)} of ${Number(n.baseline)}<small>${n.baseline ? (100 * n.remaining / n.baseline).toFixed(1) + '%' : ''}</small></td><td data-label="When">${esc(RX.when(n.created_at))}</td><td data-label="Status">${n.read_at ? '<span class="badge">Read</span>' : '<span class="badge badge-amber">New</span>'}</td><td class="row-act">${n.read_at ? '' : `<button type="button" class="btn btn-sm btn-ghost" data-s-read="${esc(n.id)}">Mark read</button>`}</td></tr>`).join('') : !stock || stock.error ? '' : '<tr><td colspan="5"><div class="empty slim"><p>No low-stock alerts.</p></div></td></tr>'}
       </tbody></table></div>${RX.pager(stock?.offset ?? sOff, sRows.length, stock?.total || 0, 'alerts').replace(/data-page/g, 'data-s-page')}`;
     const box = $('#nSec', root); box.hidden = !sec;
     if (!sec) return;
@@ -405,14 +434,14 @@ const Notices = (() => {
       ${sec.error ? `<p class="status-line">${esc(sec.error)}</p>` : ''}
       <div class="table-wrap"><table class="table cards-on-mobile"><thead><tr><th>Table</th><th>Browser</th><th>When</th><th class="num">Tries</th><th>Status</th><th></th></tr></thead><tbody>
       ${nRows.length ? nRows.map(n => `<tr class="${n.read_at ? 'is-muted' : ''}"><td data-label="Table"><b>${esc(RX.table(n.table_number))}</b></td><td data-label="Browser">${esc(RX.deviceLabel(n.browser_info))}<small class="mono">${esc(String(n.device_id || '').slice(0, 8))}</small></td><td data-label="When">${esc(RX.when(n.created_at))}<small>Last try ${esc(RX.when(n.last_attempt_at))}</small></td><td class="num" data-label="Tries">${Number(n.attempts || 1)}</td><td data-label="Status">${n.read_at ? '<span class="badge">Read</span>' : '<span class="badge badge-red">New</span>'}</td>
-        <td class="row-act"><button type="button" class="btn btn-sm ${n.blocked ? '' : 'btn-danger-ghost'}" data-n-block="${esc(n.id)}" data-blocked="${!n.blocked}" ${!n.device_exists || busyIds.has(n.id) ? 'disabled' : ''}>${!n.device_exists ? 'No device' : n.blocked ? 'Unblock' : 'Block'}</button>${n.read_at ? '' : `<button type="button" class="btn btn-sm btn-ghost" data-n-read="${esc(n.id)}">Mark read</button>`}</td></tr>`).join('') : '<tr><td colspan="6"><div class="empty slim"><p>No blocked-browser alerts.</p></div></td></tr>'}
+        <td class="row-act"><button type="button" class="btn btn-sm ${n.blocked ? '' : 'btn-danger-ghost'}" data-n-block="${esc(n.id)}" data-blocked="${!n.blocked}" ${!n.device_exists || busyIds.has(n.id) ? 'disabled' : ''}>${!n.device_exists ? 'No device' : n.blocked ? 'Unblock' : 'Block'}</button>${n.read_at ? '' : `<button type="button" class="btn btn-sm btn-ghost" data-n-read="${esc(n.id)}">Mark read</button>`}</td></tr>`).join('') : sec.error ? '' : '<tr><td colspan="6"><div class="empty slim"><p>No blocked-browser alerts.</p></div></td></tr>'}
       </tbody></table></div>${RX.pager(sec.offset ?? nOff, nRows.length, sec.total || 0, 'alerts').replace(/data-page/g, 'data-n-page')}`;
   }
   async function run(work, ok) { try { await work(); if (ok) toast(ok, 'ok'); RestaurantWorkspace.command('refresh'); } catch (e) { toast(e.message, 'error', 6000); } await load(); }
   function mount(view) {
-    root = view;
+    root = view; stock = null; sec = null; sOff = 0; nOff = 0;
     view.innerHTML = `<div class="page rx">${RX.head('Notifications', 'Low-stock warnings and blocked customer browsers.', `<button type="button" class="btn" id="nAlerts">${Icon('bell')} Alerts</button>`)}
-      <div class="summary" id="nSummary"></div><div class="stack"><section class="card" id="nStock"></section><section class="card" id="nSec" hidden></section></div></div>`;
+      <div class="summary" id="nSummary"></div><div class="stack"><section class="card" id="nStock"><p class="status-line" role="status">Loading alerts…</p></section><section class="card" id="nSec" hidden></section></div></div>`;
     $('#nAlerts', view).onclick = () => AlertsPanel.open();
     view.addEventListener('click', async e => {
       const t = e.target.closest('button'); if (!t) return; const d = t.dataset;
@@ -430,23 +459,29 @@ const Notices = (() => {
         await run(() => RX.rpc('restaurant_notification_device', { p_id: d.nBlock, p_blocked: block }), block ? 'Browser blocked.' : 'Browser unblocked.'); busyIds.delete(d.nBlock); render();
       }
     });
-    render(); load(); stop = RX.poll(20000, load);
+    load(); stop = RX.poll(20000, load);
   }
   return { mount, unmount() { stop?.(); stop = null; root = null; } };
 })();
 
 /* ---------------- Customer devices ---------------- */
 const Devices = (() => {
-  let root = null, data = null, offset = 0, sort = 'date', dir = 'desc', perms = {}, busyIds = new Set(), stop = null, error = '';
+  let root = null, data = null, offset = 0, sort = 'date', dir = 'desc', perms = {}, busyIds = new Set(), stop = null, error = '', req = 0;
   const args = () => ({ p_action: 'list', p_device: null, p_blocked: null, p_sort: sort, p_direction: dir, p_offset: offset, p_limit: 50 });
   async function load() {
-    try { perms = await RX.rpc('restaurant_manager_permissions', {}); } catch { perms = {}; }
-    try { data = await RX.rpc('restaurant_admin_devices', args()); error = ''; if (offset > 0 && !data.devices?.length) { offset = Math.max(0, offset - 50); return load(); } } catch (e) { data = null; error = 'Devices could not load: ' + e.message; }
-    render();
+    const id = ++req;
+    const permissions = RX.isAdmin() ? RX.rpc('restaurant_manager_permissions', {}).catch(() => null) : Promise.resolve(null);
+    try {
+      const [result, access] = await Promise.all([RX.rpc('restaurant_admin_devices', args()), permissions]);
+      if (id !== req || !root?.isConnected) return;
+      data = result; perms = access; error = '';
+      if (offset > 0 && !data.devices?.length) { offset = Math.max(0, offset - 50); return load(); }
+    } catch (e) { if (id === req) { data = null; error = 'Devices could not load: ' + e.message; } }
+    if (id === req) render();
   }
   function render() {
     if (!root?.isConnected) return;
-    const admin = RX.isAdmin();
+    const admin = RX.isAdmin() && !!perms;
     $('#dAccess', root).hidden = !admin;
     if (admin) $('#dAccess', root).innerHTML = `<header class="card-head"><h2>Manager access</h2><p class="hint">Choose what managers may do with customer browsers.</p></header>
       <label class="switch"><input type="checkbox" data-perm="p_customer_devices" ${perms.customer_devices ? 'checked' : ''}><span class="sw"></span><span class="sw-text"><b>See and block saved browsers</b><small>Managers get this Customer devices screen.</small></span></label>
@@ -461,7 +496,7 @@ const Devices = (() => {
       <td data-label="Last seen">${esc(RX.when(d.last_seen))}<small>First seen ${esc(RX.when(d.first_seen))}</small></td>
       <td data-label="Status">${d.blocked ? '<span class="badge badge-red">Blocked</span>' : '<span class="badge badge-green">Allowed</span>'}</td>
       <td class="row-act"><button type="button" class="btn btn-sm btn-ghost" data-info>Details</button><button type="button" class="btn btn-sm ${d.blocked ? '' : 'btn-danger-ghost'}" data-block="${!d.blocked}" ${busyIds.has(d.id) ? 'disabled' : ''}>${d.blocked ? 'Unblock' : `${Icon('ban')} Block`}</button></td></tr>`).join('')
-      : `<tr><td colspan="6"><div class="empty"><h3>No customer browsers yet</h3><p>A browser is saved here after a customer opens a table QR.</p></div></td></tr>`;
+      : !data ? '' : `<tr><td colspan="6"><div class="empty"><h3>No customer browsers yet</h3><p>A browser is saved here after a customer opens a table QR.</p></div></td></tr>`;
     $('#dPager', root).innerHTML = data ? RX.pager(offset, rows.length, data.total || 0, 'devices') : '';
   }
   function info(d) {
@@ -471,7 +506,7 @@ const Devices = (() => {
       <dt>Platform</dt><dd>${esc(b.platform || 'Unknown')} · ${esc(b.language || 'Unknown')}</dd><dt>Time zone</dt><dd>${esc(b.time_zone || 'Unknown')}</dd><dt>ID</dt><dd class="mono small">${esc(d.id)}</dd><dt>Reported browser</dt><dd class="small">${esc(b.user_agent || 'Unknown')}</dd></dl>`, { size: 'modal-md' });
   }
   function mount(view) {
-    root = view; data = null;
+    root = view; data = null; perms = null; offset = 0; error = '';
     view.innerHTML = `<div class="page rx">${RX.head('Customer devices', 'Browsers that opened a table QR. Block a browser that misuses the menu.', `<button type="button" class="btn" id="dRefresh">${Icon('refresh')} Refresh</button>`)}
       <section class="card" id="dAccess" hidden></section>
       <div class="summary" id="dSummary"></div>
@@ -479,8 +514,8 @@ const Devices = (() => {
       <p class="status-line" id="dStatus" role="status"></p>
       <div class="table-wrap"><table class="table cards-on-mobile"><thead><tr><th>Browser</th><th class="num">Orders</th><th>Last table</th><th>Last seen</th><th>Status</th><th></th></tr></thead><tbody id="dBody"></tbody></table></div><div id="dPager"></div></div>`;
     $('#dSort', view).value = sort; $('#dDir', view).value = dir;
-    $('#dSort', view).onchange = e => { sort = e.target.value; offset = 0; load(); };
-    $('#dDir', view).onchange = e => { dir = e.target.value; offset = 0; load(); };
+    $('#dSort', view).onchange = e => { sort = e.target.value; offset = 0; data = null; error = ''; render(); load(); };
+    $('#dDir', view).onchange = e => { dir = e.target.value; offset = 0; data = null; error = ''; render(); load(); };
     $('#dRefresh', view).onclick = load;
     $('#dPager', view).onclick = e => { const b = e.target.closest('[data-page]'); if (b) { offset = Math.max(0, offset + Number(b.dataset.page) * 50); load(); } };
     $('#dAccess', view).onchange = async e => {
@@ -512,7 +547,8 @@ const MenuDetails = (() => {
   const priceOf = i => i.sizes_enabled ? Math.min(...sizes(i).map(k => Number(i.size_prices[k]))) : Number(i.price);
   const validPrice = v => Number.isFinite(v) && v >= 0 && v <= 100000 && Math.abs(v * 100 - Math.round(v * 100)) < 0.00001;
   async function load(reset = true) {
-    const id = ++req; loading = true; paintMore();
+    const id = ++req; loading = true;
+    if (reset) { items = []; total = 0; render(); } else paintMore();
     try {
       const d = await RX.rpc('restaurant_staff_menu_page63', { p_query: q, p_category: cat, p_availability: avail, p_offset: reset ? 0 : items.length, p_limit: PAGE });
       if (id !== req) return;
@@ -668,9 +704,9 @@ const MenuDetails = (() => {
       const a = e.target.closest('[data-act]')?.dataset.act || 'price';
       if (a === 'price') pricing(i); else if (a === 'photo') photo(i); else more(i);
     });
-    render(); load();
+    load();
   }
-  return { mount, unmount() { root = null; } };
+  return { mount, unmount() { clearTimeout(timer); req++; root = null; } };
 })();
 
 /* ---------------- Stock rules (24-hour loops) ---------------- */
@@ -687,7 +723,7 @@ const StockRules = (() => {
     if (!root?.isConnected) return;
     const cats = [...new Set(rows.map(r => r.category))].sort(); const sel = $('#srCat', root); sel.innerHTML = '<option value="All">All categories</option>' + cats.map(c => `<option>${esc(c)}</option>`).join(''); sel.value = cats.includes(cat) ? cat : 'All';
     const s = q.toLowerCase().trim(), tracked = rows.filter(r => r.tracked), looping = rows.filter(r => r.loop_enabled);
-    $('#srSummary', root).innerHTML = RX.sum('Tracked dishes & sizes', tracked.length) + RX.sum('24-hour loops on', looping.length, looping.length ? 'big' : '') + RX.sum('Sold out', tracked.filter(r => Number(r.remaining) === 0).length, tracked.some(r => Number(r.remaining) === 0) ? 'is-bad' : '');
+    $('#srSummary', root).innerHTML = loaded ? RX.sum('Tracked dishes & sizes', tracked.length) + RX.sum('24-hour loops on', looping.length, looping.length ? 'big' : '') + RX.sum('Sold out', tracked.filter(r => Number(r.remaining) === 0).length, tracked.some(r => Number(r.remaining) === 0) ? 'is-bad' : '') : '';
     const list = rows.filter(r => (cat === 'All' || r.category === cat) && (!s || [name(r), r.category].some(x => String(x).toLowerCase().includes(s))) && (show === 'all' || (show === 'tracked' && r.tracked) || (show === 'loop' && r.loop_enabled) || (show === 'untracked' && !r.tracked))).sort((a, b) => (b.loop_enabled - a.loop_enabled) || (b.tracked - a.tracked) || name(a).localeCompare(name(b)));
     $('#srStatus', root).textContent = error || (!loaded ? 'Loading stock…' : '');
     $('#srBody', root).innerHTML = list.length ? list.map(r => `<tr data-k="${esc(key(r))}">
@@ -695,7 +731,7 @@ const StockRules = (() => {
       <td data-label="In stock">${r.tracked ? `<div class="level level-${Number(r.remaining) === 0 ? 'out' : 'ok'}"><b>${Fmt.qty(r.remaining)}</b> <small>left</small></div>` : '<span class="muted">Not tracked</span>'}</td>
       <td data-label="24-hour loop">${r.loop_enabled ? `<span class="badge badge-green">${Icon('repeat')} Back to ${Fmt.qty(r.loop_quantity)}</span><small>Next reset ${esc(RX.when(r.loop_next_reset_at))}</small>` : '<span class="badge">Off</span>'}</td>
       <td class="row-act">${r.tracked ? `<button type="button" class="btn btn-sm" data-loop ${busyKeys.has(key(r)) ? 'disabled' : ''}>${Icon('repeat')} ${r.loop_enabled ? 'Change loop' : 'Set loop'}</button>${r.loop_enabled ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-stop ${busyKeys.has(key(r)) ? 'disabled' : ''}>Stop</button>` : ''}` : '<a class="btn btn-sm btn-ghost" href="#/stocks">Track in Stocks</a>'}</td></tr>`).join('')
-      : `<tr><td colspan="4"><div class="empty"><h3>Nothing here</h3><p>${show === 'tracked' ? 'Start tracking a dish in Stocks first, then set its 24-hour loop here.' : 'Try another filter.'}</p></div></td></tr>`;
+      : !loaded ? '' : `<tr><td colspan="4"><div class="empty"><h3>Nothing here</h3><p>${show === 'tracked' ? 'Start tracking a dish in Stocks first, then set its 24-hour loop here.' : 'Try another filter.'}</p></div></td></tr>`;
   }
   async function save(r, enabled, quantity) {
     const k = key(r); busyKeys.add(k); render();
@@ -736,7 +772,7 @@ const DishSales = (() => {
   const args = (o = offset, limit = 50) => ({ p_period: period, p_reference: ref, p_mode: mode, p_sort: sort, p_offset: o, p_limit: limit });
   const range = d => d ? (d.period_start === Fmt.addDays(d.period_stop, -1) || d.period_start === d.period_stop ? Fmt.date(d.period_start) : `${Fmt.date(d.period_start)} – ${Fmt.date(Fmt.addDays(d.period_stop, -1))}`) : '';
   async function load() {
-    const id = ++req; $('#dsStatus', root).textContent = 'Loading…';
+    const id = ++req; data = null; error = ''; render();
     try { const d = await RX.rpc('restaurant_dish_sales', args()); if (id !== req) return; if (offset > 0 && !d.rows.length) { offset = Math.max(0, Math.floor(Math.max(0, d.total_rows - 1) / 50) * 50); return load(); } data = d; error = ''; }
     catch (e) { if (id === req) { data = null; error = 'Dish sales could not load: ' + e.message; } }
     if (id === req) render();
@@ -745,12 +781,12 @@ const DishSales = (() => {
     if (!root?.isConnected) return;
     $$('#dsPeriod button', root).forEach(b => b.classList.toggle('on', b.dataset.p === period));
     const rows = data?.rows || [];
-    $('#dsStatus', root).textContent = error || (data ? `${ref ? 'Selected' : 'Current'} ${period} · ${range(data)} · served orders, before tax` : '');
+    $('#dsStatus', root).textContent = error || (data ? `${ref ? 'Selected' : 'Current'} ${period} · ${range(data)} · served orders, before tax` : 'Loading dish sales…');
     const units = rows.reduce((n, r) => n + Number(r.quantity || 0), 0), rev = rows.reduce((n, r) => n + Number(r.revenue || 0), 0);
     const part = (data?.total_rows || 0) > rows.length ? ' (this page)' : '';
     $('#dsSummary', root).innerHTML = data ? RX.sum('Item revenue' + part, Fmt.money(rev), 'big') + RX.sum('Units sold' + part, Fmt.qty(units)) + RX.sum(mode === 'daily' ? 'Day & dish rows' : 'Dishes sold', data.total_rows || 0) : '';
     $('#dsBody', root).innerHTML = rows.length ? rows.map(r => `<tr><td class="num" data-label="Rank">${r.position}</td><td data-label="Date">${r.sale_day ? esc(Fmt.date(r.sale_day)) : esc(range(data))}</td><td data-label="Dish"><b>${esc(r.dish_name)}</b>${r.size_label ? `<small>${esc(r.size_label)}</small>` : ''}</td><td class="num" data-label="Qty sold">${Fmt.qty(r.quantity)}</td><td class="num" data-label="Orders">${r.order_count}</td><td class="num" data-label="Revenue"><b>${Fmt.money(r.revenue)}</b></td></tr>`).join('')
-      : `<tr><td colspan="6"><div class="empty"><h3>No dish sales</h3><p>No served orders in this period.</p></div></td></tr>`;
+      : !data ? '' : `<tr><td colspan="6"><div class="empty"><h3>No dish sales</h3><p>No served orders in this period.</p></div></td></tr>`;
     $('#dsPager', root).innerHTML = data ? RX.pager(data.offset || 0, rows.length, data.total_rows || 0, 'rows') : '';
   }
   async function exportCSV(btn) {
@@ -1053,7 +1089,7 @@ const RestaurantSettings = (() => {
     };
     const call = async (action, a = {}) => { const d = await RX.rpc('restaurant_waiter_accounts66', { p_action: action, p_email: a.email ?? null, p_password: a.password ?? null, p_name: a.name ?? null, p_user: a.user ?? null }); if (root === body) paint(d); return d; };
     const loadPhones = async () => { try { phones = (await Cloud.rpc('shop_staff_phones', {})) || {}; } catch { phones = {}; } };
-    try { await loadPhones(); await call('list'); } catch (e) { $('#waStatus', body).textContent = /waiter_accounts66|schema cache|PGRST202/i.test(e.message) ? 'Waiter logins need a database update. Ask support to install it.' : e.message; }
+    try { const [d] = await Promise.all([RX.rpc('restaurant_waiter_accounts66', { p_action: 'list', p_email: null, p_password: null, p_name: null, p_user: null }), loadPhones()]); if (root === body && $('#waBody', body)) paint(d); } catch (e) { $('#waStatus', body).textContent = /waiter_accounts66|schema cache|PGRST202/i.test(e.message) ? 'Waiter logins need a database update. Ask support to install it.' : e.message; }
     $('#waForm', body).onsubmit = async e => {
       e.preventDefault(); const f = e.target, digits = f.phone.value.replace(/\D/g, '').slice(-10), email = f.email.value.trim().toLowerCase();
       if (f.phone.value.trim() && digits.length !== 10) return toast('Enter a 10-digit mobile number.', 'warn');

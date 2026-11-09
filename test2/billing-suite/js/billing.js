@@ -62,6 +62,12 @@ const Billing = (() => {
   /* Rebuilds the grid only when what is shown actually changes (search, category, stock, items). */
   function renderCatalog(force) {
     if (!root?.isConnected) return;
+    if (!Store.itemsReady) {
+      $('#bCats', root).textContent = '';
+      $('#bGrid', root).innerHTML = `<p class="status-line" role="status">${esc(Store.itemsError || 'Loading items…')}</p>`;
+      catalogSig = null;
+      return;
+    }
     const list = matches(), shown = list.slice(0, 120), codes = Store.feature('item_codes_on_tiles');
     if (highlight >= shown.length) highlight = Math.max(0, shown.length - 1);
     const cats = ['All', ...Store.categories.filter(c => Store.items.some(i => i.active && i.category === c))];
@@ -398,8 +404,8 @@ const Billing = (() => {
     $('#mOpen', view).onclick = () => document.body.classList.add('sheet-open');
     $('#sheetClose', view).onclick = () => document.body.classList.remove('sheet-open');
 
+    Store.loadItems().catch(e => { if (root === view && Store.itemsReady) toast(e.message, 'error'); });
     syncInputs(); renderCatalog(true); renderTicket();
-    Store.loadItems().then(() => { if (root === view) renderCatalog(); }).catch(e => toast(e.message, 'error'));
     setTimeout(focusSearch, 50);
   }
 

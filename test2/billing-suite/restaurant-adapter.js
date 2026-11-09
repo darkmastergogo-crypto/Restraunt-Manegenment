@@ -64,9 +64,11 @@ const Cloud=(()=>{
  function flat(m,size){const stock=size?m.size_stock?.[size]:m.stock,id=key(m.id,size),x=extras?.[id]||{};catalog.set(id,{menu:m,size});return {id,name:m.name+(size?' — '+(m.size_labels?.[size]||size):''),category:m.category,code:m.item_code||'',description:m.description||'',unit:x.unit||'pcs',price:Number(size?m.size_prices[size]:m.price),cost_price:x.cost_price??null,hsn:x.hsn||'',alias:x.alias||'',meta:x.meta||{},active:m.available!==false,track_stock:!!stock?.tracked,stock:Number(stock?.remaining||0),low_stock_at:Number(x.low_stock_at||0),image:m.image||''};}
  async function items(){
   const page=offset=>call('restaurant_staff_menu_page63',{p_query:'',p_category:'All',p_availability:'all',p_offset:offset,p_limit:100});
-  const [first]=await Promise.all([page(0),quiet(loadExtras())]);
+  const itemExtras=quiet(loadExtras());
+  const first=await page(0);
   const total=Number(first.total||0),rest=[];for(let o=(first.items||[]).length;o<total&&(first.items||[]).length;o+=100)rest.push(page(o));
-  const pages=[first,...await Promise.all(rest)];let categories=first.categories||[];
+  const [remaining]=await Promise.all([Promise.all(rest),itemExtras]);
+  const pages=[first,...remaining],categories=first.categories||[];
   const rows=pages.flatMap(d=>(d.items||[]).flatMap(m=>m.sizes_enabled?Object.keys(m.size_prices||{}).map(s=>flat(m,s)):[flat(m,null)]));
   return {items:rows,categories:categories.map(c=>typeof c==='string'?c:c.name)};
  }
@@ -95,8 +97,9 @@ const Cloud=(()=>{
   checkRange(a);
   const exp=addon?expensesIn(a.p_from,a.p_to).catch(()=>null):Promise.resolve(null),low=lowStock();
   let m;
-  const recent=(await hasV19())?call('restaurant_bills19',{p_from:a.p_from,p_to:a.p_to,p_status:'Paid',p_payment:'all',p_query:'',p_offset:0,p_limit:8}).then(r=>(r.rows||[]).map(bill)).catch(()=>[]):Promise.resolve(null);
-  const d19=(await hasV19())?await call('restaurant_dashboard19',{p_from:a.p_from,p_to:a.p_to}).catch(e=>{if(missingFn(e))return null;throw e;}):null;
+  const supportsReports=await hasV19();
+  const recent=supportsReports?call('restaurant_bills19',{p_from:a.p_from,p_to:a.p_to,p_status:'Paid',p_payment:'all',p_query:'',p_offset:0,p_limit:8}).then(r=>(r.rows||[]).map(bill)).catch(()=>[]):Promise.resolve(null);
+  const d19=supportsReports?await call('restaurant_dashboard19',{p_from:a.p_from,p_to:a.p_to}).catch(e=>{if(missingFn(e))return null;throw e;}):null;
   if(d19){const d=d19,x=d.metrics||{};
    m={metrics:{sales:Number(x.sales),bills:Number(x.bills),cancelled:Number(x.cancelled),cancelled_value:Number(x.cancelled_value),avg_bill:Number(x.avg_bill),qty:Number(x.qty),discount:Number(x.discount),tax:Number(x.tax),prev_available:true,prev_sales:Number(x.prev_sales),prev_bills:Number(x.prev_bills)},
     trend_unit:d.trend_unit,trend:(d.trend||[]).map(t=>({key:t.key,label:trendLabel(t.key,d.trend_unit),sales:Number(t.sales),bills:Number(t.bills)})),

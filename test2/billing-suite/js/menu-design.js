@@ -307,8 +307,7 @@ const MenuDesign = (() => {
     addEventListener('message', onMsg); addEventListener('beforeunload', onLeave);
     wire();
     try {
-      const custom = await Cloud.reloadCustom().catch(() => Cloud.custom());
-      const [, cfg, rv] = await Promise.all([loadMenu().catch(e => { toast('Dishes could not be loaded: ' + e.message, 'error'); }),
+      const [custom, , cfg, rv] = await Promise.all([Cloud.reloadCustom().catch(() => Cloud.custom()), loadMenu().catch(e => { toast('Dishes could not be loaded: ' + e.message, 'error'); }),
         RX.rpc('restaurant_waiter_config56', { p_app_name: null, p_song_requests: null }).catch(() => null), RX.rpc('restaurant_review_settings', { p_url: null }).catch(() => null)]);
       if (id !== loading || root !== view) return;
       base = clone(custom.m17 || {}); draft = clone(base);

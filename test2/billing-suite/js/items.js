@@ -19,6 +19,11 @@ const Items = (() => {
   }
   function render() {
     if (!root?.isConnected) return;
+    if (!Store.itemsReady) {
+      $('#iCount', root).textContent = Store.itemsError || 'Loading items…';
+      $('#iBody', root).textContent = '';
+      return;
+    }
     const rows = list(), stock = Store.stockShown();
     const sel = $('#iCat', root), prev = sel.value;
     sel.innerHTML = `<option value="All">All categories</option>` + Store.categories.map(c => `<option ${c === prev ? 'selected' : ''}>${esc(c)}</option>`).join('');
@@ -273,7 +278,7 @@ const Items = (() => {
   function mount(view) {
     root = view;
     view.innerHTML = `<div class="page">
-      <header class="page-head"><div><h1>Items</h1><p class="sub" id="iCount"></p></div>
+      <header class="page-head"><div><h1>Items</h1><p class="sub" id="iCount" role="status"></p></div>
         <div class="head-actions">${Store.can('item_details')?'<a class="btn" href="#/itemDetails">Photos &amp; portions</a>':''}<button type="button" class="btn" id="iCats">Categories</button>${Store.can('settings_shop') ? `<button type="button" class="btn btn-danger-ghost" id="iWipe">${Icon('trash')} Delete all…</button>` : ''}<button type="button" class="btn" id="iImp">${Icon('upload')} Import</button><button type="button" class="btn" id="iExp">${Icon('download')} Export</button><button type="button" class="btn btn-primary" id="iNew">${Icon('plus')} Add item</button></div></header>
       <div class="filters">
         <label class="search sm">${Icon('search')}<input id="iQ" type="search" placeholder="Search name or code" value="${esc(q)}" aria-label="Search items"></label>
@@ -294,8 +299,8 @@ const Items = (() => {
     const open = tr => editor(Store.items.find(i => i.id === tr.dataset.id));
     $('#iBody', view).addEventListener('click', e => { if (e.target.closest('[data-new]')) return editor(); const tr = e.target.closest('tr[data-id]'); if (tr) open(tr); });
     $('#iBody', view).addEventListener('keydown', e => { if (e.key === 'Enter') { const tr = e.target.closest('tr[data-id]'); if (tr) open(tr); } });
+    Store.loadItems().catch(e => { if (root === view && Store.itemsReady) toast(e.message, 'error'); });
     render();
-    Store.loadItems(true).then(render).catch(e => toast(e.message, 'error'));
   }
   document.addEventListener('items:changed', render);
   return { mount, editor, unmount() { root = null; } };

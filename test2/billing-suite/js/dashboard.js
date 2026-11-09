@@ -39,14 +39,19 @@ const Dashboard = (() => {
   }
 
   /* The last result for each period shows at once; the fresh numbers replace it when they arrive. */
-  const cache = new Map();
+  const cache = new Map(), pending = new Map();
   async function load() {
-    const id = ++req, [f, t] = periodRange(period, from, to), k = f + '|' + t, hit = cache.get(k);
+    const id = ++req, [f, t] = periodRange(period, from, to), k = Cloud.userId + '|' + f + '|' + t, hit = cache.get(k);
     if (hit) render(hit);
+    else for (const sel of ['#dKpis', '#dTrend', '#dPay', '#dTop', '#dCats', '#dLow', '#dRecent', '#dMembers', '#dExp']) {
+      const box = $(sel, root);
+      if (box) box.textContent = '';
+    }
     root.classList.toggle('is-loading', !hit);
     $('#dStatus', root).innerHTML = `<span class="spin-dot" aria-hidden="true"></span>${hit ? 'Updating…' : 'Loading…'}`;
     try {
-      const d = await Cloud.rpc('shop_dashboard', { p_from: f, p_to: t });
+      if (!pending.has(k)) pending.set(k, Cloud.rpc('shop_dashboard', { p_from: f, p_to: t }).finally(() => pending.delete(k)));
+      const d = await pending.get(k);
       if (cache.size > 12) cache.delete(cache.keys().next().value);
       cache.set(k, d);
       if (id !== req || !root?.isConnected) return;
@@ -138,5 +143,5 @@ const Dashboard = (() => {
     $('#dRefresh', view).onclick = load;
     load();
   }
-  return { mount, unmount() { root = null; }, refresh() { if (root) load(); } };
+  return { mount, unmount() { req++; root = null; }, refresh() { if (root) load(); } };
 })();

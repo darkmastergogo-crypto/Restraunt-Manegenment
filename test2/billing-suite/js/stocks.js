@@ -14,6 +14,11 @@ const Stocks = (() => {
 
   function renderLevels() {
     if (!root?.isConnected || tab !== 'levels') return;
+    if (!Store.itemsReady) {
+      $('#sSummary', root).innerHTML = `<p class="status-line" role="status">${esc(Store.itemsError || 'Loading stock…')}</p>`;
+      $('#sBody', root).textContent = '';
+      return;
+    }
     const tracked = Store.items.filter(i => i.track_stock && i.active);
     const value = tracked.reduce((a, i) => a + Math.max(0, Number(i.stock)) * Number(i.cost_price ?? i.price), 0);
     const low = tracked.filter(i => Number(i.stock) > 0 && Number(i.stock) <= Number(i.low_stock_at)).length, out = tracked.filter(i => Number(i.stock) <= 0).length;
@@ -69,10 +74,14 @@ const Stocks = (() => {
     } catch (e) { box.innerHTML = `<p class="status-line">${esc(e.message)}</p>`; }
   }
 
+  function loadLevels() {
+    Store.loadItems().catch(e => { if (root?.isConnected && Store.itemsReady) toast(e.message, 'error'); });
+  }
+
   function setTab(t) {
     tab = t; $$('#sTabs button', root).forEach(b => b.classList.toggle('on', b.dataset.t === t));
     $('#sLevels', root).hidden = t !== 'levels'; $('#sMoves', root).hidden = t !== 'history';
-    if (t === 'levels') renderLevels(); else renderMoves();
+    if (t === 'levels') { loadLevels(); renderLevels(); } else renderMoves();
   }
 
   function mount(view) {
@@ -104,7 +113,6 @@ const Stocks = (() => {
       if (e.target.closest('[data-next]')) { movesOffset += 50; renderMoves(); }
     });
     setTab(tab);
-    Store.loadItems(true).then(renderLevels).catch(e => toast(e.message, 'error'));
   }
   document.addEventListener('items:changed', renderLevels);
   return { mount, adjust, unmount() { root = null; } };

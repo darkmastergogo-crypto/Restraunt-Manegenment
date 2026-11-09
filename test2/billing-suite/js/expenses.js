@@ -11,12 +11,23 @@ const Expenses = (() => {
   const nameOf = x => x.head && x.title ? `${x.head} · ${x.title}` : (x.head || x.title || 'Expense');
   const canManage = () => !!data?.can_manage;
 
+  const cache = new Map();
   async function load() {
-    const id = ++req; $('#eStatus', root).textContent = 'Loading…';
+    const id = ++req, key = Cloud.userId + '|' + month;
+    data = cache.get(key) || null;
+    if (data) render();
+    else for (const sel of ['#eKpis', '#eList', '#eHeads', '#eAutos', '#eTypes']) {
+      const box = $(sel, root);
+      if (box) box.textContent = '';
+    }
+    $('#eMonth', root).textContent = monthName(month);
+    $('#eNext', root).disabled = month >= Fmt.monthStart(Fmt.today());
+    $('#eStatus', root).textContent = data ? 'Updating expenses…' : 'Loading expenses…';
     try {
       const d = await Cloud.rpc('shop_expenses_list', { p_from: month, p_to: monthEnd(month) });
       if (id !== req || !root?.isConnected) return;
-      data = d; render();
+      if (cache.size >= 12) cache.delete(cache.keys().next().value);
+      cache.set(key, d); data = d; render();
     } catch (e) { if (id === req && root?.isConnected) $('#eStatus', root).textContent = e.message; }
   }
 
