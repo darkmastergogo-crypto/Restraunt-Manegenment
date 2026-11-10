@@ -1,6 +1,6 @@
 export function configuration() {
-  const url = process.env.https://hdahliawhqdtppunbgkp.supabase.co?.replace(/\/$/, '');
-  const key = process.env.sb_publishable_Tr18JCqsuEgSj3JBgydn3g_6Kx3jh_K;
+  const url = process.env.SUPABASE_URL?.replace(/\/$/, '');
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key?.startsWith('sb_publishable_')) return null;
   return { url, key };
 }
