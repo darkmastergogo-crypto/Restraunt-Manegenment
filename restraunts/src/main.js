@@ -4,7 +4,7 @@ import './style.css';
 const app = document.querySelector('#app');
 const announcement = document.querySelector('#announcement');
 const path = location.pathname.replace(/\/$/, '') || '/';
-const match = /^\/r\/([a-z0-9][a-z0-9-]{0,46}[a-z0-9])(?:\/(team|manage))?$/.exec(path);
+const match = /^\/r\/([a-z0-9][a-z0-9-]{0,46}[a-z0-9])(?:\/(team))?$/.exec(path);
 const slug = match?.[1];
 const restaurantPath = slug ? `/r/${slug}/` : '';
 const ownerRoute = ['/owner', '/owner/restaurants', '/owner/users', '/owner/activity'].includes(path);
@@ -350,41 +350,8 @@ async function chooseRestaurant() {
 }
 
 function tenantNav(admin) {
-  return [ [restaurantPath, 'Client menu', 'plate'], [ `${restaurantPath}manage`, 'Restaurant profile', 'store'], ...(admin ? [[`${restaurantPath}team`, 'Team & invitations', 'users']] : []),
+  return [ [restaurantPath, 'Restaurant profile', 'store'], ...(admin ? [[`${restaurantPath}team`, 'Team & invitations', 'users']] : []),
     ...(standalone ? [] : [[identity.owner ? '/owner' : '/', identity.owner ? 'Owner dashboard' : 'My restaurants', 'grid']]) ];
-}
-
-const price = value => new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value || 0));
-
-async function clientMenu(row) {
-  let categories = [];
-  let items = [];
-  try {
-    [categories, items] = await Promise.all([
-      client.from('restaurant_menu_categories').select('id,name,sort_order').eq('restaurant_id', row.id).order('sort_order').order('name').then(unbox),
-      client.from('restaurant_menu_items').select('id,category_id,name,description,price,image_url,available,featured,sort_order').eq('restaurant_id', row.id).eq('available', true).order('featured', { ascending: false }).order('sort_order').order('name').then(unbox)
-    ]);
-  } catch (error) {
-    // A brand can be published before its first catalog migration reaches an
-    // environment. Keep the client page available and show its empty state.
-    console.warn('Client catalog is unavailable', error.message);
-  }
-  const grouped = categories.map(category => ({ ...category, items: items.filter(item => item.category_id === category.id) }));
-  const ungrouped = items.filter(item => !item.category_id);
-  if (ungrouped.length) grouped.push({ id: 'other', name: 'More to try', items: ungrouped });
-  app.innerHTML = `<main class="client-menu" id="main"><header class="client-top"><a class="client-brand" href="${restaurantPath}" aria-label="${escape(row.name)} menu"><img src="${restaurantPath}icon-192.png" alt="" width="46" height="46"><span><strong>${escape(brand.short_name || row.name)}</strong><small>${escape(brand.slogan || 'Order from our menu')}</small></span></a><a class="button ghost client-manage" href="${restaurantPath}manage">Restaurant sign-in</a></header>
-    <section class="client-hero"><div><span class="eyebrow">WELCOME TO</span><h1>${escape(row.name)}</h1><p>${escape(brand.slogan || 'Freshly prepared for every table.')}</p><div class="client-actions"><a href="#menu" class="button primary">Browse menu</a><button id="client-install" class="button secondary" type="button">Download app</button></div></div><img src="${restaurantPath}icon-512.png" alt="${escape(row.name)} logo"></section>
-    <nav class="client-categories" aria-label="Menu categories"><a href="#menu">All</a>${grouped.map(group => `<a href="#cat-${escape(group.id)}">${escape(group.name)}</a>`).join('')}</nav>
-    <section class="client-content" id="menu"><div class="client-heading"><div><span class="eyebrow">CLIENT MENU</span><h2>Order your favourites</h2></div><p>${items.length ? `${items.length} dishes available today` : 'The menu is being prepared.'}</p></div>${grouped.length ? grouped.map(group => `<section class="client-category" id="cat-${escape(group.id)}"><h2>${escape(group.name)}</h2><div class="client-grid">${group.items.map(item => `<article class="client-dish"><div class="client-dish-image">${item.image_url ? `<img src="${escape(item.image_url)}" alt="${escape(item.name)}">` : `<img src="${restaurantPath}icon-192.png" alt="">`}${item.featured ? '<span>Chef\'s pick</span>' : ''}</div><div class="client-dish-body"><h3>${escape(item.name)}</h3><p>${escape(item.description)}</p><div><strong>${price(item.price)}</strong><button class="client-add" type="button" data-name="${escape(item.name)}" data-price="${escape(item.price)}">Add</button></div></div></article>`).join('')}</div></section>`).join('') : `<div class="client-empty"><img src="${restaurantPath}icon-192.png" alt=""><h2>Menu coming soon</h2><p>The restaurant is getting its menu ready. Please check back shortly.</p></div>`}</section>
-    <footer class="client-footer">${escape(row.name)} · Secure restaurant ordering</footer></main>`;
-  document.querySelectorAll('.client-add').forEach(button => button.addEventListener('click', () => showToast(`${button.dataset.name} added to your order. Ordering checkout will be enabled with the restaurant's payment setup.`)));
-  const install = document.querySelector('#client-install');
-  install?.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return showToast('Use your browser menu and choose “Install page as app” to download this restaurant app.');
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-  });
 }
 
 async function sessionToken() {
@@ -497,17 +464,7 @@ async function changeLogo(action, file, progress) {
   });
 }
 
-async function tenantProfile(row, role, admin) {
-  let categories = [];
-  let menuItems = [];
-  if (admin) {
-    try {
-      [categories, menuItems] = await Promise.all([
-        client.from('restaurant_menu_categories').select('id,name,sort_order').eq('restaurant_id', row.id).order('sort_order').order('name').then(unbox),
-        client.from('restaurant_menu_items').select('id,category_id,name,description,price,available,featured,sort_order').eq('restaurant_id', row.id).order('sort_order').order('name').then(unbox)
-      ]);
-    } catch (error) { console.warn('Client catalog administration is unavailable', error.message); }
-  }
+function tenantProfile(row, role, admin) {
   shell(row.name, tenantNav(admin), `<div class="page-body">${headings('RESTAURANT PROFILE', row.name, brand.slogan || 'Manage your restaurant identity and access.')}
     <section class="card inset profile"><div class="section-head"><div><h2>Brand identity</h2><p class="subtle">Used for your branded sign-in and installed app.</p></div>${badge(roles[role] || 'Platform owner', 'active')}</div>
     <div class="profile-columns"><div class="logo-panel"><img id="restaurant-logo" src="${restaurantPath}icon-192.png" alt="${escape(row.name)} logo" width="144" height="144">
@@ -521,16 +478,13 @@ async function tenantProfile(row, role, admin) {
       <p class="form-error full" role="alert"></p><div class="full"><button class="button primary">Save branding</button></div></form>`
       : `<dl class="status-breakdown"><div><dt>Restaurant</dt><dd>${escape(row.name)}</dd></div><div><dt>App name</dt><dd>${escape(brand.short_name || row.name)}</dd></div>
       <div><dt>Status</dt><dd>${badge(statuses[row.status], row.status)}</dd></div></dl>`}</div></section>
-    ${admin ? `<section class="card inset"><div class="section-head"><div><h2>Client menu</h2><p class="subtle">This is the menu your client sees at <a class="text-link" href="${restaurantPath}" target="_blank" rel="noopener">${restaurantPath}</a>.</p></div></div>
-      <div class="catalog-admin"><form id="new-category" class="form-grid"><label>Category name<input name="name" maxlength="60" required placeholder="e.g. Starters"></label><label>Display order<input name="sort_order" type="number" min="0" max="100000" value="0"></label><p class="form-error full" role="alert"></p><div class="full"><button class="button secondary" type="submit">${icon('plus', 16)} Add category</button></div></form>
-      <form id="new-menu-item" class="form-grid"><label>Dish name<input name="name" maxlength="120" required placeholder="e.g. Truffle mushroom risotto"></label><label>Price (INR)<input name="price" type="number" min="0" max="1000000" step="0.01" required></label><label>Category<select name="category_id"><option value="">More to try</option>${categories.map(category => `<option value="${escape(category.id)}">${escape(category.name)}</option>`).join('')}</select></label><label>Display order<input name="sort_order" type="number" min="0" max="100000" value="0"></label><label class="full">Description<input name="description" maxlength="600" placeholder="A short description for clients"></label><label class="full">Photo URL (optional)<input name="image_url" type="url" maxlength="2048" placeholder="https://..."></label><label class="check"><input name="featured" type="checkbox"> Feature this dish</label><p class="form-error full" role="alert"></p><div class="full"><button class="button primary" type="submit">${icon('plus', 16)} Add to client menu</button></div></form></div>
-      ${menuItems.length ? `<div class="table-scroll"><table><thead><tr><th>Dish</th><th>Price</th><th>Client status</th><th></th></tr></thead><tbody>${menuItems.map((item, index) => `<tr><td><strong>${escape(item.name)}</strong><small>${escape(item.description)}</small></td><td>${price(item.price)}</td><td>${badge(item.available ? 'Available' : 'Hidden', item.available ? 'active' : 'suspended')}</td><td><form id="menu-item-${index}" class="row-actions"><button class="button secondary" name="action" value="toggle">${item.available ? 'Hide' : 'Show'}</button><button class="button secondary" name="action" value="delete">Remove</button></form></td></tr>`).join('')}</tbody></table></div>` : empty('No menu items yet', 'Add dishes here. They appear immediately on the client URL.')}</section>` : ''}
-    <section class="card inset"><h2>Install this restaurant app</h2><p class="subtle">Download a shortcut that opens directly to this restaurant’s client menu.</p>
-    <div class="row-actions"><button id="install-app" class="button primary" type="button">Download app</button><a class="text-link" href="${restaurantPath}manifest.webmanifest">View app manifest ${icon('arrow', 16)}</a></div>
-    <p id="install-help" class="subtle">If the download prompt is unavailable, use your browser’s menu and choose “Install page as app”.</p></section></div>`, 'RESTAURANT WORKSPACE');
+    <section class="card inset"><h2>Install this restaurant app</h2><p class="subtle">Install a shortcut that opens directly to this restaurant’s workspace.</p>
+    <div class="row-actions"><button id="install-app" class="button primary" type="button" hidden>Download app</button><a class="text-link" href="${restaurantPath}manifest.webmanifest">View app manifest ${icon('arrow', 16)}</a></div>
+    <p id="install-help" class="subtle">If the download button is unavailable, use your browser’s menu and choose “Install page as app”.</p></section></div>`, 'RESTAURANT WORKSPACE');
   const installButton = document.querySelector('#install-app');
+  if (installButton && deferredInstallPrompt) installButton.hidden = false;
   installButton?.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return showToast('Use your browser’s menu and choose “Install page as app” to download this restaurant app.');
+    if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
@@ -555,25 +509,6 @@ async function tenantProfile(row, role, admin) {
       showToast(action === 'upload' ? 'Logo uploaded.' : 'Restaurant monogram restored.');
     } finally { progress.hidden = true; }
   });
-  bindForm('new-category', async ({ name, sort_order }, _button, form) => {
-    unbox(await client.from('restaurant_menu_categories').insert({ restaurant_id: row.id, name: name.trim(), sort_order: Number(sort_order) || 0 }));
-    form.reset();
-    await tenantProfile(row, role, admin);
-  });
-  bindForm('new-menu-item', async ({ name, price: itemPrice, category_id, sort_order, description, image_url, featured }, _button, form) => {
-    unbox(await client.from('restaurant_menu_items').insert({ restaurant_id: row.id, name: name.trim(), price: Number(itemPrice), category_id: category_id || null,
-      sort_order: Number(sort_order) || 0, description: description.trim(), image_url: image_url.trim(), featured: featured === 'on' }));
-    form.reset();
-    await tenantProfile(row, role, admin);
-  });
-  menuItems.forEach((item, index) => bindForm(`menu-item-${index}`, async (_values, button) => {
-    if (button?.value === 'delete') {
-      unbox(await client.from('restaurant_menu_items').delete().eq('id', item.id));
-    } else {
-      unbox(await client.from('restaurant_menu_items').update({ available: !item.available }).eq('id', item.id));
-    }
-    await tenantProfile(row, role, admin);
-  }));
 }
 
 let deferredInstallPrompt = null;
@@ -590,8 +525,7 @@ async function tenantWorkspace(row) {
     if (!admin) return blocked('Team access unavailable', 'Only the restaurant administrator can manage team access.', `<a class="text-link" href="${restaurantPath}">Back to restaurant profile</a>`);
     return team(row);
   }
-  if (match[2] === 'manage') return tenantProfile(row, membership?.role, admin);
-  return clientMenu(row);
+  tenantProfile(row, membership?.role, admin);
 }
 
 async function setupPwa() {
@@ -642,12 +576,6 @@ function tenantUnavailable() {
 async function render() {
   if (!slug && !ownerRoute && !['/', '/account', '/accept'].includes(path)) return blocked('Page unavailable', 'This address does not match a workspace page.', '<a class="text-link" href="/">Go to sign-in</a>');
   if (path === '/accept' && !/^[a-f0-9]{64}$/.test(inviteToken || '')) return blocked('Invitation unavailable', 'Open the original link from your invitation.', '<a class="text-link" href="/">Go to sign-in</a>');
-  // The canonical restaurant URL is the public client menu. Management lives at
-  // /r/{slug}/manage, so a client never lands in the owner console.
-  if (slug && !match[2]) {
-    if (!(await loadBrand())) return tenantUnavailable();
-    return clientMenu({ id: brand.id, slug: brand.slug, name: brand.name, status: 'active' });
-  }
   const { session } = unbox(await client.auth.getSession());
   user = session?.user;
   if (!user) {
@@ -695,3 +623,4 @@ async function boot() {
 }
 
 boot().catch(showProblem);
+
