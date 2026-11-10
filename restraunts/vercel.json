@@ -8,6 +8,7 @@
     { "source": "/r/:slug/icon-512.png", "destination": "/api/logo?slug=:slug&size=512" },
     { "source": "/r/:slug/sw.js", "destination": "/restaurant-worker.js" },
     { "source": "/r/:slug/team", "destination": "/index.html" },
+    { "source": "/r/:slug/manage", "destination": "/index.html" },
     { "source": "/r/:slug", "destination": "/index.html" },
     { "source": "/owner/restaurants", "destination": "/index.html" },
     { "source": "/owner/activity", "destination": "/index.html" },
