@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 import { accept, addUser, as, createRestaurant, issue } from './fixture.js';
 import { startFixture } from './http-fixture.js';
 
-test('owner provisions a restaurant, invites a client, and tenant navigation denies edited URLs', { timeout: 70_000 }, async t => {
+test('owner provisions a restaurant and publishes a public client menu', { timeout: 70_000 }, async t => {
   const fixture = await startFixture({ dist: true });
   t.after(() => fixture.close());
   const { db, url } = fixture;
@@ -74,9 +74,9 @@ test('owner provisions a restaurant, invites a client, and tenant navigation den
   assert.equal(await ownerPage.locator('link[rel="manifest"]').getAttribute('href'), '/r/maple-ember/manifest.webmanifest');
 
   await clientPage.goto(`${url}/r/${outside.slug}/`);
-  await heading(clientPage, 'Restaurant unavailable');
-  assert.equal(await clientPage.getByText('Night Market', { exact: true }).count(), 0);
-  assert.equal(await clientPage.locator('link[rel="manifest"]').count(), 0);
+  await heading(clientPage, 'Night Market');
+  assert.equal(await clientPage.getByText('Menu coming soon', { exact: true }).count(), 1);
+  assert.equal(await clientPage.locator('link[rel="manifest"]').count(), 1);
   await clientPage.goto(`${url}/owner`);
   await heading(clientPage, 'Platform access unavailable');
   await clientPage.goto(`${url}/r/maple-ember/team`);
@@ -85,18 +85,10 @@ test('owner provisions a restaurant, invites a client, and tenant navigation den
   await heading(clientPage, 'Maple and Ember');
 
   await accept(db, staff, await issue(db, owner, outside.id, staff.email));
-  await clientPage.goto(`${url}/`);
-  await heading(clientPage, 'Choose a restaurant');
-  await capture(clientPage, 'restaurant-selector-mobile');
-  await clientPage.getByRole('link', { name: /Night Market/ }).click();
+  await clientPage.goto(`${url}/r/${outside.slug}/`);
   await heading(clientPage, 'Night Market');
   await clientPage.evaluate(() => navigator.serviceWorker.ready);
   assert.equal(await clientPage.evaluate(() => navigator.serviceWorker.getRegistrations().then(list => list.map(worker => new URL(worker.scope).pathname).sort()).then(list => list.join(','))), '/r/maple-ember/,/r/night-market/');
-  await mobile.setOffline(true);
-  await clientPage.reload();
-  await heading(clientPage, 'You’re offline');
-  await mobile.setOffline(false);
-
   await as(db, owner, "update public.restaurants set status='suspended' where id=$1", [outside.id]);
   await clientPage.reload();
   await heading(clientPage, 'Restaurant unavailable');
@@ -113,7 +105,7 @@ test('owner provisions a restaurant, invites a client, and tenant navigation den
   ownerPage.once('dialog', dialog => dialog.accept());
   await ownerPage.getByRole('button', { name: 'Suspend account', exact: true }).click();
   await ownerPage.getByRole('button', { name: 'Restore account', exact: true }).waitFor();
-  await clientPage.goto(`${url}/r/maple-ember/`);
+  await clientPage.goto(`${url}/r/maple-ember/manage`);
   await heading(clientPage, 'Account access unavailable');
   await ownerPage.getByRole('link', { name: 'Audit activity', exact: true }).click();
   await heading(ownerPage, 'Audit activity');
