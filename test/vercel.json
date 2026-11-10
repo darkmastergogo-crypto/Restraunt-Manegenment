@@ -17,6 +17,10 @@
       "destination": "/portal/index.html"
     },
     {
+      "source": "/owner/:path*",
+      "destination": "/portal/index.html"
+    },
+    {
       "source": "/restaurants",
       "destination": "/portal/index.html"
     },
