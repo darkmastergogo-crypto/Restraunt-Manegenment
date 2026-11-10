@@ -1,0 +1,28 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/r/:slug/manifest.webmanifest", "destination": "/api/manifest?slug=:slug" },
+    { "source": "/r/:slug/icon-192.png", "destination": "/api/logo?slug=:slug&size=192" },
+    { "source": "/r/:slug/icon-512.png", "destination": "/api/logo?slug=:slug&size=512" },
+    { "source": "/r/:slug/sw.js", "destination": "/restaurant-worker.js" },
+    { "source": "/r/:slug/team", "destination": "/index.html" },
+    { "source": "/r/:slug", "destination": "/index.html" },
+    { "source": "/owner/restaurants", "destination": "/index.html" },
+    { "source": "/owner/activity", "destination": "/index.html" },
+    { "source": "/owner/users", "destination": "/index.html" },
+    { "source": "/owner", "destination": "/index.html" },
+    { "source": "/account", "destination": "/index.html" },
+    { "source": "/accept", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/(.*)", "headers": [
+      { "key": "Referrer-Policy", "value": "no-referrer" },
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none'" }
+    ] },
+    { "source": "/r/:slug/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}
