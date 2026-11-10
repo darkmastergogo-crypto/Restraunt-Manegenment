@@ -478,8 +478,18 @@ function tenantProfile(row, role, admin) {
       <p class="form-error full" role="alert"></p><div class="full"><button class="button primary">Save branding</button></div></form>`
       : `<dl class="status-breakdown"><div><dt>Restaurant</dt><dd>${escape(row.name)}</dd></div><div><dt>App name</dt><dd>${escape(brand.short_name || row.name)}</dd></div>
       <div><dt>Status</dt><dd>${badge(statuses[row.status], row.status)}</dd></div></dl>`}</div></section>
-    <section class="card inset"><h2>Install this restaurant app</h2><p class="subtle">Use your browser’s install option or Add to Home Screen on your phone. The app opens to this restaurant’s workspace.</p>
-    <a class="text-link" href="${restaurantPath}manifest.webmanifest">View app manifest ${icon('arrow', 16)}</a></section></div>`, 'RESTAURANT WORKSPACE');
+    <section class="card inset"><h2>Install this restaurant app</h2><p class="subtle">Install a shortcut that opens directly to this restaurant’s workspace.</p>
+    <div class="row-actions"><button id="install-app" class="button primary" type="button" hidden>Download app</button><a class="text-link" href="${restaurantPath}manifest.webmanifest">View app manifest ${icon('arrow', 16)}</a></div>
+    <p id="install-help" class="subtle">If the download button is unavailable, use your browser’s menu and choose “Install page as app”.</p></section></div>`, 'RESTAURANT WORKSPACE');
+  const installButton = document.querySelector('#install-app');
+  if (installButton && deferredInstallPrompt) installButton.hidden = false;
+  installButton?.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installButton.hidden = true;
+  });
   bindForm('branding', async ({ name, short_name, slogan, theme_color, background_color }) => {
     await rpc('platform_save_brand', { p_restaurant: row.id, p_name: name, p_short_name: short_name, p_slogan: slogan,
       p_theme_color: theme_color, p_background_color: background_color });
@@ -500,6 +510,13 @@ function tenantProfile(row, role, admin) {
     } finally { progress.hidden = true; }
   });
 }
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  document.querySelector('#install-app')?.removeAttribute('hidden');
+});
 
 async function tenantWorkspace(row) {
   const membership = identity.owner ? null : unbox(await client.from('memberships').select('role').eq('restaurant_id', row.id).eq('user_id', user.id).eq('active', true).maybeSingle());
@@ -606,3 +623,4 @@ async function boot() {
 }
 
 boot().catch(showProblem);
+
