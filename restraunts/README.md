@@ -1,5 +1,7 @@
 # Restaurant Operations foundation
 
+Vercel deployments use `restraunts` as the project root directory.
+
 This source package implements the first shared-tenant release slice. It covers platform portfolio management, verified account access, restaurant membership and invitations, branding, R2 logo handling, audit activity, and installable tenant identities. POS, kitchen, QR ordering, inventory, records, offline tills and Telegram still need their v21 contracts ported to the shared project. Use a separate staging project for this package. The supplied v21 archive is the operational baseline for the rest of the migration.
 
 ## Run the local checks
@@ -68,3 +70,4 @@ $$;
 Open the authorized restaurant’s root path in a supported browser. Use **Install** or **Add to Home Screen**. The manifest ID, start URL and scope all use that restaurant’s canonical path. The worker caches only an offline information page in its own scope. The app requires connectivity for identity and authorization. Native OS installation and OS icon refresh remain part of the staging checklist.
 
 See [architecture and settings](docs/architecture.md) and [acceptance gates](docs/acceptance.md) for the current scope and remaining work.
+
