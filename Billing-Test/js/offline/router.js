@@ -37,7 +37,10 @@ const OfflineMode = (() => {
     shop_member_history: 'Member history', shop_member_checkin: 'Check-ins', shop_member_set_dates: 'Membership dates',
     shop_member_login_set: 'Member logins', shop_member_login_remove: 'Member logins',
     shop_plan_save: 'Plans', shop_plan_delete: 'Plans', shop_checkin_code: 'The check-in code',
-    shop_attendance_mark: 'Attendance', shop_attendance_list: 'Attendance'
+    shop_attendance_mark: 'Attendance', shop_attendance_list: 'Attendance',
+    shop_member_pay_due: 'Taking a member’s due payment', shop_member_delete: 'Deleting a member',
+    shop_member_review_clear: 'Review offers', shop_member_review_done: 'Reviews', shop_member_app_save: 'Member app settings',
+    shop_notices_list: 'Notices', shop_notice_save: 'Notices', shop_notice_delete: 'Notices'
   };
 
   let base = null, ctx = {}, ready = false;

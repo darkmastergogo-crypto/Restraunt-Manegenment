@@ -119,8 +119,52 @@ const App = (() => {
     };
   }
 
+  /* ---------- install first (phones, in the browser) ----------
+     On a phone the app asks to be installed before anything else. After that it opens from the
+     home screen with one tap, already signed in, straight to the days left. */
+  function installView(next) {
+    app().className = 'auth';
+    const shop = App.publicInfo?.shop_name || Cloud.cfg.shopName || LS.get('SHOPBILL_BRAND')?.short || 'Shop Billing';
+    const icon = LS.get('SHOPBILL_ICON')?.icon, ios = Install.ios(), again = Install.wasInstalled();
+    const paint = (state = '') => {
+      const can = Install.canPrompt;
+      app().innerHTML = `<main class="auth-wrap"><section class="auth-card install-card">
+        <div class="brand-mark ${icon ? 'has-img' : ''}">${icon ? `<img src="${icon}" alt="">` : Icon('bill')}</div>
+        <h1>${esc(shop)}</h1>
+        ${state === 'done' ? `<div class="install-done">${Icon('check')}<div><b>Installed!</b><p>Open <b>${esc(shop)}</b> from your home screen. One tap and you are in — sign in once, then it opens straight to your days left.</p></div></div>`
+          : `<p class="sub">Install the app first. Then it opens from your home screen with one tap.</p>
+        ${can ? `<button type="button" class="btn btn-primary btn-xl" id="instBtn">${Icon('download')} Install app</button>` : ''}
+        ${ios ? `<ol class="install-steps"><li>Tap the <b>Share</b> button ${Icon('upload')} at the bottom of Safari.</li><li>Scroll and tap <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>, then open the app from your home screen.</li></ol>`
+          : !can ? `<ol class="install-steps"><li>Tap the browser menu <b>⋮</b> (top right).</li><li>Tap <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Open the app from your home screen.</li></ol>` : ''}
+        ${again ? `<p class="hint center">Already installed? Open it from your home screen.</p>` : ''}`}
+        <button type="button" class="linkish install-skip" id="instSkip">Continue in the browser this time</button>
+      </section>${vendorLine()}</main>`;
+      $('#instBtn')?.addEventListener('click', async e => {
+        busy(e.currentTarget, true, 'Installing…');
+        const ok = await Install.prompt();
+        if (ok) paint('done'); else busy(e.currentTarget, false);
+      });
+      $('#instSkip').onclick = () => { Install.skip(); next(); };
+    };
+    paint();
+    installPaint = paint;
+    if (!installWired) {
+      installWired = true;
+      document.addEventListener('install:ready', () => { if (!$('.install-done') && $('.install-card')) installPaint(); });
+      document.addEventListener('install:done', () => { if ($('.install-card')) installPaint('done'); });
+    }
+  }
+  let installPaint = () => {}, installWired = false;
+
   /* ---------- shell ---------- */
-  const navKeys = () => Object.keys(ROUTES).filter(k => Store.can(ROUTES[k].perm));
+  /* Gym, library and coaching run on members: their Members screen comes first and opens on start. */
+  const MEMBERS_FIRST = ['gym', 'library', 'coaching'];
+  function routeOrder() {
+    const keys = Object.keys(ROUTES), pid = Store.sys.preset?.id;
+    const first = Store.moduleOn('members') && (MEMBERS_FIRST.includes(pid) || !Store.moduleOn('items'));
+    return first ? ['members', ...keys.filter(k => k !== 'members')] : keys;
+  }
+  const navKeys = () => routeOrder().filter(k => Store.can(ROUTES[k].perm));
   const navHTML = () => navKeys().map(k => `<a href="#/${k}" data-route="${k}" class="${k === 'admin' ? 'nav-admin' : ''}">${Icon(ROUTES[k].icon)}<span>${esc(routeLabel(ROUTES[k]))}</span>${k === 'billing' && !isTouch() ? '<kbd>F2</kbd>' : ''}</a>`).join('');
   function shell() {
     const me = Store.me;
@@ -244,7 +288,7 @@ const App = (() => {
     if (Store.isMember) return;
     $$('dialog[open]').forEach(d => d.close());   // a link inside a dialog must not leave the dialog covering the new screen
     let key = (location.hash.match(/^#\/(\w+)/) || [])[1];
-    if (!ROUTES[key] || !Store.can(ROUTES[key].perm)) key = Object.keys(ROUTES).find(k => Store.can(ROUTES[k].perm)) || 'billing';
+    if (!ROUTES[key] || !Store.can(ROUTES[key].perm)) key = routeOrder().find(k => Store.can(ROUTES[k].perm)) || 'billing';
     if (location.hash !== '#/' + key) history.replaceState(null, '', '#/' + key);
     current?.unmount?.();
     const r = ROUTES[key]; current = r.view();
@@ -328,6 +372,14 @@ const App = (() => {
       route();
     });
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+    // On a phone in the browser: install first. A check-in QR opened with the camera still checks in straight away.
+    if (Install.needed() && !sessionStorage.getItem('SHOPBILL_CHECKIN')) {
+      loadPublic().then(() => { if ($('.install-card') && !$('.install-done')) installView(afterInstall); });
+      return installView(afterInstall);
+    }
+    return afterInstall();
+  }
+  async function afterInstall() {
     if (Cloud.signedIn) return start();
     loginView();
     await loadPublic();

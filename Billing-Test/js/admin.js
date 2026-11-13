@@ -31,7 +31,7 @@ const Admin = (() => {
     modules: { billing: true, dashboard: true, records: true, items: true, stocks: true, expenses: true, members: false },
     payments: { Cash: true, UPI: true, Card: true },
     features: { extra_items: true, customer_details: false, customer_address: false, notes: true, whatsapp: true, cash_received: true, stock_badges: true, item_codes_on_tiles: true, qty_badges: true },
-    members: { remind_days: 5, login: true, attendance: true, checkin_gap_minutes: 120, see_plan: true, see_days_left: true, see_history: true, see_attendance: true, see_payments: true },
+    members: { remind_days: 5, login: true, attendance: true, checkin_gap_minutes: 120, checkout_after_minutes: 10, see_plan: true, see_days_left: true, see_history: true, see_attendance: true, see_payments: true },
     roles: {
       owner: ['billing', 'records', 'records_all', 'dashboard', 'items', 'stocks', 'expenses', 'expenses_manage', 'members', 'members_add', 'members_renew', 'members_plans', 'members_login', 'attendance', 'settings_shop', 'settings_tax', 'settings_design', 'settings_contact', 'staff', 'roles_manager', 'roles_cashier', 'discount', 'short_cash', 'cancel_bills', 'export', 'reset'],
       manager: ['billing', 'records', 'records_all', 'dashboard', 'items', 'stocks', 'expenses', 'members', 'members_add', 'members_renew', 'members_plans', 'attendance', 'settings_tax', 'roles_cashier', 'discount', 'short_cash', 'cancel_bills', 'export'],
@@ -108,7 +108,7 @@ const Admin = (() => {
         <div class="mod-rows">${MODULES.map(([k, t]) => `<div class="mod-row">${sw('m_' + k, d.modules[k], t)}<input name="l_${k}" maxlength="24" value="${esc(d.labels[k] || '')}" placeholder="${esc(MODULE_LABEL[k])}" aria-label="Name shown for ${esc(t)}"></div>`).join('')}</div></section>
       <section class="card" data-members-box><header class="card-head"><h2>Members</h2></header>
         <div class="form-grid"><label class="field"><span>Remind when this many days are left</span><input name="remind_days" type="number" min="0" max="60" value="${Number(d.members.remind_days)}"><small class="hint">Members this close to their end date move to the top in orange.</small></label>
-          <label class="field"><span>Minutes before the same member can check in again</span><input name="gap" type="number" min="0" max="1440" value="${Number(d.members.checkin_gap_minutes)}"></label></div>
+          <label class="field"><span>Minutes before a second scan counts as leaving</span><input name="gap" type="number" min="1" max="600" value="${Number(d.members.checkout_after_minutes ?? 10)}"><small class="hint">First scan of the day checks in, the next scan checks out. A scan sooner than this is ignored as a double scan.</small></label></div>
         <div class="switches two">${sw('mem_login', d.members.login, 'Member app login', 'Members sign in with their mobile number to see their plan.')}${sw('mem_att', d.members.attendance, 'QR attendance', 'Members scan the front-desk QR to check in; staff can check them in too.')}</div>
         <h3 class="sub-h">What members see in their app</h3>
         <div class="switches two">${MEMBER_SEES.map(([k, t]) => sw('see_' + k, d.members[k], t)).join('')}</div>
@@ -135,7 +135,7 @@ const Admin = (() => {
         modules: Object.fromEntries(MODULES.map(([k]) => [k, f['m_' + k].checked])), labels,
         payments: Object.fromEntries(['Cash', 'UPI', 'Card'].map(m => [m, f['pay_' + m].checked])),
         features: Object.fromEntries(FEATURES.map(([k]) => [k, f['f_' + k].checked])),
-        members: { remind_days: Number(f.remind_days.value) || 0, checkin_gap_minutes: Number(f.gap.value) || 0, login: f.mem_login.checked, attendance: f.mem_att.checked, ...Object.fromEntries(MEMBER_SEES.map(([k]) => [k, f['see_' + k].checked])) },
+        members: { remind_days: Number(f.remind_days.value) || 0, checkout_after_minutes: Math.max(1, Number(f.gap.value) || 10), login: f.mem_login.checked, attendance: f.mem_att.checked, ...Object.fromEntries(MEMBER_SEES.map(([k]) => [k, f['see_' + k].checked])) },
         roles, plans
       }
     };

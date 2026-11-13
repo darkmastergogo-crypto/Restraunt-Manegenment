@@ -178,6 +178,50 @@ function parseCSV(text) {
   return rows.filter(r => r.some(c => c.trim() !== ''));
 }
 
+/* Shift timing (plans like "Morning 6:00–11:00"): how early or late someone came and left.
+   Outside the shift (came before it started, left after it ended) shows in red. */
+const Shift = {
+  GRACE: 5,
+  t12(hhmm) { if (!hhmm) return ''; const [h, m] = String(hhmm).split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'pm' : 'am'}`; },
+  range(s, e) { return s && e ? `${this.t12(s)} – ${this.t12(e)}` : ''; },
+  dur(n) { n = Math.abs(n); return n < 120 ? `${n} min` : `${Math.floor(n / 60)} h${n % 60 ? ` ${n % 60} min` : ''}`; },
+  inTag(v) {
+    if (!v?.shift_start || v.in_diff == null) return null; const d = v.in_diff;
+    if (Math.abs(d) <= this.GRACE) return { cls: 'ok', text: 'Came on time' };
+    return d > 0 ? { cls: 'warn', text: `Came ${this.dur(d)} late` } : { cls: 'bad', text: `Came ${this.dur(d)} early (before the shift)` };
+  },
+  outTag(v) {
+    if (!v?.shift_end || v.out_diff == null) return null; const d = v.out_diff;
+    if (Math.abs(d) <= this.GRACE) return { cls: 'ok', text: 'Left on time' };
+    return d > 0 ? { cls: 'bad', text: `Left ${this.dur(d)} late` } : { cls: 'warn', text: `Left ${this.dur(d)} early` };
+  },
+  tagHTML(t) { return t ? `<span class="sh-tag sh-${t.cls}">${esc(t.text)}</span>` : ''; },
+  tags(v) { return this.tagHTML(this.inTag(v)) + this.tagHTML(this.outTag(v)); },
+  /* "6:12 am → 12:00 pm" */
+  span(v) { return v.out_at ? `${Fmt.time(v.at)} → ${Fmt.time(v.out_at)}` : `${Fmt.time(v.at)} → still inside`; },
+  worst(v) { const c = [this.inTag(v), this.outTag(v)].filter(Boolean).map(t => t.cls); return c.includes('bad') ? 'bad' : c.includes('warn') ? 'warn' : c.length ? 'ok' : ''; }
+};
+
+/* Installing the app on a phone's home screen (Android / iPhone). */
+const Install = (() => {
+  let deferred = null;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; document.dispatchEvent(new CustomEvent('install:ready')); });
+  addEventListener('appinstalled', () => { deferred = null; try { localStorage.setItem('SHOPBILL_INSTALLED', '1'); } catch { /* storage blocked */ } document.dispatchEvent(new CustomEvent('install:done')); });
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: minimal-ui)').matches
+    || navigator.standalone === true || document.referrer.startsWith('android-app://');
+  const ios = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const desktopApp = () => '__TAURI__' in window || '__TAURI_INTERNALS__' in window;
+  function needed() {
+    if (standalone() || desktopApp() || !isTouch()) return false;
+    try { if (sessionStorage.getItem('SHOPBILL_SKIP_INSTALL')) return false; } catch { /* storage blocked */ }
+    return true;
+  }
+  async function prompt() { if (!deferred) return null; const d = deferred; d.prompt(); const c = await d.userChoice; deferred = null; return c.outcome === 'accepted'; }
+  function skip() { try { sessionStorage.setItem('SHOPBILL_SKIP_INSTALL', '1'); } catch { /* storage blocked */ } }
+  const wasInstalled = () => { try { return localStorage.getItem('SHOPBILL_INSTALLED') === '1'; } catch { return false; } };
+  return { needed, prompt, skip, standalone, ios, wasInstalled, get canPrompt() { return !!deferred; } };
+})();
+
 /* Inline SVG icon set (stroke icons, 24px grid). */
 const ICONS = {
   bill: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -221,6 +265,10 @@ const ICONS = {
   bell: '<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
   grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  megaphone: '<path d="M3 10v4h4l7 4V6L7 10z"/><path d="M17 9a4 4 0 0 1 0 6M7 14l1.5 6h3L10 15"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+  seat: '<path d="M6 4v9h11"/><path d="M6 13l-1 7M17 13v7M9 9h7"/>',
   sliders: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>', ban: '<circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/>', barcode: '<path d="M4 5v14M7 5v14M10 5v14M14 5v14M17 5v14M20 5v14"/>'
 };
 function Icon(name, cls = '') { return `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ''}</svg>`; }
