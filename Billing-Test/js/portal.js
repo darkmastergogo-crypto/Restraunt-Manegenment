@@ -36,8 +36,25 @@ const Portal = (() => {
     return `<div class="p-done">${Icon('check')}<div><b>Checked in today</b><small>${m.month_visits || 0} visit${m.month_visits === 1 ? '' : 's'} this month</small></div></div>`;
   }
 
+  /* Plan ended too long ago: the app only asks them to renew. */
+  function renderLocked() {
+    const m = me(), s = Store.settings, ago = -(m.days_left || 0), due = Number(m.due) || 0, tel = String(s.contact_phone || s.phone || '');
+    root.className = 'portal';
+    root.innerHTML = `<header class="p-top"><div class="p-brand">${s.logo ? `<img src="${esc(s.logo)}" alt="">` : `<span class="logo-chip">${esc((s.shop_name || 'S').charAt(0))}</span>`}<div><b>${esc(s.shop_name || '')}</b><small>${esc(Store.label1('members'))} app</small></div></div>
+        <button type="button" class="icon-btn" data-help aria-label="Help & contact">${Icon('help')}</button><button type="button" class="icon-btn" id="pOut" aria-label="Sign out">${Icon('logout')}</button></header>
+      <main class="p-main"><section class="p-card p-locked">${Icon('lock')}
+        <h1>Please renew your membership</h1>
+        <p>Hi ${esc(String(m.name || '').split(' ')[0])}, your ${esc(m.plan_name || 'plan')} ended on <b>${esc(Fmt.date(m.end_date))}</b> (${ago} day${ago === 1 ? '' : 's'} ago). Renew at the front desk to use the app again.</p>
+        ${due > 0 ? `<p class="p-warn bad">${Icon('rupee')} ${esc(Fmt.money(due))} is also still to pay.</p>` : ''}
+        ${tel ? `<a class="btn btn-primary btn-xl" href="tel:${esc(tel.replace(/[^\d+]/g, ''))}">${Icon('phone')} Call ${esc(s.shop_name || 'the front desk')}</a>` : ''}
+        <button type="button" class="btn btn-ghost" data-recheck>${Icon('refresh')} I have renewed — check again</button></section></main>`;
+    $('#pOut', root).onclick = App.signOut;
+    $('[data-recheck]', root).onclick = async e => { busy(e.currentTarget, true, 'Checking…'); try { await App.refreshMe(); if (Store.me?.locked) toast('Not renewed yet. Please see the front desk.', 'warn'); } catch (ex) { toast(ex.message, 'error'); } };
+  }
+
   function render() {
     if (!root) return;
+    if (Store.me?.locked) return renderLocked();
     const m = me(), c = cfg(), s = Store.settings, [num, cap] = bigDays(m), att = c.attendance !== false, a = appCfg();
     const kind = { new: 'Joined', renew: 'Renewed', change: 'Changed plan', payment: 'Paid balance' };
     const due = Number(m.due) || 0, credit = Number(m.review_credit) || 0, ended = m.status === 'expired' || m.status === 'none';
@@ -109,7 +126,7 @@ const Portal = (() => {
   }
 
   async function popups() {
-    if (popupsDone) return; popupsDone = true;
+    if (popupsDone || Store.me?.locked) return; popupsDone = true;
     if (sessionStorage.getItem('SHOPBILL_CHECKIN')) return;      // checking in comes first
     const fresh = unseen();
     if (fresh.length) await showNotices(fresh, fresh.length === 1 ? 'New from the front desk' : `${fresh.length} new messages`);

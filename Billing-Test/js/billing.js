@@ -227,7 +227,8 @@ const Billing = (() => {
     const canSave = !saving && (pending || cart.length > 0), k = isTouch() ? '' : ' <kbd>F8</kbd>', k9 = isTouch() ? '' : ' <kbd>F9</kbd>';
     $('#tSave', root).disabled = !canSave; $('#tPrint', root).disabled = !canSave;
     $('#tSave', root).innerHTML = saving ? 'Saving…' : pending ? 'Retry save' : 'Save' + k;
-    $('#tPrint', root).innerHTML = saving ? 'Saving…' : pending ? `${Icon('printer')} Retry & print` : `${Icon('printer')} Save & print${k9}`;
+    const mm = MAIN[mainMode()];
+    $('#tPrint', root).innerHTML = saving ? 'Saving…' : pending ? `${Icon(mm.icon)} Retry & ${mm.retry}` : `${Icon(mm.icon)} ${mm.label}${k9}`;
     $('#tClear', root).disabled = lock || !cart.length;
     $('#tPending', root).hidden = !pending;
 
@@ -269,8 +270,24 @@ const Billing = (() => {
     $('#tReceived', root).value = received; paintFields();
   }
 
+  /* ---------- what the big button does (set per device with the small button next to it) ---------- */
+  const MAIN = {
+    print: { label: 'Save & print', retry: 'print', icon: 'printer', hint: 'Saves the bill and opens the print window.' },
+    view: { label: 'Save & show bill', retry: 'show', icon: 'bill', hint: 'Saves the bill and shows it on screen — the customer can scan its QR to pay. Print from there if needed.' },
+    save: { label: 'Save', retry: 'save', icon: 'check', hint: 'Only saves the bill. Nothing opens.' }
+  };
+  function mainMode() { try { const v = localStorage.getItem('SHOPBILL_MAIN_BTN'); return MAIN[v] ? v : 'print'; } catch { return 'print'; } }
+  function chooseMain() {
+    const cur = mainMode();
+    const d = modal('Big button', `<form class="stack" id="mbForm"><p class="hint">Choose what happens when you press the big blue button${isTouch() ? '' : ' (or F9)'} on this device.</p>
+      <div class="choice-list">${Object.entries(MAIN).map(([k, v]) => `<label class="choice"><input type="radio" name="mode" value="${k}" ${k === cur ? 'checked' : ''}><span>${Icon(v.icon)}<b>${v.label}</b><small>${v.hint}</small></span></label>`).join('')}</div>
+      <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">Use this</button></div></form>`, { size: 'modal-sm' });
+    $('#mbForm', d).onsubmit = e => { e.preventDefault(); try { localStorage.setItem('SHOPBILL_MAIN_BTN', e.target.mode.value); } catch { /* storage blocked */ } d.close(); renderTicket(); toast(`Big button: ${MAIN[e.target.mode.value].label}.`, 'ok'); };
+  }
+
   /* ---------- save ---------- */
   async function save(andPrint) {
+    if (andPrint === 'main') andPrint = mainMode() === 'save' ? false : mainMode();
     if (saving) return;
     if (!pending) {
       if (!cart.length) return;
@@ -297,7 +314,8 @@ const Billing = (() => {
       lastBill = bill; resetBill(); payment = Store.payments()[0] || 'Cash';
       syncInputs(); toast(`${bill.bill_no} saved · ${Fmt.money(bill.total)}${Number(bill.change_amount) > 0 ? ' · return ' + Fmt.money(bill.change_amount) : ''}`, 'ok');
       document.body.classList.remove('sheet-open');
-      if (andPrint) Receipt.print(bill);
+      if (andPrint === 'view' && typeof Records !== 'undefined') Records.openBill(bill);
+      else if (andPrint) Receipt.print(bill);
       Store.applyStockUpdates(bill.stock_updates);
     } catch (e) {
       if (e.code === 'LOCKED') return;
@@ -318,7 +336,7 @@ const Billing = (() => {
     if (!root?.isConnected || $('dialog[open]')) return;
     if (e.key === 'F2') { e.preventDefault(); focusSearch(); }
     else if (e.key === 'F8') { e.preventDefault(); save(false); }
-    else if (e.key === 'F9') { e.preventDefault(); save(true); }
+    else if (e.key === 'F9') { e.preventDefault(); save('main'); }
     else if (e.key === 'F4') { e.preventDefault(); if (!locked()) { const m = Store.payments(); payment = m[(m.indexOf(payment) + 1) % m.length]; renderTicket(); } }
     else if (e.altKey && e.key.toLowerCase() === 'x') { e.preventDefault(); addExtra(); }
     else if (e.altKey && e.key.toLowerCase() === 'n') { e.preventDefault(); clearBill(); }
@@ -359,7 +377,7 @@ const Billing = (() => {
           <div class="pay" role="group" aria-label="Payment method" style="--n:${methods.length}">${methods.map(v => `<button type="button" data-pay="${v}">${v}</button>`).join('')}</div>
           <div class="t-row" id="tCash"><label for="tReceived">Cash received</label><input id="tReceived" type="number" min="0" step="1" inputmode="decimal" placeholder="0"><span class="change" id="tChange"></span></div>
           <p class="t-pending" id="tPending" hidden>This bill did not reach the server yet. Retry saves it once — never twice.</p>
-          <div class="t-actions"><button type="button" class="btn btn-ghost" id="tClear">Clear</button><button type="button" class="btn" id="tSave"></button><button type="button" class="btn btn-primary btn-lg" id="tPrint"></button></div>
+          <div class="t-actions"><button type="button" class="btn btn-ghost" id="tClear">Clear</button><button type="button" class="btn" id="tSave"></button><span class="split-btn"><button type="button" class="btn btn-primary btn-lg" id="tPrint"></button><button type="button" class="btn btn-primary btn-lg split-cfg" id="tMode" aria-label="Choose what the big button does" title="Choose what this button does">${Icon('gear')}</button></span></div>
         </div>
       </aside>
       <div class="m-bar"><span><small id="mCount"></small><b id="mTotal"></b></span><button type="button" class="btn btn-primary" id="mOpen">View bill</button></div>
@@ -406,7 +424,8 @@ const Billing = (() => {
     $('#tCustToggle', view).onclick = () => { showExtras = !showExtras; renderTicket(); if (showExtras) ($('#tCust input:not([hidden])', view))?.focus(); };
     $('.pay', view).addEventListener('click', e => { const b = e.target.closest('[data-pay]'); if (b && !locked()) { payment = b.dataset.pay; renderTicket(); if (cashOn() && !isTouch()) $('#tReceived', view).focus(); } });
     $('#tSave', view).onclick = () => save(false);
-    $('#tPrint', view).onclick = () => save(true);
+    $('#tPrint', view).onclick = () => save('main');
+    $('#tMode', view).onclick = chooseMain;
     $('#tClear', view).onclick = clearBill;
     $('#tDone', view).addEventListener('click', e => {
       if (!lastBill) return;

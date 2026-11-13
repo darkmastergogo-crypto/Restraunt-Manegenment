@@ -40,6 +40,7 @@ const OfflineMode = (() => {
     shop_attendance_mark: 'Attendance', shop_attendance_list: 'Attendance',
     shop_member_pay_due: 'Taking a member’s due payment', shop_member_delete: 'Deleting a member',
     shop_member_review_clear: 'Review offers', shop_member_review_done: 'Reviews', shop_member_app_save: 'Member app settings',
+    shop_member_locker_charge: 'Adding a locker', shop_member_login_get: 'Member logins',
     shop_notices_list: 'Notices', shop_notice_save: 'Notices', shop_notice_delete: 'Notices'
   };
 
@@ -156,7 +157,7 @@ const OfflineMode = (() => {
         try {
           const r = await base(name, args, opts);
           cacheFromServer(name, r);
-          if (name === 'shop_bills_list') return mergeBills(r, await unsent(args.p_from, args.p_to));
+          if (name === 'shop_bills_list') return args.p_kind === 'membership' ? r : mergeBills(r, await unsent(args.p_from, args.p_to));
           if (name === 'shop_dashboard') return mergeDashboard(r, await unsent(args.p_from, args.p_to));
           if (name === 'shop_stock_moves_list') {
             const mine = (await LocalDB.all('stock_moves', { index: 'sync_state', equals: 'pending' }))
@@ -194,7 +195,7 @@ const OfflineMode = (() => {
       const c = await R().catalogue();
       return { rows: c.categories.map(x => ({ name: x.name, sort: x.sort_order, items: 0 })), offline: true };
     }
-    if (name === 'shop_bills_list') return R().bills({ from: args.p_from, to: args.p_to, status: args.p_status,
+    if (name === 'shop_bills_list') return R().bills({ from: args.p_from, to: args.p_to, status: args.p_status, kind: args.p_kind,
       payment: args.p_payment, query: args.p_query, offset: args.p_offset, limit: args.p_limit });
     if (name === 'shop_dashboard') return R().dashboard({ from: args.p_from, to: args.p_to });
     if (name === 'shop_stock_moves_list') return R().stockMoves({ item_id: args.p_item_id, offset: args.p_offset, limit: args.p_limit });

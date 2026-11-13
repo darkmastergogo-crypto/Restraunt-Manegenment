@@ -1212,3 +1212,49 @@ dialog.modal-alert { border-top: 5px solid var(--red); }
 .install-done > .ico { width: 32px; height: 32px; color: var(--green); flex: none; }
 .install-done p { margin: 4px 0 0; color: var(--ink-2); }
 .install-skip { margin-top: 18px; font-size: .82rem; color: var(--muted); }
+
+/* ===================== v7.1: seats, locker, lock screen, big button ===================== */
+.seat-wrap { display: flex; flex-direction: column; gap: 12px; grid-column: 1 / -1; }
+.seat-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.seat-key { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; font-size: .8rem; color: var(--muted); align-items: center; }
+.seat-key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; border: 1px solid var(--line); }
+.sk-taken { background: var(--primary-soft); border-color: var(--primary) !important; }
+.sk-expiring { background: var(--orange-soft); border-color: var(--orange) !important; }
+.sk-ended { background: var(--red-soft); border-color: var(--red) !important; }
+.sk-free { background: var(--surface); border-style: dashed !important; }
+.seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.seat { border: 1.5px solid var(--line); border-radius: 10px; padding: 8px; min-height: 72px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); font-size: .82rem; }
+.seat > b { font-size: 1rem; }
+.seat > small { color: var(--muted); }
+.seat.st-free { border-style: dashed; cursor: pointer; color: var(--muted); }
+.seat.st-free:hover, .seat.st-free:focus-visible { border-color: var(--green); background: var(--green-soft); color: var(--green); outline: none; }
+.seat.st-taken { border-color: var(--primary); background: var(--primary-soft); }
+.seat.st-expiring { border-color: var(--orange); background: var(--orange-soft); }
+.seat.st-ended { border-color: var(--red); background: var(--red-soft); }
+.seat-who { background: none; border: 0; padding: 0; text-align: left; color: var(--ink); cursor: pointer; display: flex; flex-direction: column; font: inherit; }
+.seat-who span { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.seat-who small { color: var(--ink-2); font-size: .72rem; }
+.seat-who:hover span { text-decoration: underline; }
+.split-btn { display: inline-flex; }
+.split-btn #tPrint { border-top-right-radius: 0; border-bottom-right-radius: 0; flex: 1; }
+.split-btn .split-cfg { border-top-left-radius: 0; border-bottom-left-radius: 0; padding-left: 10px; padding-right: 10px; border-left: 1px solid rgba(255, 255, 255, .35); }
+.t-actions .split-btn { min-width: 0; }
+.t-actions .split-btn #tPrint { min-width: 0; padding-left: 8px; padding-right: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-actions .split-btn .split-cfg { flex: none; }
+.t-actions > .btn { min-width: 0; }
+.choice-list { display: flex; flex-direction: column; gap: 8px; }
+.choice { cursor: pointer; }
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice span { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.choice span .ico { grid-row: span 2; width: 22px; height: 22px; color: var(--primary); align-self: center; }
+.choice small { color: var(--muted); }
+.choice input:checked + span { border-color: var(--primary); background: var(--primary-soft); }
+.choice input:focus-visible + span { box-shadow: var(--focus); }
+.qr-poster { border: 1px solid var(--line); border-radius: 10px; background: #fff; color: #111; text-align: center; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.qr-poster p { margin: 0; }
+.qr-poster svg { width: 150px; height: 150px; }
+.p-locked { align-items: center; text-align: center; border-top: 5px solid var(--red); }
+.p-locked > .ico { width: 54px; height: 54px; color: var(--red); }
+.p-locked h1 { font-size: 1.3rem; }
+.p-locked p { margin: 0; color: var(--ink-2); }
+.p-locked .btn-xl { width: 100%; }

@@ -10,7 +10,19 @@ const Members = (() => {
   const dur = p => `${p.duration_value} ${p.duration_unit}${p.duration_value === 1 ? '' : 's'}`;
   const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
   const checkinURL = tok => location.origin + location.pathname.replace(/index\.html$/, '') + '#/checkin/' + tok;
-  const opts = () => ({ locker_fee: 200, review_offer: 0, review_on: false, review_url: '', ...(data?.opts || {}) });
+  const opts = () => ({ locker_fee: 200, review_offer: 0, review_on: false, review_url: '', lock_after_days: 10, auto_delete_days: 0, seats: '', ...(data?.opts || {}) });
+  /* "1-60, A1-A20, VIP" → ['1'…'60', 'A1'…'A20', 'VIP'] */
+  function seatList(spec = opts().seats) {
+    const out = [];
+    for (const part of String(spec || '').split(/[,\n]+/).map(s => s.trim()).filter(Boolean)) {
+      const r = part.match(/^([A-Za-z]*[-\s]?)(\d+)\s*(?:-|to)\s*(?:[A-Za-z]*[-\s]?)?(\d+)$/i);
+      if (r) { const [a, b] = [Number(r[2]), Number(r[3])]; for (let n = Math.min(a, b); n <= Math.max(a, b) && out.length < 1000; n++) out.push(r[1] + n); }
+      else if (out.length < 1000) out.push(part);
+    }
+    return [...new Set(out)];
+  }
+  const seatKey = s => String(s || '').trim().toLowerCase();
+  const holdsSeat = m => m.seat_no && m.active && m.status !== 'expired' && m.status !== 'archived';
   const lockerFee = () => Number(opts().locker_fee) || 0;
   const due = m => Number(m?.due) || 0;
   const credit = m => Number(m?.review_credit) || 0;
@@ -50,6 +62,8 @@ const Members = (() => {
   function counts() {
     const c = { all: 0, expiring: 0, expired: 0, active: 0, none: 0, archived: 0, dues: 0, due_total: 0 };
     data.members.forEach(m => { c[m.status]++; if (m.status !== 'archived') { c.all++; if (due(m) > 0) { c.dues++; c.due_total += due(m); } } });
+    c.seats = new Set(data.members.filter(holdsSeat).map(m => seatKey(m.seat_no))).size;
+    c.seatsOn = seatList().length > 0 || data.members.some(m => m.seat_no);
     return c;
   }
   function render() {
@@ -58,9 +72,35 @@ const Members = (() => {
     $('#mAlert', root).innerHTML =
       (refused.length ? `<div class="remind-banner bad" role="alert">${Icon('alert')}<div><b>${refused.length === 1 ? `${esc(refused[0].name)} tried to check in today, but their plan has ended` : `${refused.length} ${L().toLowerCase()} tried to check in today with an ended plan`}</b><small>${refused.map(r => `${esc(r.name)} at ${esc(Fmt.time(r.at))}`).join(' · ')}</small></div><button type="button" class="btn btn-sm" data-filter="expired">Show them</button></div>` : '')
       + (c.expiring ? `<div class="remind-banner" role="status">${Icon('bell')}<div><b>${c.expiring} ${c.expiring === 1 ? L1().toLowerCase() + ' has' : L().toLowerCase() + ' have'} ${rd} day${rd === 1 ? '' : 's'} or less left</b><small>Renew them, or send a WhatsApp reminder.</small></div><button type="button" class="btn btn-sm" data-filter="expiring">Show them</button></div>` : '');
-    $('#mFilters', root).innerHTML = [['all', 'All'], ['expired', 'Expired'], ['expiring', 'Ending soon'], ['dues', 'Money due'], ['active', 'Active'], ['none', 'No plan'], ['archived', 'Archived']]
-      .filter(([k]) => k === 'all' || c[k] || filter === k).map(([k, l]) => `<button type="button" data-filter="${k}" class="${filter === k ? 'on' : ''} f-${k}">${l} <span>${c[k]}</span></button>`).join('');
+    $('#mFilters', root).innerHTML = [['all', 'All'], ['expired', 'Expired'], ['expiring', 'Ending soon'], ['dues', 'Money due'], ['active', 'Active'], ['none', 'No plan'], ['archived', 'Archived'], ['seats', 'Seats']]
+      .filter(([k]) => k === 'all' || (k === 'seats' ? c.seatsOn : c[k]) || filter === k).map(([k, l]) => `<button type="button" data-filter="${k}" class="${filter === k ? 'on' : ''} f-${k}">${k === 'seats' ? Icon('seat') + ' ' : ''}${l} <span>${k === 'seats' && seatList().length ? `${c.seats}/${seatList().length}` : c[k]}</span></button>`).join('');
+    if (data.auto_deleted > 0 && !render.toldDeleted) { render.toldDeleted = true; toast(`${data.auto_deleted} ${data.auto_deleted === 1 ? L1().toLowerCase() : L().toLowerCase()} deleted automatically (plan ended more than ${opts().auto_delete_days} days ago).`, 'info', 7000); }
     paintList();
+  }
+
+  /* ---------- Seats tab: which seats are taken, which are free ---------- */
+  function paintSeats() {
+    const all = seatList(), s = q.trim().toLowerCase(), byKey = new Map();
+    data.members.filter(m => m.seat_no && m.status !== 'archived').forEach(m => { const k = seatKey(m.seat_no); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(m); });
+    const labels = [...all, ...[...byKey.keys()].filter(k => !all.some(x => seatKey(x) === k)).map(k => byKey.get(k)[0].seat_no.trim())];
+    const tiles = labels.map(label => {
+      const occ = sorted(byKey.get(seatKey(label)) || []), live = occ.filter(holdsSeat);
+      const st = live.some(m => m.status === 'expiring') ? 'expiring' : live.length ? 'taken' : occ.length ? 'ended' : 'free';
+      return { label, occ, live, st };
+    }).filter(t => !s || t.label.toLowerCase().includes(s) || t.occ.some(m => m.name.toLowerCase().includes(s)));
+    const isTaken = l => (byKey.get(seatKey(l)) || []).some(holdsSeat);
+    const takenN = labels.filter(isTaken).length, free = (all.length ? all : []).filter(l => !isTaken(l)).length;
+    $('#mList', root).innerHTML = `<div class="seat-wrap"><div class="seat-head"><b>${takenN} taken${all.length ? ` · ${free} free of ${all.length}` : ''}</b>
+        <span class="seat-key"><i class="sk-taken"></i>Taken <i class="sk-expiring"></i>Ending soon <i class="sk-ended"></i>Plan ended <i class="sk-free"></i>Free</span>
+        ${Store.can('members_plans') ? `<button type="button" class="btn btn-sm btn-ghost" data-seatcfg>${Icon('edit')} ${all.length ? 'Change seats' : 'Set up seats'}</button>` : ''}</div>
+      ${!all.length ? `<p class="hint">Set up your seats (for example <b>1-60</b> or <b>A1-A20, B1-B20</b>) to see free seats too.</p>` : ''}
+      <div class="seat-grid">${tiles.map(t => `<div class="seat st-${t.st}" ${t.occ.length ? '' : `data-freeseat="${esc(t.label)}"`} role="${t.occ.length ? 'group' : 'button'}" tabindex="${t.occ.length ? -1 : 0}" aria-label="Seat ${esc(t.label)}${t.occ.length ? '' : ', free'}">
+          <b>${esc(t.label)}</b>${t.occ.length ? t.occ.map(m => `<button type="button" class="seat-who" data-seatm="${m.id}"><span>${esc(m.name)}</span>${m.shift_start ? `<small>${esc(Shift.range(m.shift_start, m.shift_end))}</small>` : ''}${holdsSeat(m) ? '' : '<small class="due-txt">plan ended</small>'}</button>`).join('') : '<small>Free</small>'}</div>`).join('') || '<p class="hint">No seats match.</p>'}</div></div>`;
+  }
+  async function seatSetup() {
+    const v = await ask({ title: 'Seats', body: 'Type your seats. Use ranges and commas, for example <b>1-60</b> or <b>A1-A20, B1-B20, VIP</b>.', confirm: 'Save seats', input: { label: 'Seats', value: opts().seats, placeholder: '1-60', maxlength: 500 } });
+    if (v === null) return;
+    try { data.opts = await Cloud.rpc('shop_member_app_save', { p: { seats: v } }); toast(`${seatList().length} seats saved.`, 'ok'); render(); } catch (ex) { toast(ex.message, 'error'); }
   }
   function extrasLine(m) {
     const bits = [];
@@ -70,6 +110,7 @@ const Members = (() => {
     return bits.map(esc).join(' · ');
   }
   function paintList() {
+    if (filter === 'seats') return paintSeats();
     const list = visible();
     const canR = Store.can('members_renew'), canA = attOn();
     $('#mList', root).innerHTML = list.length ? list.map(m => {
@@ -137,14 +178,16 @@ const Members = (() => {
     return { reset, paintDue };
   }
 
-  function editor(m = null) {
+  function editor(m = null, pre = {}) {
     const isNew = !m, canJoin = isNew && Store.can('members_renew');
+    const taken = new Set(data.members.filter(x => holdsSeat(x) && x.id !== m?.id).map(x => seatKey(x.seat_no)));
+    const freeSeats = seatList().filter(s => !taken.has(seatKey(s)));
     const d = modal(isNew ? `Add ${L1().toLowerCase()}` : `Edit ${m.name}`, `<form id="mForm" class="stack">
       <div class="form-grid">
         <label class="field span-2"><span>Full name</span><input name="name" required maxlength="80" value="${esc(m?.name || '')}" autocomplete="off"></label>
         <label class="field"><span>Mobile number</span><input name="phone" inputmode="tel" maxlength="20" value="${esc(m?.phone || '')}" placeholder="98765 43210"></label>
         <label class="field"><span>Email <em>optional</em></span><input name="email" type="email" maxlength="120" value="${esc(m?.email || '')}"></label>
-        <label class="field"><span>Seat number <em>optional</em></span><input name="seat_no" maxlength="20" value="${esc(m?.seat_no || '')}" placeholder="e.g. A-14"></label>
+        <label class="field"><span>Seat number <em>optional${seatList().length ? ` · ${freeSeats.length} free` : ''}</em></span><input name="seat_no" maxlength="20" value="${esc(m?.seat_no || pre.seat || '')}" placeholder="e.g. A-14" list="mFreeSeats" autocomplete="off"><datalist id="mFreeSeats">${freeSeats.slice(0, 300).map(s => `<option value="${esc(s)}">`).join('')}</datalist></label>
         ${lockerFields(m)}
         <label class="field span-2"><span>Address <em>optional</em></span><textarea name="address" rows="2" maxlength="300">${esc(m?.address || '')}</textarea></label>
         <label class="field"><span>Date of birth <em>optional</em></span><input name="dob" type="date" value="${esc(m?.dob || '')}" max="${Fmt.today()}"></label>
@@ -176,7 +219,28 @@ const Members = (() => {
         const r = await Cloud.rpc('shop_member_save', { p });
         d.close(); toast(isNew ? `${r.name} added${r.term ? ` · ${r.plan_name} until ${Fmt.date(r.end_date)}` : ''}.` : 'Saved.', 'ok');
         if (r.term?.bill) showBill(r.term.bill, Number(r.term.due) > 0 ? `${r.name}: ${Fmt.money(r.term.due)} is still due.` : '');
+        // locker switched on in the middle of a plan: take the locker fee now, with its own bill
+        else if (!isNew && !m.locker && r.locker && r.end_date && r.status !== 'expired' && Store.can('members_renew')) lockerCharge(r);
         load(true);
+      } catch (ex) { toast(ex.message, 'error', 7000); busy(e.submitter, false); }
+    };
+  }
+
+  /* ---------- locker taken separately: its own bill ---------- */
+  function lockerCharge(m) {
+    const d = modal(`Locker · ${m.name}`, `<form id="kForm" class="stack">
+      <p class="hint">${m.end_date ? `Their plan runs until <b>${esc(Fmt.date(m.end_date))}</b>. ` : ''}The locker is also added to every renewal bill from now on.</p>
+      <div class="form-grid"><label class="field"><span>Locker number</span><input name="no" maxlength="20" value="${esc(m.locker_no || '')}" placeholder="e.g. 12"></label>
+        <label class="field"><span>Locker fee now (${esc(Fmt.cur())})</span><input name="amt" type="number" min="0" step="0.01" inputmode="decimal" value="${lockerFee()}" required></label></div>
+      <div class="field"><span>Paid by</span>${paySeg()}</div>
+      <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>Not now</button><button class="btn btn-primary">${Icon('check')} Take payment & show bill</button></div></form>`, { size: 'modal-sm' });
+    const f = $('#kForm', d);
+    f.onsubmit = async e => {
+      e.preventDefault(); busy(e.submitter, true, 'Saving…');
+      try {
+        const r = await Cloud.rpc('shop_member_locker_charge', { p_request_id: uuid(), p_member_id: m.id, p_amount: Number(f.amt.value), p_payment_method: f.pay.value, p_locker_no: f.no.value.trim() });
+        d.close(); toast(`${m.name}: locker${r.locker_no ? ' no. ' + r.locker_no : ''} added.`, 'ok');
+        if (r.bill) showBill(r.bill); load(true);
       } catch (ex) { toast(ex.message, 'error', 7000); busy(e.submitter, false); }
     };
   }
@@ -251,7 +315,7 @@ const Members = (() => {
   }
 
   /* ---------- member details ---------- */
-  const KIND = { new: 'Joined', renew: 'Renewed', change: 'Changed plan', edit: 'Dates changed', payment: 'Paid balance' };
+  const KIND = { new: 'Joined', renew: 'Renewed', change: 'Changed plan', edit: 'Dates changed', payment: 'Paid balance', locker: 'Took' };
   const visitRow = a => a.refused
     ? `<li class="visit-refused"><span>${esc(Fmt.dateTime(a.at))}</span><span class="sh-tag sh-bad">Tried to check in · plan had ended</span></li>`
     : `<li><span>${esc(Fmt.date(a.at))} · <b>${esc(Shift.span(a))}</b> <small class="muted">${a.method === 'qr' ? 'QR' : 'by ' + esc(a.by || 'staff')}</small></span><span class="sh-tags">${Shift.tags(a)}</span></li>`;
@@ -271,6 +335,7 @@ const Members = (() => {
       <div class="toolbar wrap">
         ${canR && m.status !== 'archived' ? `<button type="button" class="btn btn-primary" data-act="renew">${Icon('repeat')} Renew</button>${m.status !== 'none' ? `<button type="button" class="btn" data-act="change">Change plan</button>` : ''}` : ''}
         ${Store.can('members_add') ? `<button type="button" class="btn" data-act="edit">${Icon('edit')} Edit</button>` : ''}
+        ${canR && !m.locker && m.end_date && m.status !== 'expired' && m.status !== 'archived' ? `<button type="button" class="btn btn-ghost" data-act="locker">${Icon('key')} Add locker</button>` : ''}
         ${Store.can('members_plans') && m.end_date ? `<button type="button" class="btn btn-ghost" data-act="dates">${Icon('calendar')} Fix dates</button>` : ''}
         ${Store.can('members_login') && Store.sys.members?.login !== false ? `<button type="button" class="btn btn-ghost" data-act="login">${Icon('lock')} ${m.has_login ? 'Login' : 'Give app login'}</button>` : ''}
         ${m.phone ? `<a class="btn btn-ghost" href="${esc(waLink(m))}" target="_blank" rel="noopener">${Icon('whatsapp')} WhatsApp</a>` : ''}
@@ -285,6 +350,7 @@ const Members = (() => {
       if (a === 'dates') { d.close(); fixDates(m); }
       if (a === 'login') { d.close(); loginEditor(m); }
       if (a === 'paydue') { d.close(); collectDue(m); }
+      if (a === 'locker') { d.close(); lockerCharge(m); }
       if (a === 'noreview') {
         if (!(await ask({ title: 'Remove the review offer?', body: `${esc(m.name)} will not get ${esc(Fmt.money(credit(m)))} off. Do this if they did not really leave a review.`, confirm: 'Remove offer' }))) return;
         try { await Cloud.rpc('shop_member_review_clear', { p_member_id: m.id }); d.close(); toast('Offer removed.', 'ok'); load(true); } catch (ex) { toast(ex.message, 'error'); }
@@ -313,25 +379,35 @@ const Members = (() => {
     $('#dForm', d).onsubmit = async e => { e.preventDefault(); const f = e.target; try { await Cloud.rpc('shop_member_set_dates', { p_member_id: m.id, p_start: f.s.value, p_end: f.e.value }); d.close(); toast('Dates saved.', 'ok'); load(true); } catch (ex) { toast(ex.message, 'error'); } };
   }
 
-  function loginEditor(m) {
-    const pin = String(Math.floor(100000 + Math.random() * 900000));
+  function shareLogin(m, loginId, pw) {
+    const url = location.origin + location.pathname.replace(/index\.html$/, '');
+    const msg = `Hi ${m.name}, your ${Store.settings.shop_name || ''} app:\n${url}\nOpen the link, install the app, then sign in.\nMobile/Email: ${loginId}\nPassword: ${pw}`;
+    modal('Login ready', `<p>Give these to ${esc(m.name)}:</p><pre class="login-card">${esc(msg)}</pre>
+      <div class="modal-actions">${m.phone ? `<a class="btn" href="https://wa.me/${esc((m.phone.replace(/\D/g, '').length === 10 ? (Cloud.cfg.whatsappCountryCode || '91') : '') + m.phone.replace(/\D/g, ''))}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${Icon('whatsapp')} Send on WhatsApp</a>` : ''}<button type="button" class="btn btn-primary" data-close>Done</button></div>`, { size: 'modal-sm' });
+  }
+  async function loginEditor(m) {
+    let cur = { has_login: m.has_login, login_id: m.login_id, password: null };
+    if (m.has_login) { try { cur = await Cloud.rpc('shop_member_login_get', { p_member_id: m.id }); } catch (ex) { toast(ex.message, 'error'); } }
+    const fresh = () => String(Math.floor(100000 + Math.random() * 900000));
+    const startPw = cur.has_login ? (cur.password || '') : fresh();
     const d = modal(`App login · ${m.name}`, `<form class="stack" id="lForm">
       <p class="hint">They sign in to this same app with their mobile number and this password, and see their plan, days left and visits${Store.sys.members?.attendance !== false ? ', and scan the QR at the front desk to check in' : ''}.</p>
-      <label class="field"><span>Mobile number or email</span><input name="login" required maxlength="120" value="${esc(m.login_id || m.phone || m.email)}" inputmode="email"></label>
-      <label class="field"><span>Password <em>6+ characters</em></span><div class="inline-add"><input name="pw" required minlength="6" maxlength="72" value="${pin}" autocomplete="off"><button type="button" class="btn btn-sm btn-ghost" data-new>New</button></div></label>
-      <div class="modal-actions">${m.has_login ? '<button type="button" class="btn btn-ghost btn-danger-text" data-remove>Remove login</button>' : ''}<button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">${m.has_login ? 'Save new password' : 'Create login'}</button></div></form>`, { size: 'modal-sm' });
-    const f = $('#lForm', d);
-    $('[data-new]', d).onclick = () => { f.pw.value = String(Math.floor(100000 + Math.random() * 900000)); };
+      <label class="field"><span>Mobile number or email</span><input name="login" required maxlength="120" value="${esc(cur.login_id || m.login_id || m.phone || m.email)}" inputmode="email"></label>
+      <label class="field"><span>${cur.has_login ? 'Current password' : 'Password'} <em>6+ characters</em></span><div class="inline-add"><input name="pw" required minlength="6" maxlength="72" value="${esc(startPw)}" autocomplete="off" ${cur.has_login && !cur.password ? 'placeholder="Not saved — tap New"' : ''}><button type="button" class="btn btn-sm btn-ghost" data-new>New</button></div>
+        <small class="hint" data-pwhint>${cur.has_login ? (cur.password ? 'This is their password now. Tap New to make a new one.' : 'Made before this update, so it was not saved. Tap New to set one.') : ''}</small></label>
+      <div class="modal-actions">${cur.has_login ? '<button type="button" class="btn btn-ghost btn-danger-text" data-remove>Remove login</button>' : ''}<button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary" data-save></button></div></form>`, { size: 'modal-sm' });
+    const f = $('#lForm', d), btn = $('[data-save]', f);
+    const changed = () => !cur.has_login || f.pw.value !== (cur.password || '') || f.login.value.trim() !== (cur.login_id || '');
+    const paintBtn = () => { btn.innerHTML = !cur.has_login ? 'Create login' : changed() ? 'Save new password' : `${Icon('whatsapp')} Share login again`; };
+    $('[data-new]', d).onclick = () => { f.pw.value = fresh(); $('[data-pwhint]', d).textContent = 'New password — tap Save to use it. The old one stops working.'; paintBtn(); };
+    f.addEventListener('input', paintBtn); paintBtn();
     f.onsubmit = async e => {
-      e.preventDefault(); busy(e.submitter, true, 'Saving…');
+      e.preventDefault();
+      if (cur.has_login && !changed()) { d.close(); return shareLogin(m, cur.login_id, cur.password); }
+      busy(e.submitter, true, 'Saving…');
       try {
         const r = await Cloud.rpc('shop_member_login_set', { p_member_id: m.id, p_login: f.login.value.trim(), p_password: f.pw.value });
-        d.close(); load(true);
-        const url = location.origin + location.pathname.replace(/index\.html$/, '');
-        const msg = `Hi ${m.name}, your ${Store.settings.shop_name || ''} app:\n${url}\nOpen the link, install the app, then sign in.\nMobile/Email: ${r.login_id}\nPassword: ${f.pw.value}`;
-        const share = modal('Login ready', `<p>Give these to ${esc(m.name)}:</p><pre class="login-card">${esc(msg)}</pre>
-          <div class="modal-actions">${m.phone ? `<a class="btn" href="https://wa.me/${esc((m.phone.replace(/\D/g, '').length === 10 ? (Cloud.cfg.whatsappCountryCode || '91') : '') + m.phone.replace(/\D/g, ''))}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${Icon('whatsapp')} Send on WhatsApp</a>` : ''}<button type="button" class="btn btn-primary" data-close>Done</button></div>`, { size: 'modal-sm' });
-        share.focus?.();
+        d.close(); load(true); shareLogin(m, r.login_id, f.pw.value);
       } catch (ex) { toast(ex.message, 'error', 7000); busy(e.submitter, false); }
     };
     $('[data-remove]', d)?.addEventListener('click', async () => {
@@ -393,6 +469,12 @@ const Members = (() => {
         <label class="field"><span>Offer for leaving a review (${esc(Fmt.cur())}) <em>0 = no offer</em></span><input name="review_offer" type="number" min="0" step="1" inputmode="numeric" value="${Number(o.review_offer) || 0}"><small class="hint">Taken off their next renewal automatically, e.g. 50 = “₹50 off if you leave a review”.</small></label>
         <h3>${Icon('key')} Locker</h3>
         <label class="field"><span>Locker fee added to each plan bill (${esc(Fmt.cur())})</span><input name="locker_fee" type="number" min="0" step="1" inputmode="numeric" value="${Number(o.locker_fee) || 0}"></label>
+        <h3>${Icon('seat')} Seats</h3>
+        <label class="field"><span>Your seats <em>optional</em></span><input name="seats" maxlength="500" value="${esc(o.seats || '')}" placeholder="e.g. 1-60  or  A1-A20, B1-B20"><small class="hint">Shows a Seats tab with which seats are taken and which are free.</small></label>
+        <h3>${Icon('lock')} When a plan has ended</h3>
+        <div class="form-grid">
+          <label class="field"><span>Lock the member app after (days)</span><input name="lock_after_days" type="number" min="0" max="3650" step="1" inputmode="numeric" value="${Number(o.lock_after_days ?? 10)}"><small class="hint">After this many days they only see “Please renew”. 0 = never lock.</small></label>
+          <label class="field"><span>Delete the ${esc(L1().toLowerCase())} after (days)</span><input name="auto_delete_days" type="number" min="0" max="3650" step="1" inputmode="numeric" value="${Number(o.auto_delete_days) || 0}"><small class="hint">Deleted for good, with their history. Anyone who still owes money is kept. 0 = never.</small></label></div>
         <div class="modal-actions"><button class="btn btn-primary">Save</button></div></form></div>`, { size: 'modal-md' });
     const nf = $('#nForm', d), of = $('#oForm', d);
     let notices = [];
@@ -420,9 +502,15 @@ const Members = (() => {
       } catch (ex) { toast(ex.message, 'error'); }
     });
     of.onsubmit = async e => {
-      e.preventDefault(); busy(e.submitter, true, 'Saving…');
-      try { data.opts = await Cloud.rpc('shop_member_app_save', { p: { review_on: of.review_on.checked, review_url: of.review_url.value.trim(), review_offer: of.review_offer.value || '0', locker_fee: of.locker_fee.value || '0' } }); toast('Saved.', 'ok'); }
-      catch (ex) { toast(ex.message, 'error', 7000); } finally { busy(e.submitter, false); }
+      e.preventDefault();
+      const del = Number(of.auto_delete_days.value) || 0;
+      if (del > 0 && del !== Number(o.auto_delete_days) && !(await ask({ title: `Delete ${L().toLowerCase()} automatically?`, body: `Anyone whose plan ended more than <b>${del} days</b> ago will be deleted for good, with their plan history and visits — starting now. Anyone who still owes money is kept. Their bills stay in Records.`, confirm: 'Yes, turn it on', danger: true }))) return;
+      busy(e.submitter, true, 'Saving…');
+      try {
+        data.opts = await Cloud.rpc('shop_member_app_save', { p: { review_on: of.review_on.checked, review_url: of.review_url.value.trim(), review_offer: of.review_offer.value || '0', locker_fee: of.locker_fee.value || '0',
+          seats: of.seats.value.trim(), lock_after_days: of.lock_after_days.value || '0', auto_delete_days: of.auto_delete_days.value || '0' } });
+        Object.assign(o, data.opts); toast('Saved.', 'ok'); render.toldDeleted = false; load(true);
+      } catch (ex) { toast(ex.message, 'error', 7000); } finally { busy(e.submitter, false); }
     };
   }
 
@@ -464,11 +552,40 @@ const Members = (() => {
       }
     });
   }
+  /* The front-desk poster: big text you can change before printing. */
+  const QR_DEF = () => ({ qr_title: Store.settings.shop_name || '', qr_line1: 'Scan when you come in, and again when you leave', qr_line2: 'Open the app → Scan, or use your phone camera' });
+  const QR_SIZE = { normal: [40, 24, 20, 380], large: [56, 32, 26, 460], huge: [72, 40, 32, 540] };
   function printQR(token) {
-    const w = window.open('', '_blank', 'width=480,height=640'); if (!w) return toast('Allow pop-ups to print.', 'warn');
-    w.document.write(`<!doctype html><title>Check-in QR</title><style>body{font-family:system-ui,sans-serif;text-align:center;padding:30px;color:#111}h1{font-size:26px;margin:0 0 6px}p{margin:4px 0 18px;font-size:16px}svg{width:320px;height:320px}</style>
-      <h1>${esc(Store.settings.shop_name || '')}</h1><p>Scan when you come in, and again when you leave</p>${QR.svg(checkinURL(token), 320)}<p style="margin-top:18px;font-size:13px;color:#444">Open the app → Scan, or use your phone camera.</p><script>onload=()=>{print()}<\/script>`);
-    w.document.close();
+    const o = opts(), def = QR_DEF(), canSave = Store.can('members_plans');
+    const val = k => (o[k] || '').trim() || def[k];
+    let size = 'large';
+    try { size = localStorage.getItem('SHOPBILL_QR_SIZE') || 'large'; } catch { /* storage blocked */ }
+    const d = modal('Print check-in QR', `<form id="qForm" class="stack">
+      <div class="form-grid">
+        <label class="field span-2"><span>Heading</span><input name="qr_title" maxlength="120" value="${esc(val('qr_title'))}"></label>
+        <label class="field span-2"><span>Line above the QR</span><input name="qr_line1" maxlength="120" value="${esc(val('qr_line1'))}"></label>
+        <label class="field span-2"><span>Line below the QR</span><input name="qr_line2" maxlength="120" value="${esc(val('qr_line2'))}"></label>
+        <div class="field span-2"><span>Text size</span><div class="seg" role="radiogroup">${[['normal', 'Normal'], ['large', 'Large'], ['huge', 'Extra large']].map(([k, l]) => `<label><input type="radio" name="size" value="${k}" ${size === k ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></div></div>
+      <div class="qr-poster" data-prev></div>
+      <div class="modal-actions"><button type="button" class="btn btn-ghost" data-reset>Default text</button><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn btn-primary">${Icon('printer')} Print</button></div></form>`, { size: 'modal-md' });
+    const f = $('#qForm', d);
+    const paint = () => { const [h, l1, l2] = QR_SIZE[f.size.value]; $('[data-prev]', d).innerHTML = `<b style="font-size:${h / 2}px">${esc(f.qr_title.value)}</b><p style="font-size:${l1 / 2}px">${esc(f.qr_line1.value)}</p>${QR.svg(checkinURL(token), 150)}<p style="font-size:${l2 / 2}px">${esc(f.qr_line2.value)}</p>`; };
+    f.addEventListener('input', paint); f.addEventListener('change', paint); paint();
+    $('[data-reset]', d).onclick = () => { for (const k of ['qr_title', 'qr_line1', 'qr_line2']) f[k].value = def[k]; paint(); };
+    f.onsubmit = async e => {
+      e.preventDefault();
+      const t = { qr_title: f.qr_title.value.trim(), qr_line1: f.qr_line1.value.trim(), qr_line2: f.qr_line2.value.trim() }, sz = f.size.value;
+      try { localStorage.setItem('SHOPBILL_QR_SIZE', sz); } catch { /* storage blocked */ }
+      const w = window.open('', '_blank', 'width=700,height=900'); if (!w) return toast('Allow pop-ups to print.', 'warn');
+      const [h, l1, l2, qs] = QR_SIZE[sz];
+      w.document.write(`<!doctype html><title>Check-in QR</title><style>@page{margin:12mm}body{font-family:system-ui,'Segoe UI',Roboto,sans-serif;text-align:center;padding:10px;color:#111;margin:0}
+        h1{font-size:${h}px;margin:0 0 10px;line-height:1.1}.l1{font-size:${l1}px;margin:0 0 20px;font-weight:600}.l2{font-size:${l2}px;margin:22px 0 0;color:#222}svg{width:${qs}px;height:${qs}px;max-width:90vw;max-height:60vh}</style>
+        <h1>${esc(t.qr_title)}</h1><p class="l1">${esc(t.qr_line1)}</p>${QR.svg(checkinURL(token), qs)}<p class="l2">${esc(t.qr_line2)}</p><script>onload=()=>{print()}<\/script>`);
+      w.document.close(); d.close();
+      if (canSave && ['qr_title', 'qr_line1', 'qr_line2'].some(k => t[k] !== val(k))) {
+        try { data.opts = await Cloud.rpc('shop_member_app_save', { p: t }); } catch { /* the print still worked */ }
+      }
+    };
   }
 
   /* Alert at the desk: this person's plan is over. */
@@ -518,7 +635,11 @@ const Members = (() => {
     $('.page', view).addEventListener('click', e => {
       const fb = e.target.closest('[data-filter]'); if (fb) { filter = fb.dataset.filter; render(); return; }
       if (e.target.closest('[data-add]')) return data && editor();
-      const card = e.target.closest('[data-id]'); if (!card || !data) return;
+      if (!data) return;
+      if (e.target.closest('[data-seatcfg]')) return seatSetup();
+      const sm = e.target.closest('[data-seatm]'); if (sm) { const x = data.members.find(y => y.id === sm.dataset.seatm); if (x) details(x); return; }
+      const fs = e.target.closest('[data-freeseat]'); if (fs) { if (Store.can('members_add')) editor(null, { seat: fs.dataset.freeseat }); else toast(`Seat ${fs.dataset.freeseat} is free.`); return; }
+      const card = e.target.closest('[data-id]'); if (!card) return;
       const m = data.members.find(x => x.id === card.dataset.id);
       if (e.target.closest('[data-renew]')) return renew(m);
       if (e.target.closest('[data-paydue]')) return collectDue(m);

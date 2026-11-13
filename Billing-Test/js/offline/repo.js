@@ -253,8 +253,9 @@ const LocalRepo = (() => {
   }
 
   /* ---------- reading back what this device holds ---------- */
-  async function bills({ from, to, status = 'all', payment = 'all', query = '', offset = 0, limit = 50 }) {
-    const all = await DB().all('bills', { index: 'bill_day', from, to });
+  async function bills({ from, to, status = 'all', payment = 'all', query = '', offset = 0, limit = 50, kind = 'all' }) {
+    const all = (await DB().all('bills', { index: 'bill_day', from, to }))
+      .filter(b => !kind || kind === 'all' || (kind === 'membership' ? b.kind === 'membership' : b.kind !== 'membership'));
     all.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     const q = String(query || '').trim().toLowerCase();
     const hit = all.filter(b =>

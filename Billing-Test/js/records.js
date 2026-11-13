@@ -2,15 +2,19 @@
 'use strict';
 const Records = (() => {
   const PAGE = 50;
-  let f = { period: 'today', from: '', to: '', status: 'all', payment: 'all', q: '' }, offset = 0, data = null, root = null, timer = null, req = 0;
+  let f = { period: 'today', from: '', to: '', status: 'all', payment: 'all', q: '', kind: 'all' }, offset = 0, data = null, root = null, timer = null, req = 0;
 
   function range() { return periodRange(f.period, f.from, f.to); }
+  /* All / Products / Memberships — only when the Members screen is on. Sent only when it is not "All"
+     (undefined is left out of the request), so Records keeps working on a database not yet upgraded. */
+  const kindOn = () => Store.moduleOn('members');
+  const kindArg = () => (kindOn() && f.kind !== 'all' ? f.kind : undefined);
 
   async function load() {
     const id = ++req, [from, to] = range();
     $('#rStatus', root).textContent = 'Loading bills…';
     try {
-      const d = await Cloud.rpc('shop_bills_list', { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_offset: offset, p_limit: PAGE });
+      const d = await Cloud.rpc('shop_bills_list', { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_kind: kindArg(), p_offset: offset, p_limit: PAGE });
       if (id !== req || !root?.isConnected) return;
       data = d; render();
     } catch (e) { if (id === req && root?.isConnected) $('#rStatus', root).textContent = e.message; }
@@ -73,7 +77,7 @@ const Records = (() => {
     try {
       const [from, to] = range(); let rows = [], off = 0, total = 1;
       while (off < total && off < 20000) {
-        const d = await Cloud.rpc('shop_bills_list', { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_offset: off, p_limit: 200 });
+        const d = await Cloud.rpc('shop_bills_list', { p_from: from, p_to: to, p_status: f.status, p_payment: f.payment, p_query: f.q, p_kind: kindArg(), p_offset: off, p_limit: 200 });
         total = d.total; rows.push(...d.rows); off += 200;
       }
       const out = [['Bill no', 'Date', 'Time', 'Status', 'Payment', 'Customer', 'Phone', 'Item', 'Qty', 'Unit', 'Rate', 'Line amount', 'Bill subtotal', 'Discount', 'Tax', 'Round off', 'Short cash', 'Bill total', 'Cash received', 'Change', 'Billed by', 'Cancel reason']];
@@ -100,6 +104,7 @@ const Records = (() => {
         <div class="range" id="rRange" ${f.period === 'custom' ? '' : 'hidden'}><input type="date" id="rFrom" aria-label="From date"><span>to</span><input type="date" id="rTo" aria-label="To date"></div>` : ''}
         <label class="search sm">${Icon('search')}<input id="rQ" type="search" placeholder="Bill no, customer or phone" value="${esc(f.q)}" aria-label="Search bills"></label>
         <select id="rPay" aria-label="Payment filter"><option value="all">All payments</option>${Store.payments().map(m => `<option ${f.payment === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
+        ${kindOn() ? `<div class="seg" id="rKind" role="radiogroup" aria-label="Bill type">${[['all', 'All'], ['sale', esc(Store.label('items'))], ['membership', esc(Store.label1('members')) + 'ships']].map(([k, l]) => `<button type="button" data-k="${k}" class="${f.kind === k ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
         <select id="rStat" aria-label="Status filter"><option value="all">Paid & cancelled</option><option value="Paid" ${f.status === 'Paid' ? 'selected' : ''}>Paid only</option><option value="Cancelled" ${f.status === 'Cancelled' ? 'selected' : ''}>Cancelled only</option></select>
       </div>
       <div class="summary" id="rSummary"></div>
@@ -113,6 +118,7 @@ const Records = (() => {
     for (const id of ['#rFrom', '#rTo']) $(id, view)?.addEventListener('change', () => { f.from = $('#rFrom', view).value; f.to = $('#rTo', view).value; if (f.to < f.from) { f.to = f.from; $('#rTo', view).value = f.to; } offset = 0; load(); });
     $('#rQ', view).oninput = e => { clearTimeout(timer); timer = setTimeout(() => { f.q = e.target.value.trim(); offset = 0; load(); }, 300); };
     $('#rPay', view).onchange = e => { f.payment = e.target.value; offset = 0; load(); };
+    $('#rKind', view)?.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; f.kind = b.dataset.k; $$('#rKind button', view).forEach(x => x.classList.toggle('on', x === b)); offset = 0; load(); });
     $('#rStat', view).onchange = e => { f.status = e.target.value; offset = 0; load(); };
     $('#rRefresh', view).onclick = load;
     if ($('#rExport', view)) $('#rExport', view).onclick = e => exportCSV(e.currentTarget);
