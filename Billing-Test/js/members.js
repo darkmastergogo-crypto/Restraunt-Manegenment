@@ -514,6 +514,118 @@ const Members = (() => {
     };
   }
 
+  /* ---------- import members from a CSV (and download them as one) ---------- */
+  const MEMBER_COLS = {
+    name: ['name', 'full_name', 'member_name', 'student_name', 'member', 'customer_name', 'customer', 'candidate_name'],
+    phone: ['phone', 'mobile', 'mobile_no', 'mobile_number', 'phone_no', 'phone_number', 'contact', 'contact_no', 'contact_number', 'whatsapp', 'whatsapp_no', 'whatsapp_number', 'mob', 'mob_no', 'cell'],
+    plan: ['plan', 'plan_name', 'membership', 'membership_plan', 'package', 'plan_type', 'subscription'],
+    start_date: ['start_date', 'start', 'from', 'from_date', 'joining_date', 'join_date', 'date_of_joining', 'doj', 'joined', 'joined_on', 'plan_start', 'start_on', 'admission_date'],
+    end_date: ['end_date', 'end', 'to', 'to_date', 'expiry', 'expiry_date', 'expire_date', 'valid_till', 'valid_upto', 'valid_until', 'renewal_date', 'plan_end', 'expires', 'expires_on', 'due_date', 'end_on'],
+    due: ['due', 'dues', 'balance', 'pending', 'amount_due', 'due_amount', 'balance_due', 'pending_amount', 'outstanding', 'balance_amount'],
+    seat_no: ['seat', 'seat_no', 'seat_number'],
+    locker: ['locker', 'has_locker', 'locker_yes_no'],
+    locker_no: ['locker_no', 'locker_number'],
+    email: ['email', 'email_id', 'mail', 'e_mail'],
+    dob: ['dob', 'date_of_birth', 'birthday', 'birth_date'],
+    gender: ['gender', 'sex'],
+    address: ['address', 'addr', 'full_address'],
+    notes: ['notes', 'note', 'remarks', 'remark', 'comments', 'comment'],
+    password: ['password', 'app_password', 'pin', 'pass', 'login_password']
+  };
+  const MEMBER_LABEL = { name: 'Name', phone: 'Mobile', plan: 'Plan', start_date: 'Start date', end_date: 'End date', due: 'Money due', seat_no: 'Seat', locker: 'Locker (yes/no)', locker_no: 'Locker number', email: 'Email', dob: 'Date of birth', gender: 'Gender', address: 'Address', notes: 'Notes', password: 'App password' };
+  const MEMBER_HEAD = Object.keys(MEMBER_COLS);
+  const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+  /* 25-12-2026, 25/12/26, 2026-12-25, 25 Dec 2026, 25-Dec-26, Excel day numbers → 2026-12-25. Anything else is sent as it is, so the check reports it. */
+  function toISO(v) {
+    const s = String(v || '').trim(); if (!s) return '';
+    const iso = (y, m, d) => { y = Number(y); if (y < 100) y += 2000; const dt = new Date(Date.UTC(y, m - 1, d)); return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === Number(d) ? dt.toISOString().slice(0, 10) : s; };
+    let r;
+    if ((r = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/))) return iso(r[1], Number(r[2]), Number(r[3]));
+    if ((r = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})$/))) return iso(r[3], Number(r[2]), Number(r[1]));     // day first (India)
+    if ((r = s.match(/^(\d{1,2})[-\s/.]*([a-z]{3,9})[-\s/.,]*(\d{2}|\d{4})$/i))) {
+      const w = r[2].toLowerCase(), mo = MON[w.slice(0, 4)] || MON[w.slice(0, 3)];
+      if (mo) return iso(r[3], mo, Number(r[1]));
+    }
+    if (/^\d{5}$/.test(s) && Number(s) > 20000 && Number(s) < 80000) { const dt = new Date(Date.UTC(1899, 11, 30) + Number(s) * 864e5); return dt.toISOString().slice(0, 10); }
+    return s;
+  }
+  function exportMembers() {
+    const ddmm = d => d ? d.split('-').reverse().join('-') : '';
+    downloadFile(`members-${Fmt.today()}.csv`, toCSV([MEMBER_HEAD.filter(h => h !== 'password'), ...data.members.filter(m => m.status !== 'archived').map(m => [m.name, m.phone, m.plan_name, ddmm(m.start_date), ddmm(m.end_date), due(m) || '', m.seat_no || '', m.locker ? 'yes' : '', m.locker_no || '', m.email || '', ddmm(m.dob), m.gender || '', m.address || '', m.notes || ''])]));
+  }
+  function importMembers() {
+    const CSV = Items.csv, nf = n => Fmt.nf0.format(n), pl = (n, w) => `${nf(n)} ${w}${n === 1 ? '' : 's'}`;
+    const plans = data.plans.filter(p => p.active).map(p => p.name);
+    const d = modal(`Import ${L().toLowerCase()} from CSV`, `<div class="imp">
+      <p>Use a CSV file (Excel → Save As → CSV). Only <b>name</b> is needed; every other column is optional:</p>
+      <p class="mono small">${MEMBER_HEAD.join(', ')}</p>
+      <ul class="hint-list"><li><b>plan</b> must match one of your plans${plans.length ? `: ${plans.map(esc).join(', ')}` : ''}. With a plan and <b>start_date</b>, the end date is worked out. Or just give <b>end_date</b>.</li>
+        <li>Dates like <b>25-12-2026</b>, 25/12/2026 or 25 Dec 2026. <b>due</b> = money they still owe. <b>locker</b> = yes or no.</li>
+        <li>Someone with the same <b>mobile number</b> is updated, not added twice. Blank cells keep what is saved.</li>
+        <li><b>password</b> (optional) also gives them an app login with their mobile number.</li>
+        <li>The whole file is checked first. If any row is wrong, <b>nothing</b> is imported and you see every problem. No bills are made.</li></ul>
+      <div class="toolbar"><button type="button" class="btn" data-tpl>${Icon('download')} Download template</button><button type="button" class="btn btn-ghost" data-exp>${Icon('download')} Download my ${esc(L().toLowerCase())}</button><label class="btn btn-primary file-btn">${Icon('upload')} Choose CSV file<input type="file" accept=".csv,text/csv" hidden></label></div>
+      <div id="mImpOut" aria-live="polite"></div></div>`, { size: 'modal-md' });
+    const out = $('#mImpOut', d), fileBtn = $('.file-btn', d), input = $('input[type=file]', d);
+    const stop = on => { fileBtn.classList.toggle('is-disabled', on); input.disabled = on; };
+    const fail = msg => { out.innerHTML = `<div class="imp-fail" role="alert"><h3>${Icon('alert')} CSV Import Failed</h3><p>${msg}</p></div>`; };
+    $('[data-tpl]', d).onclick = () => downloadFile('members-template.csv', toCSV([MEMBER_HEAD, ['Rahul Kumar', '9876543210', plans[0] || 'Monthly', '01-11-2026', '', '', 'A-12', 'yes', '7', '', '', '', 'Male', '', 'Morning batch', ''], ['Priya Singh', '9876500000', '', '', '31-12-2026', '400', '', 'no', '', 'priya@example.com', '15-08-2002', 'Female', '', '', 'pass123']]));
+    $('[data-exp]', d).onclick = exportMembers;
+    const showErrors = r => {
+      const bad = new Set(r.errors.map(e => e.row)).size;
+      out.innerHTML = `<div class="imp-fail" role="alert"><h3>${Icon('alert')} CSV Import Failed</h3><p><b>Nothing was imported.</b> Fix the ${pl(r.total_errors, 'problem')} below and choose the file again.</p>
+        <div class="imp-counts"><div><span>Rows</span><b>${nf(r.rows)}</b></div><div class="ok"><span>Fine</span><b>${nf(Math.max(0, r.rows - bad))}</b></div><div class="bad"><span>With problems</span><b>${nf(bad)}</b></div></div>
+        <div class="imp-errors"><table class="table"><thead><tr><th>Row</th><th>Name</th><th>What is wrong</th></tr></thead><tbody>${r.errors.map(e => `<tr><td class="num"><b>${e.row}</b></td><td>${esc(e.name || '—')}</td><td>${esc(e.message)}</td></tr>`).join('')}</tbody></table></div>
+        ${r.errors.length < r.total_errors ? `<p class="hint">Showing the first ${nf(r.errors.length)} of ${nf(r.total_errors)} problems.</p>` : ''}</div>`;
+    };
+    input.onchange = async e => {
+      const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+      stop(true);
+      try {
+        const recs = CSV.readCSV(await file.text());
+        if (!recs.length || CSV.blankRec(recs[0])) return fail('The file is empty. Use the template for the right layout.');
+        if (recs[0].cells.length === 1 && /[;\t|]/.test(recs[0].cells[0])) return fail('The columns are separated by ; or a tab, not commas. In Excel choose <b>Save As → CSV (Comma delimited)</b>.');
+        const raw = recs[0].cells, map = CSV.mapHeader(raw, MEMBER_COLS);
+        if (!map.cols.includes('name')) return fail(`No name column was found. The first row must have a column called <b>name</b> (or Member Name, Student Name). Columns in your file: ${raw.map(h => `<b>${esc(h)}</b>`).join(', ')}.`);
+        const rows = [];
+        recs.forEach((r, n) => {
+          if (n === 0 || CSV.blankRec(r)) return;
+          let cells = r.cells; while (cells.length > raw.length && cells[cells.length - 1].trim() === '') cells = cells.slice(0, -1);
+          const o = { _row: n + 1 };
+          map.cols.forEach((h, c) => {
+            if (!h) return; let v = (cells[c] ?? '').trim().replace(/^'(?=[=+\-@])/, '');
+            if (['start_date', 'end_date', 'dob'].includes(h)) v = toISO(v);
+            else if (h === 'due') v = CSV.cleanNum(v, true);
+            o[h] = v;
+          });
+          if (cells.length !== raw.length) o._error = `This row has ${cells.length} cells but the header has ${raw.length} columns. Check for a missing or extra comma.`;
+          else if (r.err) o._error = r.err;
+          rows.push(o);
+        });
+        if (!rows.length) return fail('That file has no rows under the header.');
+        out.innerHTML = `<p class="hint">Checking ${pl(rows.length, 'row')}…</p>`;
+        const r = await Cloud.rpc('shop_members_import_csv', { p_rows: rows, p_dry_run: true }, { timeout: 120000 });
+        if (!r.ok) return showErrors(r);
+        out.innerHTML = `<div class="imp-ok"><h3>${Icon('check')} Your file is fine</h3>
+          <p><b>${nf(r.to_add)}</b> new ${r.to_add === 1 ? L1().toLowerCase() : L().toLowerCase()} will be added and <b>${nf(r.to_update)}</b> will be updated.</p>
+          ${CSV.colsUsed(map, MEMBER_LABEL)}
+          <div class="toolbar"><button type="button" class="btn btn-primary" data-go>Import ${pl(r.rows, 'row')}</button></div></div>`;
+        $('[data-go]', out).onclick = async ev => {
+          busy(ev.currentTarget, true, 'Importing…'); stop(true);
+          try {
+            const res = await Cloud.rpc('shop_members_import_csv', { p_rows: rows, p_dry_run: false }, { timeout: 180000 });
+            if (!res.ok) return showErrors(res);
+            out.innerHTML = `<div class="imp-ok"><h3>${Icon('check')} Import complete</h3><p><b>${nf(res.added)}</b> added · <b>${nf(res.updated)}</b> updated${res.logins ? ` · <b>${nf(res.logins)}</b> app logins made` : ''} · you now have <b>${nf(res.members_total)}</b> ${esc(L().toLowerCase())}.</p><div class="toolbar"><button type="button" class="btn btn-primary" data-close>Done</button></div></div>`;
+            toast(`Import done: ${nf(res.added)} added, ${nf(res.updated)} updated.`, 'ok');
+            filter = 'all'; load(true);
+          } catch (ex) { fail(`${esc(ex.message)}<br>An import is all-or-nothing, so nothing was saved halfway. Choose the file again — the same file never adds anyone twice.`); }
+          finally { stop(false); }
+        };
+      } catch (ex) { fail(esc(ex.message)); }
+      finally { stop(false); }
+    };
+  }
+
   /* ---------- attendance & check-in QR ---------- */
   async function attendance() {
     let day = Fmt.today();
@@ -624,6 +736,7 @@ const Members = (() => {
           ${attOn() ? `<button type="button" class="btn" id="mAtt">${Icon('scan')} Attendance</button>` : ''}
           ${Store.can('members_plans') ? `<button type="button" class="btn" id="mPlans">${Icon('layers')} Plans</button>` : ''}
           ${appOn ? `<button type="button" class="btn" id="mApp">${Icon('megaphone')} Member app</button>` : ''}
+          ${Store.can('members_add') ? `<button type="button" class="btn" id="mImp">${Icon('upload')} Import</button>` : ''}
           ${Store.can('members_add') ? `<button type="button" class="btn btn-primary" data-add>${Icon('plus')} Add ${esc(L1().toLowerCase())}</button>` : ''}</div></header>
       <div id="mAlert"></div>
       <div class="filters m-filters"><div class="seg seg-scroll" id="mFilters"></div><label class="search-box">${Icon('search')}<input type="search" id="mSearch" placeholder="Search name, number, ID, seat or locker" value="${esc(q)}" aria-label="Search"></label></div>
@@ -632,6 +745,7 @@ const Members = (() => {
     $('#mAtt', view)?.addEventListener('click', () => data && attendance());
     $('#mPlans', view)?.addEventListener('click', () => data && plans());
     $('#mApp', view)?.addEventListener('click', () => data && memberApp());
+    $('#mImp', view)?.addEventListener('click', () => data && importMembers());
     $('.page', view).addEventListener('click', e => {
       const fb = e.target.closest('[data-filter]'); if (fb) { filter = fb.dataset.filter; render(); return; }
       if (e.target.closest('[data-add]')) return data && editor();

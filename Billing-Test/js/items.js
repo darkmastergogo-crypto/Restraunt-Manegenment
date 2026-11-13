@@ -313,11 +313,52 @@ const Items = (() => {
   }
   const blankRec = r => r.cells.every(c => c.trim() === '') && !r.err;
 
+  /* Header names people actually use (Tally, Vyapar, Excel lists…) → our columns. "Sale Price (₹)" → sale_price → price. */
+  const normHead = h => String(h || '').toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[₹%]/g, ' ').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const ITEM_COLS = {
+    name: ['name', 'item', 'items', 'item_name', 'product', 'product_name', 'particulars', 'item_description', 'description_of_goods', 'goods'],
+    code: ['code', 'barcode', 'bar_code', 'sku', 'item_code', 'product_code', 'ean', 'upc'],
+    category: ['category', 'group', 'item_group', 'category_name', 'department', 'stock_group'],
+    unit: ['unit', 'uom', 'units', 'unit_name'],
+    price: ['price', 'sale_price', 'selling_price', 'sell_price', 'sales_price', 'sale_rate', 'selling_rate', 'sell_rate', 'sales_rate', 'rate', 'sp', 's_p', 'retail_price', 'retail_rate', 'price_per_unit', 'sale'],
+    mrp: ['mrp', 'm_r_p', 'max_retail_price', 'maximum_retail_price'],
+    cost_price: ['cost_price', 'cost', 'purchase_price', 'purchase_rate', 'purchase', 'buy_price', 'buying_price', 'buy_rate', 'cost_rate', 'pp', 'p_p', 'purchase_cost', 'landing_cost', 'landing_price', 'net_rate', 'cp'],
+    stock: ['stock', 'qty', 'quantity', 'opening_stock', 'closing_stock', 'stock_qty', 'current_stock', 'in_stock', 'opening_qty', 'balance_qty'],
+    low_stock_at: ['low_stock_at', 'min_stock', 'minimum_stock', 'reorder_level', 'reorder_qty', 'alert_qty', 'low_stock'],
+    hsn: ['hsn', 'hsn_code', 'sac', 'hsn_sac', 'hsn_sac_code'],
+    tax_rate: ['tax_rate', 'gst', 'gst_rate', 'tax', 'tax_percent', 'gst_percent', 'vat', 'igst', 'igst_rate'],
+    default_discount: ['default_discount', 'discount', 'discount_percent', 'disc'],
+    alias: ['alias', 'local_name', 'hindi_name', 'bill_name', 'name_on_bill']
+  };
+  const MONEY = new Set(['price', 'mrp', 'cost_price']), NUMS = new Set(['stock', 'low_stock_at', 'tax_rate', 'default_discount']);
+  /* "₹ 1,250.505 /-" → "1250.51"; anything that is not a plain number is left for the server to report. */
+  function cleanNum(v, money) {
+    let s = String(v || '').trim(); if (!s) return '';
+    s = s.replace(/₹|rs\.?|inr|\/-|%/gi, '').replace(/[,\s]/g, '');
+    if (/^\d+(\.\d+)?$/.test(s)) { const n = Number(s); if (money) return String(Math.round(n * 100) / 100); return s.includes('.') && s.split('.')[1].length > 3 ? String(Math.round(n * 1000) / 1000) : s; }
+    return String(v).trim();
+  }
+  /* Maps a header row to our columns. Returns { cols: [canonical|null per column], used: [[ours, theirs]], ignored: [theirs] } */
+  function mapHeader(raw, table) {
+    const taken = new Set(), cols = [], used = [], ignored = [];
+    raw.forEach((h, n) => {
+      const k = normHead(h), ours = Object.keys(table).find(c => table[c].includes(k));
+      if (ours && !taken.has(ours)) { taken.add(ours); cols.push(ours); used.push([ours, String(h).trim() || `column ${n + 1}`]); }
+      else { cols.push(null); if (String(h).trim()) ignored.push(String(h).trim()); }
+    });
+    return { cols, used, ignored, taken };
+  }
+
+  const COL_LABEL = { name: 'Name', code: 'Code', category: 'Category', unit: 'Unit', price: 'Selling price', cost_price: 'Purchase / cost price', stock: 'Stock', low_stock_at: 'Low stock alert', hsn: 'HSN', tax_rate: 'Tax %', default_discount: 'Discount %', alias: 'Name on bill' };
+  const colsUsed = (map, labels = COL_LABEL) => `<div class="imp-cols"><p><b>Columns read from your file:</b></p><ul>${map.used.map(([ours, theirs]) => `<li><span>${esc(theirs)}</span> → <b>${esc(labels[ours] || ours)}</b></li>`).join('')}</ul>
+      ${map.ignored.length ? `<p class="hint">Not used: ${map.ignored.map(esc).join(', ')}</p>` : ''}</div>`;
+
   function importCSV() {
     const d = modal('Import items from CSV', `<div class="imp">
       <p>Use a CSV file (Excel → Save As → CSV) with these column names in the first row:</p>
       <p class="mono small">${HEAD.join(', ')}</p>
-      <ul class="hint-list"><li><b>name</b> and <b>price</b> are needed. Every other column can be blank.</li>
+      <ul class="hint-list"><li>Only <b>name</b> is needed. <b>price</b> (selling price) and <b>cost_price</b> (purchase rate) are optional — if your file has them they are saved, if not they are left as they are.</li>
+        <li>Common names work too: <i>Item Name, Sale Price, Selling Price, Rate, MRP, Purchase Rate, Cost, Qty, GST %, Barcode</i>. Amounts like “₹1,200.00” are fine. Other columns are skipped.</li>
         <li>The whole file is checked first. If <b>any</b> row is wrong, <b>nothing</b> is imported and you see every problem at once.</li>
         <li>An item with the same <b>code</b> (or, when there is no code, the same name) is updated instead of added twice. A blank cell keeps the item’s current value.</li>
         <li>A number in <b>stock</b> sets the stock count and turns on stock tracking.</li></ul>
@@ -349,14 +390,19 @@ const Items = (() => {
         const recs = readCSV(text);
         if (!recs.length || blankRec(recs[0])) { out.innerHTML = `<div class="imp-fail" role="alert"><h3>${Icon('alert')} CSV Import Failed</h3><p>The file is empty. No items were imported. Use the template for the right layout.</p></div>`; return; }
         if (recs[0].cells.length === 1 && /[;\t|]/.test(recs[0].cells[0])) { out.innerHTML = `<div class="imp-fail" role="alert"><h3>${Icon('alert')} CSV Import Failed</h3><p>The columns in this file are separated by <b>;</b>, a tab or <b>|</b>, not by commas. In Excel choose <b>Save As → CSV (Comma delimited)</b>. No items were imported.</p></div>`; return; }
-        const head = recs[0].cells.map((h, n) => h.trim().toLowerCase().replace(/\s+/g, '_') || `(blank column ${n + 1})`);
+        const raw = recs[0].cells, map = mapHeader(raw, ITEM_COLS);
+        // MRP is used as the selling price only when the file has no selling-price column
+        const mrpAt = map.cols.indexOf('mrp');
+        if (mrpAt >= 0) { if (map.taken.has('price')) { map.cols[mrpAt] = null; map.ignored.push(raw[mrpAt].trim() + ' (selling price used instead)'); map.used = map.used.filter(u => u[0] !== 'mrp'); } else { map.cols[mrpAt] = 'price'; map.used = map.used.map(u => u[0] === 'mrp' ? ['price', u[1]] : u); } }
+        if (!map.cols.includes('name')) { out.innerHTML = `<div class="imp-fail" role="alert"><h3>${Icon('alert')} CSV Import Failed</h3><p>No item name column was found. The first row must have a column called <b>name</b> (or Item, Item Name, Product). Columns in your file: ${raw.map(h => `<b>${esc(h)}</b>`).join(', ')}. No items were imported.</p></div>`; return; }
+        const head = map.cols.filter(Boolean);
         const rows = [];
         recs.forEach((r, n) => {
           if (n === 0 || blankRec(r)) return;
-          let cells = r.cells; while (cells.length > head.length && cells[cells.length - 1].trim() === '') cells = cells.slice(0, -1);
+          let cells = r.cells; while (cells.length > raw.length && cells[cells.length - 1].trim() === '') cells = cells.slice(0, -1);
           const o = { _row: n + 1 };
-          head.forEach((h, c) => { o[h] = (cells[c] ?? '').trim().replace(/^'(?=[=+\-@])/, ''); });
-          if (cells.length !== head.length) o._error = `This row has ${cells.length} cells but the header has ${head.length} columns. Check for a missing or extra comma (a comma inside a name must be in quotes).`;
+          map.cols.forEach((h, c) => { if (!h) return; let v = (cells[c] ?? '').trim().replace(/^'(?=[=+\-@])/, ''); if (MONEY.has(h) || NUMS.has(h)) v = cleanNum(v, MONEY.has(h)); o[h] = v; });
+          if (cells.length !== raw.length) o._error = `This row has ${cells.length} cells but the header has ${raw.length} columns. Check for a missing or extra comma (a comma inside a name must be in quotes).`;
           else if (r.err) o._error = r.err;
           rows.push(o);
         });
@@ -366,6 +412,8 @@ const Items = (() => {
         if (!r.ok) return showErrors(r, file.name);
         out.innerHTML = `<div class="imp-ok"><h3>${Icon('check')} Your file is valid</h3>${counts(r.rows, r.rows, 0)}
           <p><b>${nf(r.to_add)}</b> new ${r.to_add === 1 ? 'item' : 'items'} will be added and <b>${nf(r.to_update)}</b> existing ${r.to_update === 1 ? 'item' : 'items'} will be updated${r.new_categories.length ? `. New ${r.new_categories.length === 1 ? 'category' : 'categories'}: ${r.new_categories.slice(0, 8).map(esc).join(', ')}${r.new_categories.length > 8 ? '…' : ''}` : ''}.</p>
+          ${colsUsed(map)}
+          ${r.new_without_price ? `<p class="due-preview bad">${Icon('alert')} ${nf(r.new_without_price)} new ${r.new_without_price === 1 ? 'item has' : 'items have'} no selling price and will be added at ${esc(Fmt.money(0))}. Set the price in Items before billing them.</p>` : ''}
           <div class="toolbar"><button type="button" class="btn btn-primary" data-go>Import ${plural(r.rows, 'item')}</button></div></div>`;
         $('[data-go]', out).onclick = async ev => {
           busy(ev.currentTarget, true, 'Importing…'); stop(true);
@@ -441,5 +489,5 @@ const Items = (() => {
     Store.loadItems(true).then(render).catch(e => toast(e.message, 'error'));
   }
   document.addEventListener('items:changed', render);
-  return { mount, editor, unmount() { root = null; } };
+  return { mount, editor, unmount() { root = null; }, csv: { readCSV, blankRec, mapHeader, cleanNum, colsUsed, normHead } };
 })();

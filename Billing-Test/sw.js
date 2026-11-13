@@ -1,7 +1,7 @@
 /* Keeps the app's own files on the device so it opens instantly and opens at all with no
    internet. Bills are not cached here: they live in the device's own database (js/offline/). */
-const CACHE = 'shopbill-v8';
-const V = '?v=8';
+const CACHE = 'shopbill-v9';
+const V = '?v=9';
 const APP = ['config.js', 'css/app.css', 'js/cloud.js', 'js/themes.js', 'js/ui.js', 'js/calc.js',
   'js/offline/local-db.js', 'js/offline/repo.js', 'js/offline/sync.js', 'js/offline/router.js', 'js/offline/ui.js',
   'js/qr.js', 'js/receipt.js', 'js/billing.js', 'js/records.js', 'js/dashboard.js', 'js/items.js', 'js/stocks.js',
